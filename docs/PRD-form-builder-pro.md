@@ -1,8 +1,8 @@
-# PRD — Form Builder Pro (v2 · foco: ir ao ar hoje)
+# PRD — Form Builder Pro (v2.1 · foco: ir ao ar hoje)
 
 > **Base:** prompt original do Lovable + leitura do código do repositório + respostas do Thiago.
 > **Limites de planos** verificados em 29/09/2026 (podem mudar; conferir antes de escalar).
-> **Nota:** o estado do código foi levantado **lendo**, sem rodar o app. O primeiro passo do plano é justamente rodar e testar.
+> **Verificado no repositório (29/09/2026):** o `build` passa e gera o Worker para a Cloudflare (0,86 MB compactado); o `tsc` **falha** (13 erros em `f.$slug.tsx`); não existem testes. A mensagem de sucesso personalizada hoje não aparece (bug). Detalhes em `specs/001-fase-0-no-ar/plan.md`; comportamento e tarefas em `specs/001-fase-0-no-ar/`.
 
 ---
 
@@ -41,7 +41,7 @@ Se o formulário tem um campo CPF, o mesmo CPF (com ou sem pontos/traço) só po
 *Aceite:* Dado limite 5 e 20 envios simultâneos, então exatamente 5 são gravados.
 
 **RF-05 — E-mail de confirmação com link de edição** · Must
-Ao concluir, se o formulário tem um campo e-mail, o inscrito recebe o resumo das respostas (CPF mascarado, ex.: `***.***.***-25`) e o link `/{slug}/editar/{token}`. **Se o e-mail falhar, a inscrição vale do mesmo jeito** e a tela final mostra o mesmo link com o aviso "guarde este link".
+Ao concluir, se o formulário tem um campo e-mail, o inscrito recebe o resumo das respostas (CPF e RG parcialmente ocultos, ex.: `***.***.***-25`) e o link `/editar/{token}` (**independe do endereço do formulário**, então trocar o endereço não quebra links já enviados). **Se o e-mail falhar, a inscrição vale do mesmo jeito** e a tela final mostra o mesmo link com o aviso "guarde este link".
 *Aceite:* Dado envio válido, então a resposta é gravada, o e-mail é disparado e a tela de sucesso mostra o link; se o serviço de e-mail estiver fora do ar, a inscrição continua gravada.
 
 **RF-06 — Editar inscrição pelo link** · Must
@@ -59,14 +59,18 @@ Campo opcional por formulário com o texto de consentimento; se preenchido, o ac
 Campo escondido (honeypot) que humanos não preenchem; envios com ele preenchido são descartados.
 
 **RF-10 — Endurecimento (interno)** · Must
-Remover leitura pública direta das tabelas (o formulário público já passa pelo servidor) e carregar Excel/PDF só quando o botão for clicado (para caber no limite de tamanho do Worker gratuito).
-*Aceite:* Dado a chave pública do banco, então não consigo listar formulários nem perguntas; o build do Worker gera pacote abaixo do limite.
+Remover leitura pública direta das tabelas (o formulário público já passa pelo servidor) e carregar Excel/PDF só quando o botão for clicado (deixa o sistema mais leve; o limite de 3 MB do Worker não é problema hoje).
+*Aceite:* Dado a chave pública do banco, então não consigo listar formulários nem perguntas; o pacote compactado do Worker continua abaixo de 3 MB (medido hoje: 0,86 MB).
 
 **RF-11 — URL personalizada do formulário** · Should (pequeno, entra na Fase 0)
 Como organizador, quero definir o final do endereço de cada formulário, direto depois da barra: `inscricoes.<domínio da Tríade>/skf-corrida-track-field` (sem `/f/`).
-*Regras:* 3 a 60 caracteres · só letras minúsculas, números e hífen (o campo converte ao digitar: acento some, espaço vira hífen) · não começa nem termina com hífen · **único** no sistema · **não pode ser nome reservado** do sistema (`auth`, `painel`, `formularios`, `f`, `saude`, `api`, `assets`, `favicon.ico`, `robots.txt` e afins). Se ficar vazio, é gerado a partir do título.
+*Regras:* 3 a 60 caracteres · só letras minúsculas, números e hífen (o campo converte ao digitar: acento some, espaço vira hífen) · não começa nem termina com hífen · **único** no sistema · **não pode ser nome reservado** do sistema (`auth`, `painel`, `formularios`, `api`, `saude`, `admin`, `assets`, `login`, `editar`). Se ficar vazio, é gerado a partir do título.
 *Aceite:* Dado "SKF Corrida Track&Field" digitado, então vira `skf-corrida-track-field`. Dado um endereço já usado por outro formulário, então aparece "endereço já em uso" (avisado ao digitar **e** garantido pelo banco ao salvar). Dado `painel`, então é recusado. Dado um formulário já publicado, quando troco o endereço, então aparece o aviso "o link antigo vai parar de funcionar" e o link antigo passa a mostrar "formulário não encontrado".
-*Impacto técnico:* a rota pública passa de `/f/{slug}` para `/{slug}` (as rotas fixas como `/painel` têm prioridade sobre a dinâmica) e o link de edição vira `/{slug}/editar/{token}`.
+*Impacto técnico:* a rota pública passa de `/f/{slug}` para `/{slug}` (as rotas fixas como `/painel` têm prioridade sobre a dinâmica) e o link de edição é `/editar/{token}`, **sem o slug**, justamente para que renomear o endereço não invalide links já enviados por e-mail.
+
+**RF-12 — Mensagem de sucesso personalizada** · Must (correção de bug)
+Hoje a mensagem que o administrador escreve **nunca aparece** (a tela lê um campo que o servidor não envia).
+*Aceite:* Dado a mensagem "Inscrição confirmada! Nos vemos na largada.", quando uma inscrição é concluída, então essa mensagem aparece.
 
 ### Depois (Fase 1) — não bloqueia o lançamento
 Data/hora de **abertura** · excluir resposta pela tela · upload de logotipo · duplicar formulário · busca na tabela · Cloudflare Turnstile (captcha) · reenvio do link pelo próprio inscrito · pré-visualização no editor.
@@ -141,7 +145,7 @@ Já existe: **Formulário** (título, descrição, status, tema, limite de vagas
 |---|---|---|
 | Formulário | texto de consentimento (opcional) | Se preenchido, aceite obrigatório |
 | Formulário | **regra do endereço (slug)**: o campo já existe e já é único; falta impor no banco o formato (minúsculas, números, hífen, 3–60) e a lista de nomes reservados | Ver RF-11 |
-| Resposta | **identificador** (CPF só com dígitos), **token de edição** (único), **atualizado em** | Único por (formulário + identificador). Identificador = a pergunta do tipo CPF, se houver. E-mail de confirmação = a pergunta do tipo e-mail, se houver. **Sem configuração extra.** |
+| Resposta | **identificador** (CPF só com dígitos), **token de edição** (único), **data do consentimento**, **atualizado em** | Único por (formulário + identificador). Identificador = a pergunta do tipo CPF, se houver. E-mail de confirmação = a pergunta do tipo e-mail, se houver. **Sem configuração extra.** |
 
 Cuidado conhecido: as respostas apontam para o ID da pergunta; **não exclua perguntas de um formulário que já tem inscritos** (os dados sumiriam da tabela).
 
@@ -150,27 +154,29 @@ Cuidado conhecido: as respostas apontam para o ID da pergunta; **não exclua per
 | # | Risco | Ação |
 |---|---|---|
 | R-01 | **10 ms de CPU** por requisição no Workers gratuito pode ser pouco para renderizar a página no servidor (erro 1102) | Testar no primeiro deploy. Se falhar: plano pago do Workers (a partir de US$ 5/mês), a única despesa provável |
-| R-02 | **Pacote > 3 MB** por causa das bibliotecas de Excel/PDF | RF-10 (carregar só ao clicar) |
+| R-02 | ~~Pacote > 3 MB por causa das bibliotecas de Excel/PDF~~ **Descartado por medição:** o Worker compilado tem 0,86 MB compactado (limite gratuito: 3 MB) | Manter o pacote sob controle; carregar Excel/PDF só ao clicar (RF-10) reduz peso |
 | R-03 | **Banco pausa** após 7 dias parado (evento vira "site fora do ar") | Monitor externo chamando `/saude` que consulta o banco |
 | R-04 | Sem backup no plano gratuito | Exportar Excel ao encerrar cada formulário |
 | R-05 | Conta pode já ter 2 projetos Supabase gratuitos ativos | Conferir; se sim, pausar/remover um ou pagar 1 plano |
 | R-06 | Limite de 100 e-mails/dia se dois eventos abrirem no mesmo dia | E-mail nunca bloqueia a inscrição; o link aparece na tela; RF-07 cobre |
 | R-07 | O link de edição funciona como "senha" da inscrição | Token longo e aleatório, nunca exibir CPF completo em e-mail |
 | R-08 | Variáveis de ambiente somem/erram no Cloudflare | Chave de serviço e chave do Resend como **Segredo** do Worker (não como variável de build); as chaves **públicas** do Supabase podem ficar no `.env` do repositório |
-| R-09 | Estado real do app desconhecido | Passo 1 do plano é rodar e testar |
+| R-09 | ~~Estado real do app desconhecido~~ **Verificado:** compila, mas `tsc` falha e não há testes | Task T-01 corrige e cria a base de testes |
 | R-10 | Trocar o endereço de um formulário **já divulgado** quebra o link que as pessoas têm | Aviso na tela (RF-11); depois de divulgar, evite mudar |
 | R-11 | Um formulário com nome igual a uma rota do sistema (ex.: `painel`) esconderia a tela do sistema | Lista de nomes reservados validada no servidor e no banco (RF-11) |
 
 ## 9. Plano de execução (ordem importa: risco primeiro)
 
 1. **Rodar o app local + criar projeto Supabase próprio** com as 2 migrações; criar o usuário admin; desligar cadastro público.
-2. **Deploy "esqueleto" no Workers + subdomínio** (mesmo antes das mudanças): valida R-01, R-02 e as variáveis. É o passo mais arriscado, por isso vem cedo.
-3. **Limpeza de acesso e rotas:** RF-01, RF-02, RF-10 e RF-11 (mover o formulário público de `/f/{slug}` para `/{slug}` já aqui, para não refazer o link de edição depois).
+2. **Deploy "esqueleto" no Workers + subdomínio** (mesmo antes das mudanças): valida R-01 e as variáveis de ambiente (R-02 já foi medido). É o passo mais arriscado, por isso vem cedo.
+3. **Limpeza de acesso e rotas:** RF-01, RF-02, RF-10 e RF-11 (mover o formulário público de `/f/{slug}` para `/{slug}`).
 4. **Regra de inscrição no banco:** RF-03 + RF-04 (função única) e ajuste da função de envio.
 5. **Verificar domínio no Resend** (registros DNS na Cloudflare; pode levar alguns minutos) e implementar RF-05.
 6. **Edição:** RF-06, RF-07, RF-08, RF-09.
 7. **Teste ponta a ponta com um formulário real:** 5 envios simultâneos para 3 vagas, CPF repetido, edição de 5 km → 10 km, prazo vencido, exportar Excel e PDF, celular.
 8. **Monitor externo** em `/saude` e publicação do primeiro formulário.
+
+> Detalhamento executável (spec, plano técnico, modelo de dados testado e 14 tarefas com verificação): `specs/001-fase-0-no-ar/`.
 
 ## 10. Confirmar (se não responder, sigo com o padrão)
 
