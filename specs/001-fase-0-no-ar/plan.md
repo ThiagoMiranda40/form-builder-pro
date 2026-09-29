@@ -65,7 +65,7 @@ Ordem:
 |---|---|
 | `slug.ts` (novo; `slug()` sai de `exports.ts`) | `RESERVED_SLUGS`, `sanitizeSlugInput(v)` (conversão ao digitar; mantém hífen final), `trimSlugEdges(v)` (ao sair do campo), `validateSlug(v): string \| null` (mensagens pt-BR do spec), `suggestSlug(title, suffix?)` |
 | `inscricao.ts` (novo) | `normalizeCPF`, `findIdentifierQuestion`, `findEmailQuestion`, `hideDocument` (mostra só os 2 últimos caracteres: `***.***.***-25`), `isHoneypotFilled`, `mapSubmitStatus` |
-| `confirmation-email.ts` (novo) | `escapeHtml`, `buildConfirmationEmail({form, questions, answers, editUrl, kind})`, `sendConfirmationEmail({fetchFn, apiKey, from, to, subject, html, text})` → `boolean`, **nunca lança** |
+| `confirmation-email.ts` (novo) | `escapeHtml`, `isSafeRecipient(email)`, `buildConfirmationEmail({form, questions, answers, editUrl, kind})`, `sendConfirmationEmail({fetchFn, apiKey, from, to, subject, html, text})` → `boolean`, **nunca lança** |
 | `theme.ts` (novo) | `readableTextColor(hex)`: devolve a cor de texto (`#ffffff` ou `#000000`) de maior contraste com o fundo informado |
 
 `normalizeCPF` reaproveita a lógica de dígitos de `validators.ts` (hoje `onlyDigits` não é exportada; exportar).
@@ -92,6 +92,15 @@ Ordem:
 | `RESEND_API_KEY`, `EMAIL_FROM` | Worker, **Segredo** | não | E-mail |
 
 Regra: cadastrar como **Segredo**, não como variável de build (variáveis de build somem a cada deploy). Deploy: Workers Builds (Git) com build `bun run build` e deploy `npx wrangler deploy` (deve usar o `.wrangler/deploy/config.json` gerado; **validar em T-03**; alternativa: `npx nitro deploy --prebuilt`). Domínio: "Domínio Personalizado" do Worker no painel (o DNS do domínio precisa estar na Cloudflare).
+
+### Decisões de segurança
+
+- **Proteção do link de edição:** A rota `/editar/$token` inclui as meta tags `referrer: "no-referrer"` e `robots: "noindex, nofollow"`, impedindo que o token na URL vaze em requisições a imagens/links externos (ex.: logotipo do tema configurado pelo organizador) ou seja indexado por motores de busca.
+- **Higiene de logs:** O servidor nunca registra o objeto `answers` ou dados pessoais em logs. Erros capturados em handlers ou middlewares (`start.ts` e `client.server.ts` quando decorrentes da inscrição) registram apenas a mensagem/código da falha e o ID do formulário.
+- **Tamanho do payload:** O schema Zod de submissão limita o objeto `answers` a no máximo 200 chaves (`.refine(obj => Object.keys(obj).length <= 200)`), protegendo o tempo de CPU do Worker.
+- **Limite de reenvio de e-mail por edição:** O e-mail de atualização só é disparado se tiverem passado pelo menos 10 minutos desde o último salvamento daquela inscrição (medido lendo o `updated_at` anterior antes de chamar `update_response`). Dentro da janela, os dados são salvos normalmente, `emailSent` retorna `false` e a interface não afirma envio de e-mail.
+- **Destinatário seguro:** A função `isSafeRecipient(email)` em `confirmation-email.ts` rejeita destinatários contendo caracteres como `, ; < > "` e espaços antes de invocar a API do Resend.
+- **Autenticação:** Política de senha forte (mínimo 12 caracteres + complexidade) configurada diretamente no Supabase Auth.
 
 ### Como cada camada é verificada
 

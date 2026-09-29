@@ -37,7 +37,7 @@ Arquivos: `.env`
 Fazer (no painel do Supabase; conferir antes que a conta não tem 2 projetos gratuitos ativos):
 1. Criar o projeto (região mais próxima do Brasil).
 2. Aplicar, **em ordem**, as 2 migrações de `supabase/migrations/` (SQL Editor ou `supabase db push`).
-3. Auth → criar o usuário administrador (e-mail + senha) e **desligar "permitir novos cadastros"**.
+3. Auth → definir a política de senha nas configurações de Auth (mínimo de 12 caracteres + complexidade com letras maiúsculas, minúsculas, números e símbolos); criar o usuário administrador com senha longa e forte e **desligar "permitir novos cadastros"**; anotar no relatório que a opção de política de senha está ativa.
 4. Copiar URL, chave pública (publishable) e chave de serviço (service role).
 5. Atualizar `.env` do repositório **somente** com URL e chave **pública** (as variáveis `VITE_SUPABASE_*` e `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` já presentes). **Nunca** colocar a chave de serviço no repositório.
 Verificação:
@@ -46,8 +46,8 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "$SUPABASE_URL/auth/v1/signup" 
   -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H "Content-Type: application/json" \
   -d '{"email":"intruso@example.com","password":"Senha-Forte-123"}'
 ```
-Esperado: **código 4xx** (cadastro recusado). E `git diff .env` mostra só URL/chave públicas do projeto novo.
-**O que isso prova:** o banco é seu, tem só o seu usuário, e ninguém consegue criar conta.
+Esperado: **código 4xx** (cadastro recusado). E `git diff .env` mostra só URL/chave públicas do projeto novo, com política de senha ativa com mín. 12 caracteres.
+**O que isso prova:** o banco é seu, tem só o seu usuário com senha forte, e ninguém consegue criar conta.
 
 ## T-03 — Esqueleto no ar: rota `/saude` + Cloudflare Workers + subdomínio
 Depende de: T-02 · Mitiga os riscos 1 e 2 do plano
@@ -97,7 +97,7 @@ Verificação: `bun run test -- slug && bunx tsc --noEmit && bun run build`.
 Depende de: T-05 · RF-11
 Arquivos: `src/routes/f.$slug.tsx` → **renomear para** `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/_authenticated.painel.tsx`
 Fazer:
-1. Mover a rota pública para `/$slug` (`createFileRoute("/$slug")`, `useParams({ from: "/$slug" })`); nada mais referencia `/f/`.
+1. Mover a rota pública para `/$slug` (`createFileRoute("/$slug")`, `useParams({ from: "/$slug" })`); nada mais referencia `/f/`. (Nota de segurança: no head de `/editar/$token`, planejado em T-06 e implementado em T-11, incluir meta `referrer=no-referrer` e `robots=noindex, nofollow`).
 2. Editor: no cartão "Link de compartilhamento", campo de endereço com prefixo `origin/` que converte ao digitar (`sanitizeSlugInput`), tira hífens das pontas ao sair do campo (`trimSlugEdges`), validação ao digitar (`validateSlug`), `publicUrl = ${origin}/${slug}`, aviso "links já compartilhados deixarão de funcionar" ao trocar em formulário publicado, e `slug` incluído no `save()`. Mapear erros do banco: `23505` → "Esse endereço já está em uso"; `23514`+`forms_slug_reserved` → "Esse nome é reservado pelo sistema"; `forms_slug_format` → mensagem de formato.
 3. Painel: criação com `suggestSlug(title, sufixoAleatório)`.
 Verificação:
@@ -116,7 +116,7 @@ E o roteiro manual (com o banco real): criar formulário, mudar o endereço para
 Depende de: T-03 · RF-01, RF-02
 Arquivos: `src/routes/auth.tsx`, `src/routes/index.tsx`
 Fazer:
-1. `auth.tsx`: remover o modo "criar conta" (campo nome, `signUp`, alternância), o botão Google e o import de `@/integrations/lovable`; título fixo "Entrar". **Não mexer** em `src/integrations/lovable/`.
+1. `auth.tsx`: remover o modo "criar conta" (campo nome, `signUp`, alternância), o botão Google e o import de `@/integrations/lovable`; remover `minLength` e o placeholder "Mínimo de 6 caracteres" do campo de senha no login (NÃO colocar 12 no HTML do login para não travar o admin; a política fica no Supabase Auth); título fixo "Entrar". **Não mexer** em `src/integrations/lovable/`.
 2. `index.tsx`: substituir o placeholder por `beforeLoad` com redirecionamento para `/painel` (o layout autenticado já manda quem não entrou para `/auth`).
 Verificação:
 ```bash
@@ -140,17 +140,19 @@ Fazer (testes primeiro):
 6. `escapeHtml('<script>alert(1)</script>')` não contém `<script>`; `buildConfirmationEmail` (a) inclui o link de edição, (b) **não** contém o CPF completo nem o RG completo, (c) escapa HTML vindo do inscrito, (d) diferencia "confirmada" de "atualizada".
 7. `sendConfirmationEmail` com `fetchFn` simulado: chama `https://api.resend.com/emails` com `Authorization: Bearer <chave>` e `to` correto; devolve `true` em 200; devolve `false` (e **não lança**) quando o `fetchFn` lança ou responde 500; se falta `apiKey`, devolve `false` sem chamar a rede.
 8. `readableTextColor(hex)` em `theme.ts`: esperados `#4f46e5` → `#ffffff`; `#000000` → `#ffffff`; `#ffff00` → `#000000`; `#22c55e` → `#000000`; `#ffffff` → `#000000`. Teste de varredura: para toda cor com canais R, G e B em {0, 51, 102, 153, 204, 255} (216 cores), o contraste WCAG (luminância relativa) entre o texto devolvido e o fundo é >= 4,5 (o teste calcula o contraste por conta própria).
+9. `isSafeRecipient(email)` em `confirmation-email.ts`: rejeita destinatários contendo caracteres como `, ; < > "` e espaços antes do envio; testes unitários (`a@b.com` → ok; `a@b.com,c.com`, `a@b.com;x@y.com`, `x<y@z.com>`, `"a"@b.com` → rejeitados).
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
-**O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, uma falha de e-mail nunca derruba uma inscrição e os botões garantem legibilidade com qualquer cor de tema.
+**O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, rejeita formatos de e-mail maliciosos ou múltiplos destinatários, uma falha de e-mail nunca derruba uma inscrição e os botões garantem legibilidade com qualquer cor de tema.
 
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
 Arquivos: `src/lib/public-forms.functions.ts`
 Fazer:
 1. `getPublicForm` passa a devolver `consent_text` (no `form`).
-2. Reescrever `submitResponse` conforme "Função de servidor de inscrição" do `plan.md` (honeypot → validação com `validateAnswer` devolvendo `field` → `identifier` → `rpc("submit_response")` → `mapSubmitStatus` → e-mail → `editUrl` com `getRequest()`), devolvendo `SubmitResult` com `emailSent: boolean`. Segredos lidos de `process.env` (`RESEND_API_KEY`, `EMAIL_FROM`).
-3. Nenhum caminho de resposta pode conter o `edit_token` além do `editUrl`.
-4. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
+2. Reescrever `submitResponse` conforme "Função de servidor de inscrição" do `plan.md` (honeypot → validação com `validateAnswer` devolvendo `field` → `identifier` → `rpc("submit_response")` → `mapSubmitStatus` → e-mail seguro com `isSafeRecipient` → `editUrl` com `getRequest()`), devolvendo `SubmitResult` com `emailSent: boolean`. Segredos lidos de `process.env` (`RESEND_API_KEY`, `EMAIL_FROM`). Exportar o schema Zod de submissão (`submitSchema`) com limite de 200 chaves no objeto `answers` (`.refine(obj => Object.keys(obj).length <= 200)`), com testes cobrindo 3 chaves válidas (passa) e 201 chaves (rejeitado).
+3. Higiene de logs: assegurar e testar que em caso de erro na gravação da inscrição o log de erro do servidor não contém o CPF nem o objeto `answers` (apenas código do erro e ID do formulário).
+4. Nenhum caminho de resposta pode conter o `edit_token` além do `editUrl`.
+5. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T-08 continua verde; e no banco real, chamar a função pela interface (T-10) e conferir uma linha nova em `responses` com `identifier`, `edit_token` e `consented_at` preenchidos conforme o formulário.
 **O que isso prova:** o servidor é a única porta de entrada, todas as regras (vagas, CPF único, consentimento) vêm do banco, e a inscrição vale mesmo com o e-mail fora do ar indicando corretamente o estado do envio.
 
@@ -170,11 +172,17 @@ Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro man
 Depende de: T-09 · RF-06, RF-13
 Arquivos: `src/lib/edit-response.functions.ts` (novo), `src/routes/editar.$token.tsx` (novo)
 Fazer (testes das partes puras primeiro, reaproveitando `inscricao.ts`):
-1. `getResponseForEdit` e `updateResponseByToken` conforme o `plan.md` (`identifier_locked` → "O CPF não pode ser alterado."; formulário encerrado/prazo vencido → estado `closed`; token desconhecido → `not_found`), devolvendo `{ ok: true, emailSent: boolean }`.
-2. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
-3. Tela: tema do formulário, perguntas preenchidas, **CPF somente leitura**, sem consentimento, sem vaga; botão principal usa `readableTextColor`; ao salvar mostra "Alterações salvas" e avisa do novo e-mail somente se `emailSent === true`.
-Verificação: `bun run test && bunx tsc --noEmit && bun run build`; roteiro manual do cenário 1 do `spec.md` (5 km → 10 km); abrir o link com o formulário encerrado (mostra "edição encerrada"); abrir `/editar/token-falso` (mostra "não encontrado").
-**O que isso prova:** o inscrito corrige a própria distância sem chamar você, sem gastar vaga e sem conseguir trocar o CPF.
+1. `getResponseForEdit` e `updateResponseByToken` conforme o `plan.md` (`identifier_locked` → "O CPF não pode ser alterado."; formulário encerrado/prazo vencido → estado `closed`; token desconhecido → `not_found`), devolvendo `{ ok: true, emailSent: boolean }`. Limite de 10 minutos para reenvio de e-mail por inscrição: o servidor lê o `updated_at` anterior ANTES de chamar `update_response`; se decorridos menos de 10 minutos, salva normalmente, nenhuma chamada de envio de e-mail é disparada e retorna `emailSent: false`; se decorridos 10 minutos ou mais, envia e-mail com "Inscrição atualizada" e retorna `emailSent: boolean`.
+2. Testes com `fetchFn` simulado e relógio injetado: 2ª edição dentro de 10 min → salva, nenhuma chamada de e-mail, `emailSent: false`; após 10 min → envia; e testes cobrindo falha ou ausência de e-mail no formulário.
+3. Tela `src/routes/editar.$token.tsx`: no `head`, incluir as meta tags `referrer=no-referrer` e `robots=noindex, nofollow`; tema do formulário, perguntas preenchidas, **CPF somente leitura**, sem consentimento, sem vaga; botão principal usa `readableTextColor`; ao salvar mostra "Alterações salvas" e avisa do novo e-mail somente se `emailSent === true`.
+Verificação:
+```bash
+bun run test && bunx tsc --noEmit && bun run build
+bun run dev -- --host 127.0.0.1 --port 5173 & sleep 8
+curl -s 127.0.0.1:5173/editar/x | grep -o 'no-referrer'   # esperado encontrar 'no-referrer'
+```
+E o roteiro manual do cenário 1 do `spec.md` (5 km → 10 km); abrir o link com o formulário encerrado (mostra "edição encerrada"); abrir `/editar/token-falso` (mostra "não encontrado").
+**O que isso prova:** o inscrito corrige a própria distância sem chamar você, sem gastar vaga e sem conseguir trocar o CPF; e o token na URL não é vazado para serviços externos nem indexado por buscadores.
 
 ## T-12 — Administração: copiar link de edição e exportações leves
 Depende de: T-09 · RF-07
@@ -197,7 +205,7 @@ Depende de: T-10, T-11, T-12, T-03
 Fazer:
 1. Resend: criar conta, **verificar o subdomínio de envio** (registros DNS na Cloudflare; pode levar alguns minutos), cadastrar `RESEND_API_KEY` e `EMAIL_FROM` como **Segredo** no Worker.
 2. Monitor externo gratuito chamando `https://inscricoes.<dominio>/saude` a cada poucos minutos (evita a pausa do banco e avisa de queda).
-3. Rodar os **5 cenários-chave** do `spec.md` no endereço real, no celular, **com gravação de tela**; exportar Excel e PDF; guardar um Excel de backup ao final.
+3. Rodar os **5 cenários-chave** do `spec.md` no endereço real, no celular, **com gravação de tela**; garantir como regra operacional que todo formulário publicado tem limite de vagas definido; exportar Excel e PDF; guardar um Excel de backup ao final.
 Verificação: os 5 cenários do `spec.md` passam; `curl https://inscricoes.<dominio>/saude` → `ok`; o e-mail chega com o CPF ocultado e o link funciona.
 **O que isso prova:** o sistema está pronto para o primeiro evento real.
 

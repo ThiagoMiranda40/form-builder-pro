@@ -32,7 +32,7 @@ Como inscrito, quero receber por e-mail o resumo do que enviei e um link para co
 
 ### RF-06 — Editar a inscrição pelo link
 Como inscrito, quero mudar minha resposta (ex.: de 5 km para 10 km) sem falar com o organizador.
-**Critério:** Dado o link de edição e o formulário aberto, quando troco "5 km" por "10 km" e salvo, então a tabela do administrador mostra "10 km", **nenhuma vaga extra é consumida**, o CPF aparece bloqueado (não editável) e um novo e-mail com o resumo é enviado. Dado o formulário encerrado ou com prazo vencido, então o link mostra "edição encerrada". Vagas esgotadas **não** impedem a edição. A tela só afirma que enviou e-mail quando o envio foi bem-sucedido.
+**Critério:** Dado o link de edição e o formulário aberto, quando troco "5 km" por "10 km" e salvo, então a tabela do administrador mostra "10 km", **nenhuma vaga extra é consumida**, o CPF aparece bloqueado (não editável) e um novo e-mail com o resumo é enviado. Dado o formulário encerrado ou com prazo vencido, então o link mostra "edição encerrada". Vagas esgotadas **não** impedem a edição. A tela só afirma que enviou e-mail quando o envio foi bem-sucedido. O e-mail após edição é enviado no máximo 1 vez a cada 10 minutos por inscrição; a edição é salva normalmente mesmo quando o e-mail não é enviado.
 
 ### RF-07 — Administrador copia o link de edição
 Como administrador, quero copiar o link de edição de qualquer inscrito, para reenviar quando ele perder o e-mail.
