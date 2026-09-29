@@ -33,12 +33,14 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - O organizador pode definir qualquer cor hexadecimal como tema do formulário (`theme.color`), incluindo tons claros (ex.: `#ffff00`, `#22c55e`, `#ffffff`) ou escuros (ex.: `#4f46e5`, `#000000`).
 - **Regra:** O texto do botão principal de submissão (tanto em `/$slug` quanto em `/editar/$token`) e do badge circular de sucesso deve ter **o maior contraste possível** com a cor do tema:
   - Fundo escuro (ex.: `#4f46e5`, `#000000`) → Texto branco (`#ffffff`).
-  - Fundo claro (ex.: `#ffff00`, `#22c55e`, `#ffffff`) → Texto escuro (`#0f172a`).
+  - Fundo claro (ex.: `#ffff00`, `#22c55e`, `#ffffff`) → Texto preto puro (`#000000`).
+  - Motivo técnico: com `#0f172a`, o pior caso medido de contraste é 4,23:1 (abaixo do limiar); com `#000000`, o pior caso medido é 4,58:1, o que garante conformidade estrita com o WCAG AA (>= 4,5:1) para qualquer cor de tema possível.
   - A cor de fundo escolhida pelo organizador **nunca é alterada**.
   - A regra é executada pela função pura `readableTextColor(hex)` em `src/lib/theme.ts`.
 
 ### 1.3 Alvos de Toque Mobile-first (WCAG 2.5.5 / 2.5.8)
-- Em telas móveis (360 px), todos os botões, checkboxes, radios e inputs possuem altura mínima de `44px` ou preenchimento vertical generoso (`py-2.5` a `py-3`) com área de toque mínima de `44 x 44 px`.
+- A regra de alvos de toque mínimos de 44px (ou preenchimento vertical `py-2.5` a `py-3` com área de toque mínima de `44 x 44 px`) vale para as telas públicas (`/$slug` e `/editar/{token}`) e para a tela de autenticação `/auth`.
+- A tabela de respostas do administrador (`/formularios/$id/respostas`) mantém a densidade de dados e o botão compacto atual (`py-1.5`), adequado para a visualização de múltiplas linhas pelo administrador em desktop.
 
 ---
 
@@ -64,7 +66,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
       L --> M
       M --> N{Resposta do Banco ao Salvar}
       N -->|Erro 23505| O[Exibe erro no campo: 'Esse endereço já está em uso.']
-      N -->|Sucesso| P[Toast: 'Formulário salvo!' e atualiza URL completa]
+      N -->|Sucesso| P[Toast: 'Alterações salvas.' ou 'Formulário publicado! O link já pode ser compartilhado.']
   ```
 
 ### 2.2 Wireframes de Baixa Fidelidade
@@ -94,9 +96,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | [ Copiar link ] [ Abrir link ↗ ]   |
 +------------------------------------+
 | ABAS DO EDITOR                     |
-| [Pergunta] [Aparência] [Limites]   |
+| [Pergunta] [Aparência] [Limites e Termos] |
 +------------------------------------+
-| (Aba Limites selecionada)          |
+| (Aba Limites e Termos selecionada) |
 |                                    |
 | Limite de respostas / vagas        |
 | [ 50                             ] |
@@ -129,7 +131,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |     se você alterar o endereço.                                                                    |
 +----------------------------------------------------------------------------------------------------+
 | PERGUNTAS DO FORMULÁRIO                          | CONFIGURAÇÕES                                   |
-| +----------------------------------------------+ | [ Pergunta ] [ Aparência ] [ Limites ]          |
+| +----------------------------------------------+ | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
 | | 1. [CPF] CPF do Atleta                   ::: | |                                                 |
 | | 2. [Texto] Nome completo                 ::: | | Limite de respostas / vagas:                    |
 | | 3. [Escolha única] Modalidade            ::: | | [ 50                                          ] |
@@ -158,7 +160,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Erro do Banco ao Salvar (23505)** | Conflito de unicidade retornado no save: *"Esse endereço já está em uso."*. |
 | **Aviso: Formulário Publicado** | Bloco âmbar (`bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 rounded-lg p-3 text-xs`) visível quando `form.status === "published"` e o slug foi alterado: *"Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço."*. |
 | **Salvando** | Botão "Salvar" desabilitado com texto *"Salvando..."*. |
-| **Sucesso** | Toast via Sonner: *"Formulário salvo com sucesso!"*. |
+| **Sucesso** | Toast via Sonner com os textos já usados no código: *"Alterações salvas."* ao salvar alterações e *"Formulário publicado! O link já pode ser compartilhado."* ao publicar. |
 
 ### 2.4 Textos Exatos da Interface
 - **Rótulo do slug:** "Endereço do formulário"
@@ -167,6 +169,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Erro reservado:** "Esse nome é reservado pelo sistema."
 - **Erro banco (23505):** "Esse endereço já está em uso."
 - **Alerta de republicação:** "Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço."
+- **Toast ao salvar alterações:** "Alterações salvas."
+- **Toast ao publicar formulário:** "Formulário publicado! O link já pode ser compartilhado."
 - **Rótulo do consentimento:** "Texto de consentimento (LGPD)"
 - **Ajuda do consentimento:** "Opcional. Se preenchido, o participante só poderá concluir a inscrição após marcar a caixa de aceite."
 
@@ -202,7 +206,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
       K --> N
       N --> O[Envia payload com campo hp invisível]
       O --> P{Validação do Servidor e Banco}
-      P -->|CPF Duplicado| Q[Erro no campo CPF: 'CPF já inscrito. Use o link de edição enviado ao seu e-mail.']
+      P -->|CPF Duplicado| Q[Erro no campo CPF: 'CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.']
       P -->|Vagas Esgotadas no Envio| R[Alerta: 'O limite de inscrições foi atingido.']
       P -->|Prazo Expirado no Envio| S[Alerta: 'O prazo de preenchimento encerrou.']
       P -->|Sucesso| T[Exibe Tela de Sucesso]
@@ -227,7 +231,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | CPF *                              |
 | [ 529.982.247-25                 ] |
 | (X) CPF já inscrito. Use o link de | <- erro ancorado no campo CPF
-|     edição enviado ao seu e-mail.  |
+|     edição enviado ao seu e-mail   |
+|     ou fale com o organizador.     |
 |                                    |
 | Nome completo *                    |
 | [ Maria da Silva                 ] |
@@ -337,7 +342,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Formulário Aberto** | Campos do formulário com `fieldClass`, máscara de CPF/telefone/RG, badges de vagas e prazo. Botão com `backgroundColor: accent` e `color: readableTextColor(accent)`. |
 | **Anti-robô (Honeypot)** | Campo com atributo invisível ao humano (`style={{ position: "absolute", left: "-9999px", opacity: 0 }}`, `tabIndex={-1}`, `autoComplete="off"`). |
 | **Erro: Consentimento** | Mensagem vermelha abaixo da caixa: *"É necessário aceitar o termo para continuar."*. |
-| **Erro: CPF Duplicado** | Mensagem no próprio campo CPF com foco automático: *"CPF já inscrito. Use o link de edição enviado ao seu e-mail."*. |
+| **Erro: CPF Duplicado** | Mensagem no próprio campo CPF com foco automático: *"CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."*. |
 | **Erro Geral (Banco)** | Alertas no topo: *"O limite de inscrições foi atingido."* ou *"O prazo de preenchimento encerrou."*. |
 | **Enviando** | Botão com opacidade reduzida (`disabled={true}`), texto *"Enviando..."*. |
 | **Sucesso (emailSent === true)** | Mensagem do admin + link de edição + botão "Copiar link" + aviso "guarde este link" + frase *"Enviamos um resumo e o link para o seu e-mail."*. |
@@ -347,7 +352,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 ### 3.4 Textos Exatos da Interface
 - **Botão de envio:** "Enviar inscrição"
 - **Erro consentimento:** "É necessário aceitar o termo para continuar."
-- **Erro CPF duplicado:** "CPF já inscrito. Use o link de edição enviado ao seu e-mail."
+- **Erro CPF duplicado:** "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."
 - **Título de sucesso:** "Tudo certo!"
 - **Rótulo do link:** "Link para editar sua inscrição:"
 - **Botão copiar link:** "Copiar link"
@@ -366,7 +371,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 ## 4. Tela C — Página de Edição de Inscrição (`/editar/{token}`)
 
 ### 4.1 Objetivo e Fluxo
-- **Objetivo:** Permitir ao inscrito retificar suas respostas sem acionar o organizador (RF-06). A rota é direta por token (`/editar/{token}`), exibe o CPF bloqueado como somente leitura, não reexibe o termo LGPD, não consome vaga, e informa sobre o reenvio de e-mail apenas quando `emailSent === true`.
+- **Objetivo:** Permitir ao inscrito retificar suas respostas sem acionar o organizador (RF-06). A rota é direta por token (`/editar/{token}`), exibe o CPF bloqueado como somente leitura, aplica a **fonte do tema** (`theme.font`: `body`/`display`/`serif`, utilizando a mesma lógica `fontClass` do formulário público), além do logotipo e da cor (`accent` com `readableTextColor`), não reexibe o termo LGPD, não consome vaga, e informa sobre o reenvio de e-mail apenas quando `emailSent === true`.
 - **Fluxo do Inscrito:**
   ```mermaid
   flowchart TD
@@ -472,8 +477,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |           ( ⏱ )                    |
 |      Edição encerrada              |
 |                                    |
-| O prazo para este formulário já    |
-| terminou.                          |
+| Este formulário não aceita mais    |
+| alterações.                        |
 +------------------------------------+
 ```
 
@@ -485,7 +490,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Salvando** | Botão "Salvar alterações" desabilitado com texto *"Salvando..."*. |
 | **Sucesso (emailSent === true)** | Banner verde no topo: *"Alterações salvas! Enviamos um resumo atualizado para o seu e-mail."*. |
 | **Sucesso (emailSent === false)** | Banner verde no topo: *"Alterações salvas!"* (sem menção a e-mail). |
-| **Edição Encerrada** | Quando `state === "closed"`: frame com título *"Edição encerrada"* e corpo *"O prazo para este formulário já terminou."*. |
+| **Edição Encerrada** | Quando `state === "closed"`: frame com título *"Edição encerrada"* e corpo *"Este formulário não aceita mais alterações."* (vale tanto para prazo vencido quanto para encerramento manual). |
 | **Não Encontrado** | Quando `state === "not_found"`: título *"Inscrição não encontrada"* e corpo *"Verifique se o link está correto."*. |
 
 ### 4.4 Textos Exatos da Interface
@@ -497,12 +502,13 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Sucesso com e-mail:** "Alterações salvas! Enviamos um resumo atualizado para o seu e-mail."
 - **Sucesso sem e-mail:** "Alterações salvas!"
 - **Título de edição encerrada:** "Edição encerrada"
-- **Texto de edição encerrada:** "O prazo para este formulário já terminou."
+- **Texto de edição encerrada:** "Este formulário não aceita mais alterações."
 - **Título não encontrado:** "Inscrição não encontrada"
 - **Texto não encontrado:** "Verifique se o link está correto."
 
 ### 4.5 Markup e Classes Reutilizadas (de `f.$slug.tsx`)
 - Mesma casca `Frame` (`glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8`).
+- Tipografia do tema aplicada na raiz do container com `fontClass` (`theme?.font === "display" ? "font-display" : theme?.font === "serif" ? "font-serif" : "font-body"`).
 - Mesma classe de campo `fieldClass`.
 - Campo CPF bloqueado: `<input readOnly value={cpf} className={`${fieldClass} bg-black/[0.03] cursor-not-allowed`} />`.
 - Botão: `style={{ backgroundColor: accent, color: readableTextColor(accent) }}`.
@@ -665,9 +671,10 @@ Não há dependência de novos componentes pesados de UI; o projeto reaproveita 
 ## 8. Propostas de Mudança no spec / plan / tasks
 
 As propostas discutidas e incorporadas na documentação oficial:
-1. **Contrato do Servidor com `emailSent: boolean`:** Incorporado no `plan.md` e `tasks.md` para suportar a exibição condicional da mensagem de confirmação de e-mail na tela de sucesso e na tela de edição.
-2. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`.
-3. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
+1. **Rótulo da Aba no Editor:** Renomear o rótulo da aba existente de "Limites" para **"Limites e Termos"** (mantendo a chave interna `limites`), posicionando o campo de consentimento LGPD junto às configurações de encerramento e capacidade do formulário.
+2. **Contrato do Servidor com `emailSent: boolean`:** Incorporado no `plan.md` e `tasks.md` para suportar a exibição condicional da mensagem de confirmação de e-mail na tela de sucesso e na tela de edição.
+3. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`, devolvendo `#ffffff` ou `#000000` para garantir contraste >= 4,5:1.
+4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
 
 ---
 

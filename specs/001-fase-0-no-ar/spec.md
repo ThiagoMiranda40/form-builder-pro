@@ -20,7 +20,7 @@ Como visitante, quero cair em uma página útil ao abrir o endereço raiz.
 
 ### RF-03 — Inscrição única por CPF
 Como administrador, quero que o mesmo CPF não se inscreva duas vezes no mesmo formulário, para não gastar vagas com duplicidade.
-**Critério:** Dado o CPF `529.982.247-25` já inscrito, quando alguém envia `52998224725` (com ou sem pontos e traço), então recebe "CPF já inscrito. Use o link de edição enviado ao seu e-mail" e nada é gravado. Formulários sem campo CPF não têm essa regra.
+**Critério:** Dado o CPF `529.982.247-25` já inscrito, quando alguém envia `52998224725` (com ou sem pontos e traço), então recebe "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador." e nada é gravado. Formulários sem campo CPF não têm essa regra.
 
 ### RF-04 — Limite de vagas seguro
 Como administrador, quero que o número de inscrições nunca ultrapasse o limite, mesmo com muitas pessoas enviando ao mesmo tempo.
@@ -66,7 +66,7 @@ Como administrador, quero que a mensagem de sucesso que escrevi apareça ao fina
 
 ### RF-13 — Legibilidade dos botões com qualquer cor de tema
 Como inscrito ou participante, quero conseguir ler com clareza o texto dos botões de ação independentemente da cor definida pelo organizador.
-**Critério:** Dado o tema com cor `#ffff00` ou `#22c55e`, o texto do botão fica escuro; com `#4f46e5` ou `#000000`, fica branco; com `#ffffff`, fica escuro. A cor escolhida pelo organizador não é alterada.
+**Critério:** Dado o tema com cor `#ffff00` ou `#22c55e`, o texto do botão fica preto (`#000000`); com `#4f46e5` ou `#000000`, fica branco (`#ffffff`); com `#ffffff`, fica preto (`#000000`). Com qualquer cor de tema, o contraste entre o texto e o fundo do botão é de pelo menos 4,5:1. A cor escolhida pelo organizador não é alterada.
 
 ## Fora de escopo (produto)
 

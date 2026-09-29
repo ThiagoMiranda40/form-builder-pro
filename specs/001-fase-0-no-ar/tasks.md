@@ -139,7 +139,7 @@ Fazer (testes primeiro):
 5. `mapSubmitStatus` cobre `duplicate`, `full`, `closed`, `unavailable`, `consent_required`, `ok` com as mensagens do `plan.md`; status desconhecido → erro genérico.
 6. `escapeHtml('<script>alert(1)</script>')` não contém `<script>`; `buildConfirmationEmail` (a) inclui o link de edição, (b) **não** contém o CPF completo nem o RG completo, (c) escapa HTML vindo do inscrito, (d) diferencia "confirmada" de "atualizada".
 7. `sendConfirmationEmail` com `fetchFn` simulado: chama `https://api.resend.com/emails` com `Authorization: Bearer <chave>` e `to` correto; devolve `true` em 200; devolve `false` (e **não lança**) quando o `fetchFn` lança ou responde 500; se falta `apiKey`, devolve `false` sem chamar a rede.
-8. `readableTextColor(hex)` em `theme.ts`: `#4f46e5` → branco (`#ffffff`); `#ffff00` → escuro (`#0f172a`); `#22c55e` → escuro (`#0f172a`); `#000000` → branco (`#ffffff`); `#ffffff` → escuro (`#0f172a`).
+8. `readableTextColor(hex)` em `theme.ts`: esperados `#4f46e5` → `#ffffff`; `#000000` → `#ffffff`; `#ffff00` → `#000000`; `#22c55e` → `#000000`; `#ffffff` → `#000000`. Teste de varredura: para toda cor com canais R, G e B em {0, 51, 102, 153, 204, 255} (216 cores), o contraste WCAG (luminância relativa) entre o texto devolvido e o fundo é >= 4,5 (o teste calcula o contraste por conta própria).
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
 **O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, uma falha de e-mail nunca derruba uma inscrição e os botões garantem legibilidade com qualquer cor de tema.
 
@@ -156,12 +156,13 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T
 
 ## T-10 — Tela de inscrição: consentimento, anti-robô, sucesso com link, mensagens
 Depende de: T-06, T-09 · RF-05, RF-08, RF-09, RF-12, RF-13
-Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento; incluir `consent_text` no `save()`)
+Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento na aba "Limites e Termos"; incluir `consent_text` no `save()`)
 Fazer:
 1. Caixa de consentimento (texto do formulário) quando existir; `hp` invisível (`tabIndex={-1}`, `autoComplete="off"`, fora da tela); envio com `{ slug, answers, consent, hp }`.
-2. Usar `readableTextColor` no botão principal de envio.
-3. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF.
-4. Tela de sucesso: mostra `result.message`, o `editUrl` com botão "Copiar link", o aviso "guarde este link", e mostra a linha "Enviamos um resumo e o link para o seu e-mail" SOMENTE se `result.emailSent === true`.
+2. Editor: renomear apenas o rótulo da aba existente "Limites" para "Limites e Termos" (a chave interna `limites` não muda) e posicionar o campo de texto de consentimento dentro dela.
+3. Usar `readableTextColor` no botão principal de envio.
+4. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF ("CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.").
+5. Tela de sucesso: mostra `result.message`, o `editUrl` com botão "Copiar link", o aviso "guarde este link", e mostra a linha "Enviamos um resumo e o link para o seu e-mail" SOMENTE se `result.emailSent === true`.
 Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece, botão legível com cor customizada.
 **O que isso prova:** RF-03, RF-08, RF-12 e RF-13 funcionando como o usuário final vê.
 
