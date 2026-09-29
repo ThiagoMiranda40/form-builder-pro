@@ -84,6 +84,10 @@ export const getPublicForm = createServerFn({ method: "GET" })
     };
   });
 
+export type SubmitResult =
+  | { ok: true; message: string; editUrl?: string; emailSent?: boolean }
+  | { ok: false; error: string; field?: string };
+
 const submitSchema = z.object({
   slug: z.string().min(1).max(120),
   answers: z.record(z.union([z.string().max(5000), z.array(z.string().max(500)).max(50)])),
@@ -92,7 +96,7 @@ const submitSchema = z.object({
 export const submitResponse = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => submitSchema.parse(data))
   .handler(
-    async ({ data }): Promise<{ ok: boolean; error?: string; message?: string }> => {
+    async ({ data }): Promise<SubmitResult> => {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
       const { data: form } = await supabaseAdmin
@@ -124,7 +128,7 @@ export const submitResponse = createServerFn({ method: "POST" })
       for (const q of questions ?? []) {
         const raw = data.answers[q.id];
         const error = validateAnswer(q.field_type, q.required, raw);
-        if (error) return { ok: false, error: `${q.label}: ${error}` };
+        if (error) return { ok: false, error: `${q.label}: ${error}`, field: q.id };
         if (raw !== undefined && raw !== null && raw !== "") clean[q.id] = raw;
       }
 

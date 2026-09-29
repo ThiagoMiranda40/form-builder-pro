@@ -44,7 +44,7 @@ function PublicForm() {
   }
 
   const data = query.data;
-  if (!data || data.state !== "open") {
+  if (!data || data.state !== "open" || !data.form || !data.questions) {
     const messages: Record<string, { title: string; body: string }> = {
       not_found: { title: "Formulário não encontrado", body: "Verifique se o link está correto." },
       draft: {
@@ -123,7 +123,7 @@ function PublicForm() {
         else setErrors({ __form: result.error ?? "Não foi possível enviar." });
         return;
       }
-      setDone(result.success_message ?? "Inscrição enviada com sucesso!");
+      setDone(result.message || "Inscrição enviada com sucesso!");
     } catch {
       setErrors({ __form: "Não foi possível enviar sua inscrição. Tente novamente." });
     } finally {
