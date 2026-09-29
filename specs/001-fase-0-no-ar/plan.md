@@ -40,23 +40,23 @@ Entrada: `{ slug, answers, consent: boolean, hp: string }` (Zod, como hoje). Sa�
 
 ```ts
 type SubmitResult =
-  | { ok: true; message: string; editUrl?: string }
+  | { ok: true; message: string; editUrl?: string; emailSent: boolean }
   | { ok: false; error: string; field?: string };   // field = id da pergunta com erro
 ```
 
 Ordem:
-1. `hp` preenchido → responde `{ ok: true, message }` **sem gravar** (RF-09).
+1. `hp` preenchido → responde `{ ok: true, message, emailSent: false }` **sem gravar** (RF-09).
 2. Carrega formulário e perguntas com `supabaseAdmin` (agora incluindo `consent_text`).
 3. Valida cada resposta com `validateAnswer` (mesma função do navegador). Erro → `{ ok:false, error, field: q.id }`.
 4. `identifier = normalizeCPF(resposta da 1ª pergunta do tipo cpf)` (ou `null`).
 5. `supabaseAdmin.rpc("submit_response", { p_slug, p_answers, p_identifier, p_consented })`.
 6. Mapeia `status`: `duplicate` → "CPF já inscrito. Use o link de edição enviado ao seu e-mail." (com `field` = pergunta CPF) · `full` → "O limite de inscrições foi atingido." · `closed` → "O prazo de preenchimento encerrou." · `unavailable` → "Este formulário não está disponível." · `consent_required` → "É necessário aceitar o termo para continuar." (`field: "__consent"`).
-7. `ok`: monta `editUrl = origin + "/editar/" + edit_token`, com `origin = new URL(getRequest().url).origin`; tenta enviar o e-mail (falha nunca derruba a inscrição); devolve `{ ok:true, message, editUrl }`. **A mensagem vem de `success_message` (corrige RF-12).**
+7. `ok`: monta `editUrl = origin + "/editar/" + edit_token`, com `origin = new URL(getRequest().url).origin`; tenta enviar o e-mail (falha nunca derruba a inscrição; `emailSent` registra se o envio foi bem-sucedido); devolve `{ ok:true, message, editUrl, emailSent }`. **A mensagem vem de `success_message` (corrige RF-12).**
 
 ### Edição (`src/lib/edit-response.functions.ts`, novo)
 
 - `getResponseForEdit({ token })` → `{ state: "open" | "closed" | "not_found", form, questions, answers }` (via `supabaseAdmin`; formulário encerrado/prazo vencido → `closed`).
-- `updateResponseByToken({ token, answers })` → valida com `validateAnswer`, calcula `identifier` do campo CPF, chama `update_response`, mapeia `identifier_locked` → "O CPF não pode ser alterado.", envia novo e-mail com "Inscrição atualizada".
+- `updateResponseByToken({ token, answers })` → valida com `validateAnswer`, calcula `identifier` do campo CPF, chama `update_response`, mapeia `identifier_locked` → "O CPF não pode ser alterado.", envia novo e-mail com "Inscrição atualizada", devolve `{ ok: true, emailSent: boolean }`.
 - Tela: mesmas perguntas, valores preenchidos, **campo CPF somente leitura**, sem consentimento de novo, sem vaga consumida.
 
 ### Regras puras (testáveis sem banco), em `src/lib/`
@@ -66,6 +66,7 @@ Ordem:
 | `slug.ts` (novo; `slug()` sai de `exports.ts`) | `RESERVED_SLUGS`, `sanitizeSlugInput(v)` (conversão ao digitar; mantém hífen final), `trimSlugEdges(v)` (ao sair do campo), `validateSlug(v): string \| null` (mensagens pt-BR do spec), `suggestSlug(title, suffix?)` |
 | `inscricao.ts` (novo) | `normalizeCPF`, `findIdentifierQuestion`, `findEmailQuestion`, `hideDocument` (mostra só os 2 últimos caracteres: `***.***.***-25`), `isHoneypotFilled`, `mapSubmitStatus` |
 | `confirmation-email.ts` (novo) | `escapeHtml`, `buildConfirmationEmail({form, questions, answers, editUrl, kind})`, `sendConfirmationEmail({fetchFn, apiKey, from, to, subject, html, text})` → `boolean`, **nunca lança** |
+| `theme.ts` (novo) | `readableTextColor(hex)`: devolve a cor de texto (escuro ou branco) de maior contraste com o fundo informado |
 
 `normalizeCPF` reaproveita a lógica de dígitos de `validators.ts` (hoje `onlyDigits` não é exportada; exportar).
 

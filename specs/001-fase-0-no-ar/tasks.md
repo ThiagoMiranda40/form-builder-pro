@@ -129,8 +129,8 @@ curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" 127.0.0.1:5173/   # esp
 **O que isso prova:** a tela de entrada só oferece e-mail e senha, e o endereço raiz não mostra mais o "Your app will live here".
 
 ## T-08 — Regras puras da inscrição e do e-mail
-Depende de: T-01 · RF-03, RF-05, RF-09
-Arquivos: `src/lib/validators.ts` (exportar `onlyDigits`), `src/lib/inscricao.ts` (novo) + teste, `src/lib/confirmation-email.ts` (novo) + teste
+Depende de: T-01 · RF-03, RF-05, RF-09, RF-13
+Arquivos: `src/lib/validators.ts` (exportar `onlyDigits`), `src/lib/inscricao.ts` (novo) + teste, `src/lib/confirmation-email.ts` (novo) + teste, `src/lib/theme.ts` (novo) + teste
 Fazer (testes primeiro):
 1. `normalizeCPF("529.982.247-25")` = `"52998224725"`; `normalizeCPF("")` = `null`.
 2. `findIdentifierQuestion` devolve a 1ª pergunta do tipo `cpf` (ou `undefined`); `findEmailQuestion` idem para `email`.
@@ -139,35 +139,39 @@ Fazer (testes primeiro):
 5. `mapSubmitStatus` cobre `duplicate`, `full`, `closed`, `unavailable`, `consent_required`, `ok` com as mensagens do `plan.md`; status desconhecido → erro genérico.
 6. `escapeHtml('<script>alert(1)</script>')` não contém `<script>`; `buildConfirmationEmail` (a) inclui o link de edição, (b) **não** contém o CPF completo nem o RG completo, (c) escapa HTML vindo do inscrito, (d) diferencia "confirmada" de "atualizada".
 7. `sendConfirmationEmail` com `fetchFn` simulado: chama `https://api.resend.com/emails` com `Authorization: Bearer <chave>` e `to` correto; devolve `true` em 200; devolve `false` (e **não lança**) quando o `fetchFn` lança ou responde 500; se falta `apiKey`, devolve `false` sem chamar a rede.
+8. `readableTextColor(hex)` em `theme.ts`: `#4f46e5` → branco (`#ffffff`); `#ffff00` → escuro (`#0f172a`); `#22c55e` → escuro (`#0f172a`); `#000000` → branco (`#ffffff`); `#ffffff` → escuro (`#0f172a`).
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
-**O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, e uma falha do serviço de e-mail nunca derruba uma inscrição.
+**O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, uma falha de e-mail nunca derruba uma inscrição e os botões garantem legibilidade com qualquer cor de tema.
 
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
 Arquivos: `src/lib/public-forms.functions.ts`
 Fazer:
 1. `getPublicForm` passa a devolver `consent_text` (no `form`).
-2. Reescrever `submitResponse` conforme "Função de servidor de inscrição" do `plan.md` (honeypot → validação com `validateAnswer` devolvendo `field` → `identifier` → `rpc("submit_response")` → `mapSubmitStatus` → e-mail → `editUrl` com `getRequest()`). Segredos lidos de `process.env` (`RESEND_API_KEY`, `EMAIL_FROM`).
+2. Reescrever `submitResponse` conforme "Função de servidor de inscrição" do `plan.md` (honeypot → validação com `validateAnswer` devolvendo `field` → `identifier` → `rpc("submit_response")` → `mapSubmitStatus` → e-mail → `editUrl` com `getRequest()`), devolvendo `SubmitResult` com `emailSent: boolean`. Segredos lidos de `process.env` (`RESEND_API_KEY`, `EMAIL_FROM`).
 3. Nenhum caminho de resposta pode conter o `edit_token` além do `editUrl`.
+4. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T-08 continua verde; e no banco real, chamar a função pela interface (T-10) e conferir uma linha nova em `responses` com `identifier`, `edit_token` e `consented_at` preenchidos conforme o formulário.
-**O que isso prova:** o servidor é a única porta de entrada, todas as regras (vagas, CPF único, consentimento) vêm do banco, e a inscrição vale mesmo com o e-mail fora do ar.
+**O que isso prova:** o servidor é a única porta de entrada, todas as regras (vagas, CPF único, consentimento) vêm do banco, e a inscrição vale mesmo com o e-mail fora do ar indicando corretamente o estado do envio.
 
 ## T-10 — Tela de inscrição: consentimento, anti-robô, sucesso com link, mensagens
-Depende de: T-06, T-09 · RF-05, RF-08, RF-09, RF-12
+Depende de: T-06, T-09 · RF-05, RF-08, RF-09, RF-12, RF-13
 Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento; incluir `consent_text` no `save()`)
 Fazer:
 1. Caixa de consentimento (texto do formulário) quando existir; `hp` invisível (`tabIndex={-1}`, `autoComplete="off"`, fora da tela); envio com `{ slug, answers, consent, hp }`.
-2. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF.
-3. Tela de sucesso: mostra `result.message` e, se houver, o `editUrl` com botão "Copiar link" e o aviso "guarde este link".
-Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece.
-**O que isso prova:** RF-03, RF-08 e RF-12 funcionando como o usuário final vê.
+2. Usar `readableTextColor` no botão principal de envio.
+3. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF.
+4. Tela de sucesso: mostra `result.message`, o `editUrl` com botão "Copiar link", o aviso "guarde este link", e mostra a linha "Enviamos um resumo e o link para o seu e-mail" SOMENTE se `result.emailSent === true`.
+Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece, botão legível com cor customizada.
+**O que isso prova:** RF-03, RF-08, RF-12 e RF-13 funcionando como o usuário final vê.
 
 ## T-11 — Editar pelo link
-Depende de: T-09 · RF-06
+Depende de: T-09 · RF-06, RF-13
 Arquivos: `src/lib/edit-response.functions.ts` (novo), `src/routes/editar.$token.tsx` (novo)
 Fazer (testes das partes puras primeiro, reaproveitando `inscricao.ts`):
-1. `getResponseForEdit` e `updateResponseByToken` conforme o `plan.md` (`identifier_locked` → "O CPF não pode ser alterado."; formulário encerrado/prazo vencido → estado `closed`; token desconhecido → `not_found`).
-2. Tela: tema do formulário, perguntas preenchidas, **CPF somente leitura**, sem consentimento, sem vaga; ao salvar mostra "Alterações salvas" e o novo e-mail é enviado ("Inscrição atualizada").
+1. `getResponseForEdit` e `updateResponseByToken` conforme o `plan.md` (`identifier_locked` → "O CPF não pode ser alterado."; formulário encerrado/prazo vencido → estado `closed`; token desconhecido → `not_found`), devolvendo `{ ok: true, emailSent: boolean }`.
+2. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
+3. Tela: tema do formulário, perguntas preenchidas, **CPF somente leitura**, sem consentimento, sem vaga; botão principal usa `readableTextColor`; ao salvar mostra "Alterações salvas" e avisa do novo e-mail somente se `emailSent === true`.
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`; roteiro manual do cenário 1 do `spec.md` (5 km → 10 km); abrir o link com o formulário encerrado (mostra "edição encerrada"); abrir `/editar/token-falso` (mostra "não encontrado").
 **O que isso prova:** o inscrito corrige a própria distância sem chamar você, sem gastar vaga e sem conseguir trocar o CPF.
 

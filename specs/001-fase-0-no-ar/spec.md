@@ -28,11 +28,11 @@ Como administrador, quero que o número de inscrições nunca ultrapasse o limit
 
 ### RF-05 — E-mail de confirmação com link de edição
 Como inscrito, quero receber por e-mail o resumo do que enviei e um link para corrigir depois.
-**Critério:** Dado um envio válido em um formulário com campo de e-mail, então o inscrito recebe um e-mail com as respostas (CPF e RG parcialmente ocultos, ex.: `***.***.***-25`) e o link de edição. A tela de sucesso mostra o mesmo link com o aviso "guarde este link". **Se o e-mail não puder ser enviado, a inscrição continua válida** e o link aparece na tela.
+**Critério:** Dado um envio válido em um formulário com campo de e-mail, então o inscrito recebe um e-mail com as respostas (CPF e RG parcialmente ocultos, ex.: `***.***.***-25`) e o link de edição. A tela de sucesso mostra o mesmo link com o aviso "guarde este link". **Se o e-mail não puder ser enviado, a inscrição continua válida** e o link aparece na tela. A tela só afirma que enviou e-mail quando o envio foi bem-sucedido.
 
 ### RF-06 — Editar a inscrição pelo link
 Como inscrito, quero mudar minha resposta (ex.: de 5 km para 10 km) sem falar com o organizador.
-**Critério:** Dado o link de edição e o formulário aberto, quando troco "5 km" por "10 km" e salvo, então a tabela do administrador mostra "10 km", **nenhuma vaga extra é consumida**, o CPF aparece bloqueado (não editável) e um novo e-mail com o resumo é enviado. Dado o formulário encerrado ou com prazo vencido, então o link mostra "edição encerrada". Vagas esgotadas **não** impedem a edição.
+**Critério:** Dado o link de edição e o formulário aberto, quando troco "5 km" por "10 km" e salvo, então a tabela do administrador mostra "10 km", **nenhuma vaga extra é consumida**, o CPF aparece bloqueado (não editável) e um novo e-mail com o resumo é enviado. Dado o formulário encerrado ou com prazo vencido, então o link mostra "edição encerrada". Vagas esgotadas **não** impedem a edição. A tela só afirma que enviou e-mail quando o envio foi bem-sucedido.
 
 ### RF-07 — Administrador copia o link de edição
 Como administrador, quero copiar o link de edição de qualquer inscrito, para reenviar quando ele perder o e-mail.
@@ -63,6 +63,10 @@ Como administrador, quero escolher o endereço de cada formulário, para divulga
 ### RF-12 — Mensagem de sucesso personalizada
 Como administrador, quero que a mensagem de sucesso que escrevi apareça ao final da inscrição.
 **Critério:** Dado a mensagem "Inscrição confirmada! Nos vemos na largada.", quando uma inscrição é concluída, então essa mensagem aparece (hoje aparece sempre a mensagem padrão).
+
+### RF-13 — Legibilidade dos botões com qualquer cor de tema
+Como inscrito ou participante, quero conseguir ler com clareza o texto dos botões de ação independentemente da cor definida pelo organizador.
+**Critério:** Dado o tema com cor `#ffff00` ou `#22c55e`, o texto do botão fica escuro; com `#4f46e5` ou `#000000`, fica branco; com `#ffffff`, fica escuro. A cor escolhida pelo organizador não é alterada.
 
 ## Fora de escopo (produto)
 
