@@ -1,0 +1,76 @@
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+export type ExportQuestion = { id: string; label: string };
+export type ExportResponse = {
+  submitted_at: string;
+  answers: Record<string, string | string[]>;
+};
+
+const fmtDate = (value: string) =>
+  new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+function buildRows(questions: ExportQuestion[], responses: ExportResponse[]) {
+  const header = ["Enviado em", ...questions.map((q) => q.label)];
+  const rows = responses.map((r) => [
+    fmtDate(r.submitted_at),
+    ...questions.map((q) => {
+      const v = r.answers?.[q.id];
+      return Array.isArray(v) ? v.join(", ") : (v ?? "");
+    }),
+  ]);
+  return { header, rows };
+}
+
+export function exportToExcel(
+  formTitle: string,
+  questions: ExportQuestion[],
+  responses: ExportResponse[],
+) {
+  const { header, rows } = buildRows(questions, responses);
+  const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  sheet["!cols"] = header.map(() => ({ wch: 26 }));
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, "Respostas");
+  XLSX.writeFile(book, `${slug(formTitle)}-respostas.xlsx`);
+}
+
+export function exportToPDF(
+  formTitle: string,
+  questions: ExportQuestion[],
+  responses: ExportResponse[],
+) {
+  const { header, rows } = buildRows(questions, responses);
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  doc.setFontSize(16);
+  doc.text(formTitle, 40, 40);
+  doc.setFontSize(10);
+  doc.text(
+    `${responses.length} resposta(s) · gerado em ${new Date().toLocaleString("pt-BR")}`,
+    40,
+    58,
+  );
+  autoTable(doc, {
+    head: [header],
+    body: rows,
+    startY: 74,
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+    headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+    alternateRowStyles: { fillColor: [244, 246, 251] },
+    margin: { left: 40, right: 40 },
+  });
+  doc.save(`${slug(formTitle)}-respostas.pdf`);
+}
+
+export function slug(value: string) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 60) || "formulario"
+  );
+}
