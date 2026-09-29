@@ -14,7 +14,145 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      forms: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          description: string
+          id: string
+          max_responses: number | null
+          owner_id: string
+          slug: string
+          status: string
+          success_message: string
+          theme: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          max_responses?: number | null
+          owner_id: string
+          slug: string
+          status?: string
+          success_message?: string
+          theme?: Json
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          max_responses?: number | null
+          owner_id?: string
+          slug?: string
+          status?: string
+          success_message?: string
+          theme?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          created_at: string
+          field_type: string
+          form_id: string
+          help_text: string
+          id: string
+          label: string
+          options: Json
+          position: number
+          required: boolean
+        }
+        Insert: {
+          created_at?: string
+          field_type?: string
+          form_id: string
+          help_text?: string
+          id?: string
+          label?: string
+          options?: Json
+          position?: number
+          required?: boolean
+        }
+        Update: {
+          created_at?: string
+          field_type?: string
+          form_id?: string
+          help_text?: string
+          id?: string
+          label?: string
+          options?: Json
+          position?: number
+          required?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responses: {
+        Row: {
+          answers: Json
+          form_id: string
+          id: string
+          submitted_at: string
+        }
+        Insert: {
+          answers?: Json
+          form_id: string
+          id?: string
+          submitted_at?: string
+        }
+        Update: {
+          answers?: Json
+          form_id?: string
+          id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
