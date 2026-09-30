@@ -1,169 +1,124 @@
-# Ordem de Execução das Tarefas — Spec 001 (Fase 0 no Ar)
+# Ordem de execução — Spec 001 (Fase 0 no ar)
 
-> **Documento de referência:** [tasks.md](file:///c:/Users/conta/OneDrive/Documentos/Tríade%20Tecnologia%20e%20Soluções/Desenvolvimento%20de%20Sistemas/Criador%20de%20Formulários/form-builder-pro/specs/001-fase-0-no-ar/tasks.md)  
-> **Regra de ouro do projeto:** Executar **uma task por vez**, rodar a verificação completa (`bunx tsc --noEmit`, testes Vitest e build) antes de iniciar a próxima.
+> **Guia de leitura para seguir as tasks na ordem certa.** A fonte da verdade é o [`tasks.md`](./tasks.md) (cada task tem "Depende de", arquivos e verificação). Se este guia divergir do `tasks.md`, **vale o `tasks.md`** e este arquivo deve ser corrigido.
 
----
+## 0. Regras de ouro
 
-## 1. Grafo Visual de Dependências
+1. **Uma task por vez.** Só avance depois de rodar a verificação da task e ela passar.
+2. **Portão padrão de toda task de código:** `bunx tsc --noEmit` + `bun run test` + `bun run build`. Por isso a **T-01 é pré-requisito implícito de todas as outras tasks de código** (antes dela o `tsc` falhava).
+3. **Revisão obrigatória (Writer/Reviewer)** antes de seguir: **T-04, T-08, T-09 e T-11** (as de maior risco; ver `qa-plan.md`).
+4. **Passos manuais 🧑:** T-02 (Supabase), partes da T-03 (Cloudflare e DNS) e T-14 (e-mail real e teste final).
+5. **Branches:** enquanto não houver versão em produção, `main` e `spec-001-fase-0-no-ar` podem ser mantidas sincronizadas (fast-forward, sem `--force`). Depois do primeiro formulário real (T-14), trabalhar em branch e só então mesclar na `main`.
+6. **Pontos de parada:** se a T-03 mostrar erro 1102 (limite de CPU do plano gratuito), ou se a verificação da T-04 falhar (32 PASSOU e concorrência 5 ok + 15 full), **pare** e resolva antes de seguir.
+
+## 1. Grafo de dependências
+
+Linhas contínuas = "Depende de" do `tasks.md`. Linhas pontilhadas = dependências **práticas** (mesmo arquivo ou reaproveitamento), que não estão no `tasks.md` mas afetam a ordem.
 
 ```mermaid
 flowchart TD
     classDef manual fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
     classDef auto fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#1e40af;
+    classDef review fill:#fce7f3,stroke:#db2777,stroke-width:2px,color:#9d174d;
     classDef finish fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#166534;
+    classDef done fill:#e5e7eb,stroke:#6b7280,stroke-width:1.5px,color:#374151;
 
-    T01["T-01: Base de compilação, tipos e Vitest"]:::auto
-    T02["T-02 🧑: Setup do Supabase próprio da Tríade"]:::manual
-    
-    T03["T-03: Cloudflare Workers e rota /saude"]:::auto
-    T04["T-04: Migração SQL e concorrência"]:::auto
-    T08["T-08: Regras puras (inscrição, e-mail, contraste)"]:::auto
-    
-    T05["T-05: Regras de slug (src/lib/slug.ts)"]:::auto
-    T07["T-07: Login restrito e redirect de raiz"]:::auto
-    T09["T-09: Servidor RPC (vagas, CPF, e-mail)"]:::auto
-    
-    T06["T-06: Rota /$slug na raiz e editor"]:::auto
-    T11["T-11: Página de edição (/editar/$token)"]:::auto
-    T12["T-12: Painel admin (link amigável e exportação)"]:::auto
-    
-    T10["T-10: Tela pública de inscrição e sucesso"]:::auto
-    
-    T13["T-13: Revisão de segredos e bloqueio git"]:::auto
-    T14["T-14 🧑: Deploy final, Resend real e gravação"]:::finish
+    T01["T-01 ✅ Base: compilar e testar"]:::done
+    T02["T-02 🧑 Supabase novo e próprio"]:::manual
+    T03["T-03 Esqueleto no ar: /saude + Workers"]:::auto
+    T04["T-04 Migração Fase 0 e tipos"]:::review
+    T05["T-05 Regras do endereço (slug)"]:::auto
+    T06["T-06 Endereço na raiz + editor"]:::auto
+    T07["T-07 Só o admin entra + página inicial"]:::auto
+    T08["T-08 Regras puras: inscrição, e-mail, contraste"]:::review
+    T09["T-09 Servidor de inscrição via banco"]:::review
+    T10["T-10 Tela pública de inscrição"]:::auto
+    T11["T-11 Editar pelo link"]:::review
+    T12["T-12 Copiar link de edição + exportações"]:::auto
+    T13["T-13 Revisão de segredos"]:::auto
+    T14["T-14 🧑 E-mail real, monitor, teste final"]:::finish
 
-    %% Dependências
     T02 --> T03
     T02 --> T04
     T01 --> T08
-
     T04 --> T05
     T05 --> T06
     T03 --> T07
-
     T04 --> T09
     T08 --> T09
-
     T06 --> T10
     T09 --> T10
     T09 --> T11
     T09 --> T12
-
     T10 --> T13
-
     T10 --> T14
     T11 --> T14
     T12 --> T14
     T03 --> T14
+
+    T05 -.->|mesmo arquivo exports.ts| T12
+    T10 -.->|reaproveita a casca de $slug.tsx| T11
+    T11 -.->|revisar segredos por último| T13
+    T12 -.->|revisar segredos por último| T13
 ```
 
----
+## 2. Ordem linear recomendada
 
-## 2. Ordem de Execução Recomendada (Sequência Linear)
+Princípios: **risco primeiro** (infraestrutura antes do negócio), **respeitar as dependências** e **fazer deploy cedo** para validar visualmente. 🚀 = bom momento para publicar e conferir no celular.
 
-Esta é a sequência recomendada para o desenvolvedor ou agente executar do início ao fim sem bloqueios:
+| Passo | Task | Tipo | O que entrega | Depende de | Revisão | Deploy |
+|:---:|:---:|:---:|---|---|:---:|:---:|
+| 1 | **T-01** | ✅ concluída | Projeto compila; base de testes (Vitest) | — | — | — |
+| 2 | **T-02** | 🧑 manual | Supabase próprio, usuário admin, cadastro desligado, `.env` público | — | — | — |
+| 3 | **T-08** | código | Regras puras: CPF, e-mail, HTML seguro, contraste | T-01 | ✔ | — |
+| 4 | **T-03** | código + 🧑 | `/saude` + Workers + subdomínio (mede o limite de CPU) | T-02 | — | 🚀 primeiro deploy |
+| 5 | **T-07** | código | Tela de entrada só com e-mail e senha; raiz redireciona | T-03 | — | 🚀 |
+| 6 | **T-04** | código | Migração Fase 0 (CPF único, vagas, edição) e `types.ts` | T-02 | ✔ | — |
+| 7 | **T-05** | código | Regras do endereço (slug) | T-04 | — | — |
+| 8 | **T-06** | código | Formulário em `/{endereço}` + campo de endereço no editor | T-05 | — | 🚀 |
+| 9 | **T-09** | código | Inscrição via banco, e-mail, consentimento, anti-robô | T-04, T-08 | ✔ | — |
+| 10 | **T-10** | código | Tela pública: consentimento, sucesso com link, mensagens | T-06, T-09 | — | 🚀 |
+| 11 | **T-11** | código | Editar inscrição em `/editar/{token}` | T-09 (+ T-10) | ✔ | 🚀 |
+| 12 | **T-12** | código | Copiar link de edição; exportações leves | T-09 (+ T-05) | — | 🚀 |
+| 13 | **T-13** | código | Varredura de segredos no repositório | T-10 (+ T-11, T-12) | — | — |
+| 14 | **T-14** | 🧑 manual | Resend real, monitor `/saude`, 5 cenários gravados | T-10, T-11, T-12, T-03 | — | 🚀 final |
 
-| Passo | Task | Tipo | Título Resumido | Depende de | O que desbloqueia |
-|:---:|:---:|:---:|:---|:---|:---|
-| **1** | **T-01** | Automatizada | Base de compilação, tipos e Vitest | *Nenhuma* | T-08 |
-| **2** | **T-02** | Manual 🧑 | Setup do Supabase próprio da Tríade | *Nenhuma* | T-03, T-04 |
-| **3** | **T-04** | Automatizada | Migração do banco para a Fase 0 e teste de concorrência | T-02 | T-05, T-09 |
-| **4** | **T-08** | Automatizada | Regras puras de inscrição, validação, e-mail e contraste | T-01 | T-09 |
-| **5** | **T-05** | Automatizada | Regras de endereço amigável (`slug.ts`) | T-04 | T-06 |
-| **6** | **T-09** | Automatizada | Servidor de inscrição: persistência, vagas, CPF único e e-mail | T-04, T-08 | T-10, T-11, T-12 |
-| **7** | **T-06** | Automatizada | Endereço do formulário na raiz e edição no painel | T-05 | T-10 |
-| **8** | **T-03** | Automatizada | Esqueleto Cloudflare Workers e rota `/saude` | T-02 | T-07, T-14 |
-| **9** | **T-07** | Automatizada | Autenticação: só o admin entra e raiz protegida | T-03 | — |
-| **10** | **T-10** | Automatizada | Tela pública de inscrição e confirmação | T-06, T-09 | T-13, T-14 |
-| **11** | **T-11** | Automatizada | Página de edição da inscrição (`/editar/{token}`) | T-09 | T-14 |
-| **12** | **T-12** | Automatizada | Painel admin: link amigável e exportação limpa | T-09 | T-14 |
-| **13** | **T-13** | Automatizada | Revisão de segredos e bloqueio de commit | T-10 | — |
-| **14** | **T-14** | Mista 🧑 | Produção no ar, e-mail real, monitoramento e teste ponta a ponta | T-10, T-11, T-12, T-03 | Conclusão da Fase 0 |
+**Por que esta ordem (o que mudou em relação à primeira versão deste guia):**
+- **T-03 sobe para o passo 4.** Ela só depende da T-02 e é a task que mais pode falhar (limite de CPU, variáveis, domínio). Descobrir isso cedo evita construir tudo em cima de uma hospedagem que não aguenta. Também é ela que dá o endereço para validar visualmente cada passo seguinte.
+- **T-07 vem logo depois da T-03.** É pequena e remove "Criar conta" e o botão do Google antes de divulgar o endereço.
+- **T-06 antes da T-09.** As duas são independentes; a T-06 dá retorno visual imediato (o formulário abrindo em `/{endereço}`).
+- **T-12 depois da T-05** (as duas editam `exports.ts`) e **T-11 depois da T-10** (a página de edição reaproveita a casca visual do formulário público).
+- **T-13 por último antes da T-14:** a varredura de segredos só faz sentido depois que todo o código entrou.
 
----
+## 3. O que pode andar em paralelo
 
-## 3. Detalhamento por Ondas de Implementação
+Só faz sentido com mais de uma sessão/pessoa. Se você seguir sozinho, ignore e siga a tabela.
 
-### Onda 0 — Fundação e Setup Externo
-Tarefas que preparam o ambiente local e a infraestrutura básica de nuvem. Não dependem de nenhuma outra tarefa.
-- **[T-01] Base de compilação, tipos e Vitest**
-  - *Objetivo:* Garantir que `bun run test`, `bun run build` e `bunx tsc --noEmit` rodem limpos, com TypeScript estrito e banco tipado em `src/integrations/supabase/types.ts`.
-  - *Critério de saída:* Vitest rodando e passando 100%.
-- **[T-02 🧑] Setup do Supabase próprio da Tríade**
-  - *Objetivo:* Criar o projeto no Supabase da Tríade, aplicar variáveis no `.env` e `.dev.vars`, criar o usuário do administrador único e desligar cadastro público e OAuth externo.
-  - *Critério de saída:* `curl` na URL do Supabase retornando resposta da API e `.dev.vars` configurado localmente.
+- **T-02 (você, manual) ‖ T-08 (agente):** a T-08 só precisa da T-01. É o paralelo mais útil agora.
+- **T-06 ‖ T-09:** independentes entre si (uma é tela, a outra é servidor). Só a T-10 precisa das duas.
+- **T-10 ‖ T-12:** não tocam nos mesmos arquivos.
+- **Não paralelizar:** T-10 com T-11 (casca compartilhada) nem T-05 com T-12 (`exports.ts`).
 
----
+## 4. Cada task em uma linha e a prova principal
 
-### Onda 1 — Banco de Dados, Infraestrutura Básica e Lógica Pura
-Tarefas que criam as fundações de dados, o backend serverless e a lógica de validação isolada de framework.
-- **[T-04] Migração do banco para a Fase 0 e teste de concorrência** *(Depende de: T-02)*
-  - *Objetivo:* Criar a migração SQL com todas as colunas de slug, consentimento, RPCs de concorrência `submit_response` e `update_response`.
-  - *Critério de saída:* Script de verificação do banco passando (vagas esgotam no limite exato e CPF duplicado é rejeitado atomicamente).
-- **[T-08] Regras puras de inscrição, validação, e-mail e contraste** *(Depende de: T-01)*
-  - *Objetivo:* Testar com TDD puro as regras de negócio em memória: `validateAnswer`, `formatAnswerForDisplay`, sanitização HTML com `escapeHtml`, template de e-mail e `readableTextColor` (WCAG AA com contraste >= 4,5:1).
-  - *Critério de saída:* Testes unitários cobrindo todos os tipos de campos e casos de contraste.
-- **[T-03] Esqueleto Cloudflare Workers e rota `/saude`** *(Depende de: T-02)*
-  - *Objetivo:* Configurar `wrangler.json`, rotas de API, checagem da conexão com Supabase e Resend através da rota GET `/saude`.
-  - *Critério de saída:* `npx wrangler dev` respondendo HTTP 200 com status `ok` em `/saude`.
+| Task | Prova principal (detalhes no `tasks.md`) |
+|---|---|
+| T-01 | `tsc` sem erros, testes verdes, build ok |
+| T-02 | `curl` de cadastro recusado (código 4xx); `.env` só com chaves públicas do projeto novo; política de senha (mín. 12) ativa |
+| T-03 | `/saude` responde `{"ok":true,"db":true}` no subdomínio; sem erro 1102 no log da Cloudflare |
+| T-04 | `verificacao-banco.sql`: 32 PASSOU; concorrência 5 vagas × 20 envios = 5 ok + 15 full |
+| T-05 | Testes do slug passam, incluindo a comparação da lista de reservados com a migração |
+| T-06 | `/qualquer-endereco` responde 200 e `/f/qualquer` responde 404; editor recusa endereço repetido/reservado |
+| T-07 | `/auth` sem "Google" nem "Criar conta"; `/` redireciona |
+| T-08 | Testes puros: CPF, `hideDocument`, `escapeHtml`, e-mail sem CPF completo, `isSafeRecipient`, contraste ≥ 4,5 em 216 cores |
+| T-09 | Suíte verde; inscrição grava `identifier`, `edit_token`, `consented_at`; limite de 200 chaves; log sem dados pessoais; `emailSent` **obrigatório** no tipo |
+| T-10 | Roteiro manual: inscrever, CPF repetido, termo sem marcar, mensagem personalizada, botão legível |
+| T-11 | Roteiro 5 km → 10 km; janela de 10 min entre e-mails; `no-referrer` e `noindex` na página de edição |
+| T-12 | Worker abaixo de 3 MB; exportar Excel e PDF; botão "Copiar link de edição" |
+| T-13 | Varredura de segredos sem resultado; `.dev.vars` no `.gitignore` |
+| T-14 | 5 cenários-chave gravados; `/saude` ok em produção; e-mail real recebido |
 
----
+## 5. Pendências herdadas de tasks já concluídas
 
-### Onda 2 — Camada de Negócio e Endereçamento
-Tarefas que amarram as funções de banco às chamadas de servidor e preparam as rotas amigáveis.
-- **[T-05] Regras de endereço amigável (`slug.ts`)** *(Depende de: T-04)*
-  - *Objetivo:* Gerador e normalizador de slugs, validação de formato e conferência estrita com a lista de slugs reservados do banco.
-  - *Critério de saída:* Teste comparativo garantindo que a lista reservada no TypeScript é 100% idêntica à da migração SQL.
-- **[T-09] Servidor de inscrição: persistência, vagas, CPF único e disparo de e-mail** *(Depende de: T-04, T-08)*
-  - *Objetivo:* Implementar `submitPublicFormServerFn` e `updatePublicResponseServerFn` conectando ao RPC do banco com chave de serviço e integrando envio de e-mail via Resend (com fallback seguro: se o e-mail falhar, a inscrição **não** é cancelada).
-  - *Critério de saída:* Teste de integração do servidor simulando sucesso e falha de envio de e-mail.
-- **[T-07] Autenticação: só o admin entra e raiz protegida** *(Depende de: T-03)*
-  - *Objetivo:* Tela de login limpa sem links públicos de cadastro ou Google, e rota raiz `/` redirecionando para `/painel` se logado ou `/auth` se anônimo.
-  - *Critério de saída:* Teste de rotas protegidas e inspeção visual da ausência de cadastro público.
-
----
-
-### Onda 3 — Interface Pública, Edição e Gestão
-Tarefas que entregam a interface final do participante e do administrador.
-- **[T-06] Endereço do formulário na raiz e edição no painel** *(Depende de: T-05)*
-  - *Objetivo:* Mover a rota pública de formulário de `/f/$id` para `/$slug`, integrando o editor do criador com campo de slug customizável.
-  - *Critério de saída:* Rota `/$slug` carrega o formulário correto; slug reservado é barrado no editor.
-- **[T-10] Tela pública de inscrição e confirmação** *(Depende de: T-06, T-09)*
-  - *Objetivo:* Renderização pública do formulário com cores de tema contrastantes, validação cliente e servidor, caixa de consentimento obrigatória, página de confirmação informando link de edição e feedback condicional de e-mail.
-  - *Critério de saída:* Fluxo de preenchimento completo no navegador via Vite dev server.
-- **[T-11] Página de edição da inscrição (`/editar/{token}`)** *(Depende de: T-09)*
-  - *Objetivo:* Rota de edição por token, validação de prazo, pré-carregamento das respostas anteriores, persistência via RPC e cabeçalhos de segurança (`noindex, nofollow`, `Referrer-Policy: no-referrer`).
-  - *Critério de saída:* Acesso com token válido permite alterar dados; token inválido exibe mensagem clara de erro.
-- **[T-12] Painel administrativo: link amigável e exportação limpa** *(Depende de: T-09)*
-  - *Objetivo:* Painel de listagem com botão de copiar link amigável (`triade.app.br/{slug}`), coluna com link de edição do participante, e exportação CSV/XLSX com nomes legíveis das perguntas no cabeçalho.
-  - *Critério de saída:* Exportação gerada contendo as colunas nomeadas e valores formatados.
-
----
-
-### Onda 4 — Segurança Final e Deploy de Produção
-Garante que nenhum segredo subiu para o Git e coloca o sistema em produção com validação ponta a ponta.
-- **[T-13] Revisão de segredos e bloqueio de commit** *(Depende de: T-10)*
-  - *Objetivo:* Varredura de segredos no repositório, conferência de que `.env` não possui `SERVICE_ROLE_KEY` nem `RESEND_API_KEY`, e configuração de hook do Git contra commits acidentais de `.dev.vars`.
-  - *Critério de saída:* `git status` e verificação automatizada de segredos limpos.
-- **[T-14 🧑] Produção no ar, e-mail real, monitoramento e teste ponta a ponta** *(Depende de: T-10, T-11, T-12, T-03)*
-  - *Objetivo:* Publicar Worker no Cloudflare com segredos configurados, testar inscrição real recebendo e-mail na caixa de entrada, editar pelo token recebido e gravar a validação.
-  - *Critério de saída:* Vídeo gravado do fluxo completo (inscrição -> e-mail recebido -> edição -> exportação CSV no painel) e rota `/saude` em produção retornando HTTP 200.
-
----
-
-## 4. Oportunidades de Execução em Paralelo (Trilhas Independentes)
-
-Se houver mais de uma pessoa ou se quiser intercalar blocos de trabalho sem conflito:
-
-```text
-Trilha A (Backend & Infra): T-02 🧑 ──> T-04 ──> T-05 ──> T-06 ──┐
-                                  └──> T-03 ──> T-07             │
-                                                                 ├──> T-10 ──> T-13 ──> T-14 🧑
-Trilha B (Regras de Negócio): T-01 ──> T-08 ─────────────────────┼──> T-11 ─────────────┘
-                                  │                              │
-                                  └───────> T-09 (precisa de T-04) ┼──> T-12 ─────────────┘
-```
-
-- **T-01** e **T-08** podem ser desenvolvidas em paralelo com **T-02**, **T-03** e **T-04**, pois tratam de funções puras de validação TypeScript.
-- **T-11** (Página de edição) e **T-12** (Painel admin) podem ser feitas em paralelo assim que **T-09** estiver concluída.
+- **T-01:** o tipo `SubmitResult` ficou com `emailSent?` **opcional**; o plano exige `emailSent: boolean` obrigatório (corrigir na **T-09**).
+- **Configuração local do Bun (`bunfig.toml`):** `backend = "copyfile"` e `linker = "hoisted"` foram adicionados como contorno para o Windows/OneDrive. Depois de mover o projeto para fora do OneDrive, testar sem essas duas linhas e remover se não fizerem falta (a guarda `minimumReleaseAge` deve permanecer).
