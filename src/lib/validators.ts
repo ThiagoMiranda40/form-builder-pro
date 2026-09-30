@@ -27,7 +27,7 @@ export function fieldTypeLabel(type: string) {
   return FIELD_TYPES.find((f) => f.value === type)?.label ?? "Texto curto";
 }
 
-const onlyDigits = (v: string) => v.replace(/\D/g, "");
+export const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
 export function isValidCPF(value: string): boolean {
   const cpf = onlyDigits(value);
