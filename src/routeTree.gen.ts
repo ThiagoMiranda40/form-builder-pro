@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as SaudeRouteImport } from './routes/saude'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated.painel'
 import { Route as FSlugRouteImport } from './routes/f.$slug'
 import { Route as AuthenticatedFormulariosIdRouteImport } from './routes/_authenticated.formularios.$id'
@@ -29,6 +30,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SaudeRoute = SaudeRouteImport.update({
+  id: '/saude',
+  path: '/saude',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
@@ -57,6 +63,7 @@ const AuthenticatedFormulariosIdRespostasRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/f/$slug': typeof FSlugRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/f/$slug': typeof FSlugRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/saude': typeof SaudeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/f/$slug': typeof FSlugRoute
   '/_authenticated/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/saude'
     | '/painel'
     | '/f/$slug'
     | '/formularios/$id'
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/saude'
     | '/painel'
     | '/f/$slug'
     | '/formularios/$id'
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/saude'
     | '/_authenticated/painel'
     | '/f/$slug'
     | '/_authenticated/formularios/$id'
@@ -112,6 +124,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  SaudeRoute: typeof SaudeRoute
   FSlugRoute: typeof FSlugRoute
 }
 
@@ -136,6 +149,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saude': {
+      id: '/saude'
+      path: '/saude'
+      fullPath: '/saude'
+      preLoaderRoute: typeof SaudeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/painel': {
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  SaudeRoute: SaudeRoute,
   FSlugRoute: FSlugRoute,
 }
 export const routeTree = rootRouteImport
