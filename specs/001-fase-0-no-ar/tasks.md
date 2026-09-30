@@ -1,6 +1,7 @@
 # Tasks — Spec 001: Fase 0 no ar
 
 **Comandos de verificação padrão** (toda task termina com eles verdes): `bunx tsc --noEmit` · `bun run test` · `bun run build`.
+Nesta máquina, use os comandos equivalentes da seção Comandos do AGENTS.md (o Controle de Aplicativo Inteligente do Windows bloqueia os executáveis gerados pelo Bun).
 **Não usar lint como critério** (344 erros de formatação já existentes).
 **Tasks com comportamento seguem TDD:** escrever o teste que falha → implementar → rodar a suíte inteira.
 **Marcadas 🧑 são passos manuais seus** (painéis externos); as demais o Claude Code / Antigravity executa.

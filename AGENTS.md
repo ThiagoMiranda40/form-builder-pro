@@ -15,7 +15,13 @@ Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/0
 
 ## Comandos
 - Gerenciador de pacotes: **bun** (`bun.lock`). O `bunfig.toml` bloqueia versões com menos de 24 h: se uma dependência for barrada, usar a versão anterior e **nunca** adicionar exceção sem perguntar ao dono.
-- Verificação padrão: `bunx tsc --noEmit`, `bun run test` (Vitest), `bun run build`.
+- Verificação padrão NESTA MÁQUINA (Windows com Controle de Aplicativo Inteligente ativado, que bloqueia os .exe gerados pelo Bun, como vite.exe): rode os arquivos JavaScript das ferramentas direto com o bun:
+  - tipos: `bun node_modules/typescript/bin/tsc --noEmit`
+  - testes: `bun node_modules/vitest/vitest.mjs run`
+  - build: `bun node_modules/vite/bin/vite.js build`
+  - servidor local: `bun node_modules/vite/bin/vite.js dev` (porta 8080)
+- Em qualquer outra máquina, os equivalentes são `bunx tsc --noEmit`, `bun run test`, `bun run build` e `bun run dev`.
+- Se um popup de bloqueio do Windows citar OUTRO arquivo, PARE e me avise. Não desative o Controle de Aplicativo. O `npx wrangler dev` (workerd) pode ser bloqueado pelo mesmo motivo; a verificação real do Worker é feita no Worker publicado.
 - **Não usar `eslint` como critério** (há centenas de erros de formatação antigos) e **não reformatar o repositório**.
 - `vite preview` **não funciona** neste projeto. Para conferir rotas: `bun run dev`; para rodar o Worker compilado: `npx wrangler dev --config .output/server/wrangler.json`.
 
@@ -44,6 +50,7 @@ Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/0
 
 ## Ambiente
 - Windows com PowerShell (usar `curl.exe`, não `curl`).
+- Controle de Aplicativo Inteligente do Windows ATIVADO: bloqueia executáveis sem assinatura (inclusive os .exe gerados pelo Bun); use os comandos da seção Comandos.
 - A pasta do projeto está dentro do OneDrive por decisão do dono até o fim da Spec 001.
 - O servidor de desenvolvimento roda na porta 8080.
 
