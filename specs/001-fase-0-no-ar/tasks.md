@@ -60,18 +60,35 @@ Esperado: **código 4xx** (cadastro recusado). E `git diff .env` mostra só URL/
 ## T-03 — Esqueleto no ar: rota `/saude` + Cloudflare Workers + subdomínio
 Depende de: T-02 · Mitiga os riscos 1 e 2 do plano
 Ler: plan.md (Infraestrutura e segredos; Riscos técnicos 1 e 2); seguranca.md (SEC-03); qa-plan.md (verificações por curl)
-Arquivos: `src/routes/saude.tsx` (novo; `routeTree.gen.ts` é regenerado pelo build), `.gitignore` (acrescentar `.dev.vars`)
-Fazer:
-1. Criar a rota de servidor `GET /saude`: consulta o banco com `supabaseAdmin` (`select` de 1 linha em `forms`, `head:true`) e responde JSON `{ "ok": true, "db": true }` com `Cache-Control: no-store`; em erro, status 503 e `{ "ok": false }`. (Conferir na documentação do `@tanstack/react-start` instalado a forma de declarar rota de servidor.)
-2. Local: **`vite preview` não funciona neste projeto** (procura `dist/server/server.js`; o Nitro gera `.output`). Duas opções que funcionam (testadas com o build atual): `bun run dev` (servidor de desenvolvimento) ou, para rodar o **Worker compilado no runtime da Cloudflare**, `bun run build && npx wrangler dev --config .output/server/wrangler.json --ip 127.0.0.1 --port 8788`, com os valores das variáveis em um arquivo `.dev.vars` (ignorado pelo git). Chamar `/saude` na porta escolhida.
-3. 🧑 Cloudflare → Workers Builds conectado ao repositório: build `bun run build`, deploy `npx wrangler deploy` (se não achar a configuração gerada em `.wrangler/deploy/config.json`, usar `npx nitro deploy --prebuilt`). Cadastrar **como Segredo**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Vincular o **Domínio Personalizado** `inscricoes.<domínio da Tríade>`.
-Verificação:
+Arquivos: `src/routes/saude.tsx` (novo), `src/lib/health.ts` (novo) + `src/lib/health.test.ts` (novo); `src/routeTree.gen.ts` é gerado pelo build
+Fazer (testes primeiro), parte de CÓDIGO (feita pelo agente):
+1. Escreva `health.test.ts` (mostre que falha) e depois `health.ts`: função pura `healthResponse(error)`: sem erro -> status 200 e corpo `{"ok":true,"db":true}`; com erro ou configuração ausente -> status 503 e corpo `{"ok":false}`. O corpo NUNCA contém mensagem de erro, ID de projeto ou qualquer detalhe. Casos de teste: sem erro; com erro; erro com mensagem sensível (o corpo não a contém).
+2. Crie a rota de servidor `GET /saude` em `saude.tsx`: consulta o banco com `supabaseAdmin` (select mínimo em `forms`, head:true, limit 1) e responde com `healthResponse`, com `Cache-Control: no-store`. Se as chaves do servidor estiverem ausentes, NÃO lançar exceção: responder 503 `{"ok":false}`. Em caso de falha, o log registra só o código do erro, nunca o objeto de erro nem dados. Consulte a documentação do `@tanstack/react-start` instalado (em `node_modules`) para declarar a rota; não chute a API.
+3. NÃO criar `.dev.vars`, `.env.local` nem qualquer arquivo com chaves (a pasta está no OneDrive). A chave secreta existe só como Segredo do Worker.
+
+Verificação local (comandos desta máquina, da seção Comandos do AGENTS.md):
 ```bash
-curl -s https://inscricoes.<dominio>/saude          # {"ok":true,"db":true}
-curl -s -o /dev/null -w "%{http_code}\n" https://inscricoes.<dominio>/auth    # 200
+bun node_modules/vitest/vitest.mjs run
+bun node_modules/typescript/bin/tsc --noEmit
+bun node_modules/vite/bin/vite.js build
 ```
-E no painel da Cloudflare (Workers → Logs) as invocações de `/auth` **sem erro 1102** ("Worker exceeded resource limits").
-**O que isso prova:** o sistema está publicado no seu subdomínio, o servidor consegue falar com o banco e o plano gratuito aguenta renderizar as páginas. **Se aparecer o erro 1102, pare aqui e me avise** (a saída é o plano pago do Workers).
+Com `bun node_modules/vite/bin/vite.js dev` (porta 8080):
+- `curl.exe -i http://localhost:8080/saude` deve responder 503 com `{"ok":false}` e `Cache-Control: no-store` (sem chave local isso é o ESPERADO);
+- `curl.exe -s -o NUL -w "%{http_code}\n" http://localhost:8080/auth` deve responder 200.
+
+Parte MANUAL 🧑 (feita pelo dono, o agente NÃO executa):
+Workers Builds na Cloudflare conectado ao repositório (build `bun run build`, deploy `npx wrangler deploy`), Worker com o nome `thiagomiranda40-form-builder-pro`, Segredos `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY` como tipo Segredo, domínio personalizado `inscricoes.triadetecnologiaesolucoes.com.br`.
+
+Verificação real:
+```bash
+curl.exe -s https://inscricoes.triadetecnologiaesolucoes.com.br/saude
+curl.exe -s -o NUL -w "%{http_code}\n" https://inscricoes.triadetecnologiaesolucoes.com.br/auth
+```
+- `/saude` deve responder `{"ok":true,"db":true}`;
+- `/auth` deve responder 200, sem erro 1102 no log da Cloudflare. Se aparecer o erro 1102, PARAR e avisar o dono.
+
+**O que isso prova:** a rota existe e falha com segurança sem chave (503, sem vazar nada); no Worker publicado, responde que o banco está acessível, e o plano gratuito aguenta renderizar as páginas.
+
 
 ## T-04 — Migração Fase 0 e tipos
 Depende de: T-02 · RF-03, RF-04, RF-08, RF-10 (banco)
