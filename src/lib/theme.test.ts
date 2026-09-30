@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { readableTextColor, wcagContrastRatio } from './theme';
+import { readableTextColor } from './theme';
+
+function sRGBToLinear(val255: number): number {
+  const v = val255 / 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance(r: number, g: number, b: number): number {
+  return 0.2126 * sRGBToLinear(r) + 0.7152 * sRGBToLinear(g) + 0.0722 * sRGBToLinear(b);
+}
+
+function calculateContrastRatio(lum1: number, lum2: number): number {
+  const lighter = Math.max(lum1, lum2);
+  const darker = Math.min(lum1, lum2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
 
 describe('theme.ts - readableTextColor', () => {
   it('retorna #ffffff para hex inválido ou vazio', () => {
@@ -28,6 +43,8 @@ describe('theme.ts - readableTextColor', () => {
   it('varredura das 216 cores "web safe" garante que a cor retornada sempre tem o maior contraste e atinge pelo menos 4.5:1 sempre que matematicamente possível', () => {
     // 216 web-safe colors: R, G, B in [0, 51, 102, 153, 204, 255] (i.e. 0x00, 0x33, 0x66, 0x99, 0xCC, 0xFF)
     const steps = [0x00, 0x33, 0x66, 0x99, 0xcc, 0xff];
+    const lumWhite = relativeLuminance(255, 255, 255);
+    const lumBlack = relativeLuminance(0, 0, 0);
     let totalTested = 0;
 
     for (const r of steps) {
@@ -35,8 +52,9 @@ describe('theme.ts - readableTextColor', () => {
         for (const b of steps) {
           const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
           const choice = readableTextColor(hex);
-          const ratioWhite = wcagContrastRatio(hex, '#ffffff');
-          const ratioBlack = wcagContrastRatio(hex, '#000000');
+          const bgLum = relativeLuminance(r, g, b);
+          const ratioWhite = calculateContrastRatio(bgLum, lumWhite);
+          const ratioBlack = calculateContrastRatio(bgLum, lumBlack);
 
           if (choice === '#ffffff') {
             expect(ratioWhite).toBeGreaterThanOrEqual(ratioBlack);
@@ -46,7 +64,6 @@ describe('theme.ts - readableTextColor', () => {
 
           const chosenRatio = choice === '#ffffff' ? ratioWhite : ratioBlack;
           // WCAG 2.1 AA requires contrast >= 4.5:1. For any background color, max(contrast_white, contrast_black) >= 4.5
-          // (Since relative luminance of the crossover point is around 0.179, max contrast is at least ~4.58:1)
           expect(chosenRatio).toBeGreaterThanOrEqual(4.5);
           totalTested++;
         }
