@@ -58,6 +58,7 @@ Esperado: **código 4xx** (cadastro recusado). E `git diff .env` mostra só URL/
 
 ## T-03 — Esqueleto no ar: rota `/saude` + Cloudflare Workers + subdomínio
 Depende de: T-02 · Mitiga os riscos 1 e 2 do plano
+Ler: plan.md (Infraestrutura e segredos; Riscos técnicos 1 e 2); seguranca.md (SEC-03); qa-plan.md (verificações por curl)
 Arquivos: `src/routes/saude.tsx` (novo; `routeTree.gen.ts` é regenerado pelo build), `.gitignore` (acrescentar `.dev.vars`)
 Fazer:
 1. Criar a rota de servidor `GET /saude`: consulta o banco com `supabaseAdmin` (`select` de 1 linha em `forms`, `head:true`) e responde JSON `{ "ok": true, "db": true }` com `Cache-Control: no-store`; em erro, status 503 e `{ "ok": false }`. (Conferir na documentação do `@tanstack/react-start` instalado a forma de declarar rota de servidor.)
@@ -73,6 +74,7 @@ E no painel da Cloudflare (Workers → Logs) as invocações de `/auth` **sem er
 
 ## T-04 — Migração Fase 0 e tipos
 Depende de: T-02 · RF-03, RF-04, RF-08, RF-10 (banco)
+Ler: data-model.md (migração e verificação); seguranca.md (revisão das funções do banco); qa-plan.md (camada de banco)
 Arquivos: `supabase/migrations/<timestamp>_fase0_inscricao.sql` (novo, conteúdo de `data-model.md`), `src/integrations/supabase/types.ts`
 Fazer:
 1. Criar a migração copiando o SQL de `data-model.md` **sem alterá-lo**; aplicar no Supabase.
@@ -92,6 +94,7 @@ Esperado: **32 PASSOU**, e na concorrência **`5 ok` + `15 full`**.
 
 ## T-05 — Regras do endereço (slug)
 Depende de: T-04 · RF-11
+Ler: spec.md RF-11; plan.md (Regras puras, slug); qa-plan.md 4.1
 Arquivos: `src/lib/slug.ts` (novo), `src/lib/slug.test.ts` (novo), `src/lib/exports.ts` (remover `slug`), `src/routes/_authenticated.painel.tsx` (trocar import)
 Fazer:
 1. Testes que falham primeiro: `validateSlug("skf-corrida-track-field")` → `null`; `"ab"` → mensagem de tamanho; `"Maiuscula"`, `"-abc"`, `"a--b"`, `"com_underline"`, `"com espaco"` → mensagem de formato; `"painel"`, `"editar"`, `"saude"`, `"auth"`, `"formularios"`, `"api"`, `"admin"`, `"assets"`, `"login"` → "Esse nome é reservado pelo sistema"; `suggestSlug("SKF Corrida Track & Field")` → `"skf-corrida-track-field"`; `suggestSlug("Novo formulário", "abc123")` → `"novo-formulario-abc123"`; `suggestSlug("!!!")` → um valor válido (ex.: `formulario`); `sanitizeSlugInput("SKF Corrida Track&Field")` → `"skf-corrida-track-field"`; `sanitizeSlugInput("skf-")` → `"skf-"` (mantém o hífen final enquanto digita); `sanitizeSlugInput("  Corrida  Ação  ")` → `"corrida-acao-"`; `sanitizeSlugInput("-abc")` → `"abc"`; `sanitizeSlugInput("a--b")` → `"a-b"`; entrada com 70 caracteres → corta em 60; `trimSlugEdges("corrida-acao-")` → `"corrida-acao"`.
@@ -102,6 +105,7 @@ Verificação: `bun run test -- slug && bunx tsc --noEmit && bun run build`.
 
 ## T-06 — Endereço direto na raiz + editor de endereço
 Depende de: T-05 · RF-11
+Ler: spec.md RF-11; design/ui-ux.md (Tela A); qa-plan.md 4.1 e 5.4
 Arquivos: `src/routes/f.$slug.tsx` → **renomear para** `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/_authenticated.painel.tsx`
 Fazer:
 1. Mover a rota pública para `/$slug` (`createFileRoute("/$slug")`, `useParams({ from: "/$slug" })`); nada mais referencia `/f/`. (Nota de segurança: no head de `/editar/$token`, planejado em T-06 e implementado em T-11, incluir meta `referrer=no-referrer` e `robots=noindex, nofollow`).
@@ -121,6 +125,7 @@ E o roteiro manual (com o banco real): criar formulário, mudar o endereço para
 
 ## T-07 — Só o administrador entra + página inicial
 Depende de: T-03 · RF-01, RF-02
+Ler: spec.md RF-01 e RF-02; design/ui-ux.md (Tela E); seguranca.md SEC-05
 Arquivos: `src/routes/auth.tsx`, `src/routes/index.tsx`
 Fazer:
 1. `auth.tsx`: remover o modo "criar conta" (campo nome, `signUp`, alternância), o botão Google e o import de `@/integrations/lovable`; remover `minLength` e o placeholder "Mínimo de 6 caracteres" do campo de senha no login (NÃO colocar 12 no HTML do login para não travar o admin; a política fica no Supabase Auth); título fixo "Entrar". **Não mexer** em `src/integrations/lovable/`.
@@ -137,6 +142,7 @@ curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" 127.0.0.1:5173/   # esp
 
 ## T-08 — Regras puras da inscrição e do e-mail
 Depende de: T-01 · RF-03, RF-05, RF-09, RF-13
+Ler: spec.md RF-03, RF-05, RF-09, RF-13; plan.md (Regras puras; E-mail); seguranca.md SEC-03 e SEC-09; qa-plan.md 4.2 e 4.6
 Arquivos: `src/lib/validators.ts` (exportar `onlyDigits`), `src/lib/inscricao.ts` (novo) + teste, `src/lib/confirmation-email.ts` (novo) + teste, `src/lib/theme.ts` (novo) + teste
 Fazer (testes primeiro):
 1. `normalizeCPF("529.982.247-25")` = `"52998224725"`; `normalizeCPF("")` = `null`.
@@ -162,6 +168,7 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
 
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
+Ler: plan.md (função de servidor de inscrição); data-model.md (contrato das funções); seguranca.md SEC-02, SEC-03, SEC-04; qa-plan.md 4.3 a 4.6
 Arquivos: `src/lib/public-forms.functions.ts`
 Fazer:
 1. `getPublicForm` passa a devolver `consent_text` (no `form`).
@@ -174,6 +181,7 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T
 
 ## T-10 — Tela de inscrição: consentimento, anti-robô, sucesso com link, mensagens
 Depende de: T-06, T-09 · RF-05, RF-08, RF-09, RF-12, RF-13
+Ler: spec.md RF-05, RF-08, RF-09, RF-12, RF-13; design/ui-ux.md (Tela B); qa-plan.md 5.1 e 5.2
 Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento na aba "Limites e Termos"; incluir `consent_text` no `save()`)
 Fazer:
 1. Caixa de consentimento (texto do formulário) quando existir; `hp` invisível (`tabIndex={-1}`, `autoComplete="off"`, fora da tela); envio com `{ slug, answers, consent, hp }`.
@@ -186,6 +194,7 @@ Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro man
 
 ## T-11 — Editar pelo link
 Depende de: T-09 · RF-06, RF-13
+Ler: spec.md RF-06; plan.md (Edição); design/ui-ux.md (Tela C); seguranca.md SEC-01 e SEC-04; qa-plan.md 4.7 e 5.3
 Arquivos: `src/lib/edit-response.functions.ts` (novo), `src/routes/editar.$token.tsx` (novo)
 Fazer (testes das partes puras primeiro, reaproveitando `inscricao.ts`):
 1. `getResponseForEdit` e `updateResponseByToken` conforme o `plan.md` (`identifier_locked` → "O CPF não pode ser alterado."; formulário encerrado/prazo vencido → estado `closed`; token desconhecido → `not_found`), devolvendo `{ ok: true, emailSent: boolean }`. Limite de 10 minutos para reenvio de e-mail por inscrição: o servidor lê o `updated_at` anterior ANTES de chamar `update_response`; se decorridos menos de 10 minutos, salva normalmente, nenhuma chamada de envio de e-mail é disparada e retorna `emailSent: false`; se decorridos 10 minutos ou mais, envia e-mail com "Inscrição atualizada" e retorna `emailSent: boolean`.
@@ -202,6 +211,7 @@ E o roteiro manual do cenário 1 do `spec.md` (5 km → 10 km); abrir o link com
 
 ## T-12 — Administração: copiar link de edição e exportações leves
 Depende de: T-09 · RF-07
+Ler: spec.md RF-07; plan.md (Interface, Respostas); design/ui-ux.md (Tela D); qa-plan.md 5.5
 Arquivos: `src/routes/_authenticated.formularios.$id.respostas.tsx`, `src/lib/exports.ts`
 Fazer:
 1. A consulta de respostas inclui `edit_token`; o formulário inclui `slug` se necessário; botão "Copiar link de edição" por linha (`${origin}/editar/${token}`).
@@ -211,6 +221,7 @@ Verificação: `bunx tsc --noEmit && bun run test && bun run build`; conferir qu
 
 ## T-13 — Revisão de segredos
 Depende de: T-10
+Ler: seguranca.md (segredos); qa-plan.md (somente o item de segredos do checklist final)
 Arquivos: `.gitignore`
 Fazer: conferir que nenhuma chave secreta está no repositório (`git grep -n "sb_secret_\|SERVICE_ROLE_KEY=\|re_[A-Za-z0-9]\{20,\}"` sem resultado; nomes de variáveis no código são permitidos, valores não) e que `.dev.vars` está no `.gitignore` e que o `.env` traz só chaves públicas do projeto **novo**.
 Verificação: comando acima sem saída (nenhuma linha); `git diff --stat main -- .env` mostra só URL/chave pública.
@@ -218,6 +229,7 @@ Verificação: comando acima sem saída (nenhuma linha); `git diff --stat main -
 
 ## T-14 🧑 — E-mail real, monitor e teste ponta a ponta
 Depende de: T-10, T-11, T-12, T-03
+Ler: spec.md (cenários-chave); qa-plan.md seções 6 e 7; seguranca.md (checklist final)
 Fazer:
 1. Resend: criar conta, **verificar o subdomínio de envio** (registros DNS na Cloudflare; pode levar alguns minutos), cadastrar `RESEND_API_KEY` e `EMAIL_FROM` como **Segredo** no Worker.
 2. Monitor externo gratuito chamando `https://inscricoes.<dominio>/saude` a cada poucos minutos (evita a pausa do banco e avisa de queda).

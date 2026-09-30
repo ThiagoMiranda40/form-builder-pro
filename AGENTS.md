@@ -31,5 +31,22 @@ Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/0
 
 ## Pegadinhas
 - Não editar arquivos gerados pelo Lovable: `src/integrations/supabase/{client,client.server,auth-middleware,auth-attacher}.ts` e `src/integrations/lovable/`. Exceção: `types.ts` é atualizado à mão junto com cada migração. `src/routeTree.gen.ts` é regenerado pelo build.
-- Segredos (`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`) só como **Segredo** do Worker e em `.dev.vars` local (ignorado pelo git). O `.env` do repositório contém **apenas** URL e chave pública do Supabase.
+- A chave secreta do Supabase e a do Resend existem SOMENTE como Segredo do Worker. NÃO criar .dev.vars, .env.local nem qualquer arquivo com chaves nesta máquina (a pasta do projeto está no OneDrive e sincroniza com a nuvem). A verificação local roda sem chaves; a verificação real ocorre no Worker publicado. O .env do repositório contém apenas URL e chave pública do Supabase.
 - Não excluir perguntas de formulário que já tem inscritos: as respostas apontam para o ID da pergunta e os dados sumiriam da tabela e das exportações.
+
+## Fluxo de git e prova
+- **Política de versões**: `main` e `spec-001-fase-0-no-ar` são mantidas iguais até existir versão em produção (decisão do dono). Depois do primeiro formulário real (T-14), passar a trabalhar só em branch e mesclar na `main` após validar.
+- **Cada tarefa termina com um commit na branch**, mensagem `feat(spec-001): implementa T-NN - <título curto>` (documentação: `docs: <resumo>`), push da branch e fast-forward da `main`: `git checkout main && git merge --ff-only spec-001-fase-0-no-ar && git push origin main && git checkout spec-001-fase-0-no-ar`. Sem `--force` e sem rebase.
+- **Prova**: `git ls-remote origin refs/heads/main refs/heads/spec-001-fase-0-no-ar` com os dois hashes iguais.
+- **Antes de commitar**: `git status --short` só pode listar os arquivos permitidos da tarefa (mais gerados: `routeTree.gen.ts` e `bun.lock`). Qualquer outro: PARE.
+- **Tarefas com regra de negócio**: mostrar os testes falhando antes de implementar.
+- **Relatório**: hash, saídas literais dos comandos, arquivos alterados e a "tradução em linguagem simples". Depois PARE.
+
+## Ambiente
+- Windows com PowerShell (usar `curl.exe`, não `curl`).
+- A pasta do projeto está dentro do OneDrive por decisão do dono até o fim da Spec 001.
+- O servidor de desenvolvimento roda na porta 8080.
+
+## Passos manuais
+- As tarefas marcadas com 🧑 (T-02, partes da T-03 e T-14) são feitas pelo dono em painéis externos. O agente não as executa; relata códigos e mensagens, nunca chaves.
+
