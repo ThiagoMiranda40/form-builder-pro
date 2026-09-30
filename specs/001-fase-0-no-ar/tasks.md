@@ -77,7 +77,7 @@ Com `bun node_modules/vite/bin/vite.js dev` (porta 8080):
 - `curl.exe -s -o NUL -w "%{http_code}\n" http://localhost:8080/auth` deve responder 200.
 
 Parte MANUAL 🧑 (feita pelo dono, o agente NÃO executa):
-Workers Builds na Cloudflare conectado ao repositório (build `bun run build`, deploy `npx wrangler deploy`), Worker com o nome `thiagomiranda40-form-builder-pro`, Segredos `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY` como tipo Segredo, domínio personalizado `inscricoes.triadetecnologiaesolucoes.com.br`.
+Workers Builds na Cloudflare conectado ao repositório. O nome do Worker pode ser qualquer um no painel (o Workers Builds usa o nome do painel e sobrescreve o nome gerado pelo projeto). Na configuração de build do painel da Cloudflare: "Comando da build" = `bun run build` e "Comando de implantação" = `npx wrangler deploy` (sem o comando de build o deploy falha, porque o wrangler não encontra a configuração gerada pelo build). As TRÊS chaves (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_SERVICE_ROLE_KEY`) como tipo Segredo, não "Variável" (variáveis comuns podem ser removidas por novos deploys). `SUPABASE_URL` é a URL completa `https://<id-do-projeto>.supabase.co`, não só o identificador do projeto. Domínio personalizado vinculado: `inscricoes.triadetecnologiaesolucoes.com.br`.
 
 Verificação real:
 ```bash
@@ -88,6 +88,7 @@ curl.exe -s -o NUL -w "%{http_code}\n" https://inscricoes.triadetecnologiaesoluc
 - `/auth` deve responder 200, sem erro 1102 no log da Cloudflare. Se aparecer o erro 1102, PARAR e avisar o dono.
 
 **O que isso prova:** a rota existe e falha com segurança sem chave (503, sem vazar nada); no Worker publicado, responde que o banco está acessível, e o plano gratuito aguenta renderizar as páginas.
+Status: concluída em 30/09/2026. /saude respondeu {"ok":true,"db":true} no Worker publicado, /auth respondeu 200 e não houve erro 1102.
 
 
 ## T-04 — Migração Fase 0 e tipos
@@ -148,14 +149,17 @@ Arquivos: `src/routes/auth.tsx`, `src/routes/index.tsx`
 Fazer:
 1. `auth.tsx`: remover o modo "criar conta" (campo nome, `signUp`, alternância), o botão Google e o import de `@/integrations/lovable`; remover `minLength` e o placeholder "Mínimo de 6 caracteres" do campo de senha no login (NÃO colocar 12 no HTML do login para não travar o admin; a política fica no Supabase Auth); título fixo "Entrar". **Não mexer** em `src/integrations/lovable/`.
 2. `index.tsx`: substituir o placeholder por `beforeLoad` com redirecionamento para `/painel` (o layout autenticado já manda quem não entrou para `/auth`).
-Verificação:
-```bash
-bunx tsc --noEmit && bun run build
-! grep -rn "lovable\|signUp" src/routes/auth.tsx
-bun run dev -- --host 127.0.0.1 --port 5173 & sleep 8
-curl -s 127.0.0.1:5173/auth | grep -c "Google\|Criar conta"      # esperado 0 (hoje aparecem "Continuar com Google" e "Criar conta")
-curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" 127.0.0.1:5173/   # esperado 30x com destino /painel (hoje: 200 com o placeholder)
-```
+Verificação local (comandos desta máquina):
+- `bun node_modules/typescript/bin/tsc --noEmit` e `bun node_modules/vite/bin/vite.js build`.
+- `Select-String -Path src/routes/auth.tsx -Pattern "lovable|signUp"` -> sem saída.
+- Com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s http://localhost:8080/auth | Select-String -Pattern "Google|Criar conta"` -> sem saída (hoje aparecem "Continuar com Google" e "Criar conta"); `curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" http://localhost:8080/` -> 30x com destino /painel (hoje: 200 com o placeholder).
+
+Verificação no site publicado (feita pelo dono, depois do deploy automático da main pela Cloudflare):
+- `curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" https://inscricoes.triadetecnologiaesolucoes.com.br/` -> 30x para /painel.
+- `curl.exe -s https://inscricoes.triadetecnologiaesolucoes.com.br/auth | Select-String -Pattern "Google|Criar conta"` -> sem saída.
+
+Parte MANUAL 🧑 (dono, o agente NÃO executa): (a) no painel do Supabase, em Authentication: cadastro público desligado, provedor Google desligado e política de senha com mínimo de 12 caracteres e exigência de complexidade (SEC-05); (b) no site publicado, entrar com o e-mail e a senha do administrador e ver o painel; sair e confirmar que /painel volta a pedir login.
+
 **O que isso prova:** a tela de entrada só oferece e-mail e senha, e o endereço raiz não mostra mais o "Your app will live here".
 
 ## T-08 — Regras puras da inscrição e do e-mail

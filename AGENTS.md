@@ -53,6 +53,7 @@ Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/0
 - Controle de Aplicativo Inteligente do Windows ATIVADO: bloqueia executáveis sem assinatura (inclusive os .exe gerados pelo Bun); use os comandos da seção Comandos.
 - A pasta do projeto está dentro do OneDrive por decisão do dono até o fim da Spec 001.
 - O servidor de desenvolvimento roda na porta 8080.
+- Os blocos de verificação do tasks.md podem estar em sintaxe bash. No PowerShell desta máquina, traduza: `curl` -> `curl.exe`; `grep` -> `Select-String`; `! comando` -> conferir que não há saída; `&` e `sleep N` -> iniciar o servidor de desenvolvimento em processo separado/segundo plano, esperar a porta 8080 responder e encerrá-lo ao final; porta 5173 -> 8080; `bun run X` e `bunx` -> os equivalentes da seção Comandos.
 
 ## Passos manuais
 - As tarefas marcadas com 🧑 (T-02, partes da T-03 e T-14) são feitas pelo dono em painéis externos. O agente não as executa; relata códigos e mensagens, nunca chaves.
