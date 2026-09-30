@@ -17,6 +17,7 @@ export type Database = {
       forms: {
         Row: {
           closes_at: string | null
+          consent_text: string | null
           created_at: string
           description: string
           id: string
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           closes_at?: string | null
+          consent_text?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           closes_at?: string | null
+          consent_text?: string | null
           created_at?: string
           description?: string
           id?: string
@@ -127,21 +130,33 @@ export type Database = {
       responses: {
         Row: {
           answers: Json
+          consented_at: string | null
+          edit_token: string
           form_id: string
           id: string
+          identifier: string | null
           submitted_at: string
+          updated_at: string
         }
         Insert: {
           answers?: Json
+          consented_at?: string | null
+          edit_token?: string
           form_id: string
           id?: string
+          identifier?: string | null
           submitted_at?: string
+          updated_at?: string
         }
         Update: {
           answers?: Json
+          consented_at?: string | null
+          edit_token?: string
           form_id?: string
           id?: string
+          identifier?: string | null
           submitted_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -158,7 +173,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      submit_response: {
+        Args: {
+          p_slug: string
+          p_answers: Json
+          p_identifier: string | null
+          p_consented?: boolean
+        }
+        Returns: Json
+      }
+      update_response: {
+        Args: {
+          p_token: string
+          p_answers: Json
+          p_identifier: string | null
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
