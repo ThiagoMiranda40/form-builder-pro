@@ -6,6 +6,13 @@
 **Marcadas 🧑 são passos manuais seus** (painéis externos); as demais o Claude Code / Antigravity executa.
 **Ordem = risco primeiro:** infraestrutura (T-02, T-03) antes do código de negócio.
 
+### Referências por tipo de tarefa
+- **Tarefas com tela:** [`design/ui-ux.md`](./design/ui-ux.md)
+- **Tarefas com servidor, dados pessoais, token, e-mail, logs ou chaves:** [`seguranca.md`](./seguranca.md)
+- **Tarefas de banco:** [`data-model.md`](./data-model.md)
+- **Estratégia de testes da camada:** [`qa-plan.md`](./qa-plan.md) (nunca o checklist final antes da T-14)
+- **Ordem e paralelismo:** [`ordem-de-execucao.md`](./ordem-de-execucao.md)
+
 | Fase | Tasks |
 |---|---|
 | Base | T-01 |
@@ -143,6 +150,15 @@ Fazer (testes primeiro):
 9. `isSafeRecipient(email)` em `confirmation-email.ts`: rejeita destinatários contendo caracteres como `, ; < > "` e espaços antes do envio; testes unitários (`a@b.com` → ok; `a@b.com,c.com`, `a@b.com;x@y.com`, `x<y@z.com>`, `"a"@b.com` → rejeitados).
 Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
 **O que isso prova:** o e-mail nunca mostra o CPF por inteiro, não deixa um inscrito injetar HTML, rejeita formatos de e-mail maliciosos ou múltiplos destinatários, uma falha de e-mail nunca derruba uma inscrição e os botões garantem legibilidade com qualquer cor de tema.
+
+### Especificações complementares
+- `mapSubmitStatus(status)` devolve `{ ok: true }` ou `{ ok: false; error: string; field?: "cpf" | "__consent" }`. duplicate -> error "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador." e field "cpf"; consent_required -> "É necessário aceitar o termo para continuar." e field "__consent"; full -> "O limite de inscrições foi atingido."; closed -> "O prazo de preenchimento encerrou."; unavailable -> "Este formulário não está disponível."; ok -> { ok: true }; qualquer outro valor -> "Não foi possível concluir a inscrição. Tente novamente." (a T-09 troca "cpf" pelo id da pergunta CPF).
+- `hideDocument(v)`: substitui por `*` todo caractere alfanumérico, EXCETO os 2 últimos alfanuméricos, e mantém a pontuação. "529.982.247-25" -> "***.***.***-25"; "12.345.678-9" -> "**.***.**8-9"; "" -> ""; com 2 ou menos alfanuméricos, mascara todos.
+- `buildConfirmationEmail({ form, questions, answers, editUrl, kind })`, kind "confirmada" | "atualizada", devolve `{ subject, html, text }`. Assunto: "Inscrição confirmada — {título}" ou "Inscrição atualizada — {título}", texto puro sem quebras de linha (remover \r e \n do título). Corpo em pt-BR: saudação curta; frase ("Recebemos sua inscrição." / "Suas respostas foram atualizadas."); lista "Pergunta: resposta" na ordem das perguntas (múltipla escolha = valores separados por vírgula; sem resposta = "—"); perguntas do tipo cpf e rg passam por `hideDocument`; link com a frase "Para corrigir seus dados, acesse:"; sem imagens externas nem rastreadores. Todo texto vindo do inscrito ou do organizador passa por `escapeHtml` no html; `text` é a versão em texto puro.
+- `isSafeRecipient(email)`: verdadeiro somente se passar em `isValidEmail`, tiver no máximo 254 caracteres e NÃO contiver espaço, caractere de controle, `,`, `;`, `<`, `>` nem `"`.
+- `sendConfirmationEmail({ fetchFn, apiKey, from, to, subject, html, text })`: retorna false sem chamar a rede se faltar apiKey ou from, ou se `!isSafeRecipient(to)`; senão POST em https://api.resend.com/emails com `Authorization: Bearer <apiKey>` e corpo JSON `{ from, to: [to], subject, html, text }`; true se resposta ok; false (sem lançar) se o fetch lançar ou responder não-ok. Nunca registra em log corpo, destinatário nem chave.
+- `readableTextColor(hex)`: aceita `#rgb` e `#rrggbb` (maiúsculas ou minúsculas); devolve `#ffffff` ou `#000000`, o de maior contraste; entrada inválida devolve `#ffffff`. O teste de varredura calcula o contraste WCAG com fórmula própria escrita no teste.
+- `normalizeCPF` reutiliza `onlyDigits`; string vazia ou sem dígitos devolve `null`. `findIdentifierQuestion`/`findEmailQuestion` recebem as perguntas ordenadas por `position` e devolvem a primeira do tipo pedido.
 
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
