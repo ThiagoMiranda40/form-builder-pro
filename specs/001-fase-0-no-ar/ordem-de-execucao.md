@@ -9,7 +9,7 @@
 3. **Revisão obrigatória (Writer/Reviewer)** antes de seguir: **T-04, T-08, T-09 e T-11** (as de maior risco; ver `qa-plan.md`).
 4. **Passos manuais 🧑:** T-02 (Supabase), partes da T-03 (Cloudflare e DNS) e T-14 (e-mail real e teste final).
 5. **Branches:** enquanto não houver versão em produção, `main` e `spec-001-fase-0-no-ar` podem ser mantidas sincronizadas (fast-forward, sem `--force`). Depois do primeiro formulário real (T-14), trabalhar em branch e só então mesclar na `main`.
-6. **Pontos de parada:** se a T-03 mostrar erro 1102 (limite de CPU do plano gratuito), ou se a verificação da T-04 falhar (32 PASSOU e concorrência 5 ok + 15 full), **pare** e resolva antes de seguir.
+6. **Pontos de parada:** se a T-03 mostrar erro 1102 (limite de CPU do plano gratuito), ou se a verificação da T-04 falhar (47 PASSOU e concorrência 5 ok + 15 full), **pare** e resolva antes de seguir.
 
 ## 1. Grafo de dependências
 
@@ -106,7 +106,7 @@ Só faz sentido com mais de uma sessão/pessoa. Se você seguir sozinho, ignore 
 | T-01 | `tsc` sem erros, testes verdes, build ok |
 | T-02 | `curl` de cadastro recusado (código 4xx); `.env` só com chaves públicas do projeto novo; política de senha (mín. 12) ativa |
 | T-03 | `/saude` responde `{"ok":true,"db":true}` no subdomínio; sem erro 1102 no log da Cloudflare |
-| T-04 | `verificacao-banco.sql`: 32 PASSOU; concorrência 5 vagas × 20 envios = 5 ok + 15 full |
+| T-04 | `verificacao-banco.sql`: 47 PASSOU; concorrência 5 vagas × 20 envios = 5 ok + 15 full |
 | T-05 | Testes do slug passam, incluindo a comparação da lista de reservados com a migração |
 | T-06 | `/qualquer-endereco` responde 200 e `/f/qualquer` responde 404; editor recusa endereço repetido/reservado |
 | T-07 | `/auth` sem "Google" nem "Criar conta"; `/` redireciona |

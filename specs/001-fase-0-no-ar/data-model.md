@@ -140,19 +140,11 @@ Rodados nesta ordem, num banco novo com as 2 migrações do repositório + a mig
 | Sem CPF | 2 inscrições com identificador nulo | Ambas `ok` |
 | **Concorrência** | **5 vagas, 20 envios simultâneos (CPFs diferentes)** | **5 `ok` + 15 `full`; 5 gravadas** |
 | **Concorrência** | **mesmo CPF, 10 envios simultâneos** | **1 `ok` + 9 `duplicate`; 1 gravada** |
-| Permissões | `anon` lê `forms`/`questions`/`responses` e executa as funções; `authenticated` executa `submit_response` | Todos **bloqueados**; `service_role` executa normalmente |
+| Permissões | `anon` lê `forms`/`questions`/`responses` e executa as funções; `authenticated` executa `submit_response` | Todos **bloqueados**; `service_role` executa normalmente (agora cobertas por 15 checagens do script) |
 
 ### Como repetir no Supabase real (T-04)
 
-```bash
-# DATABASE_URL = string de conexão do projeto (Supabase → Connect). Rodar ANTES de publicar formulários reais.
-psql "$DATABASE_URL" -c "INSERT INTO forms(owner_id,slug,status,max_responses)
-  SELECT id,'teste-concorrencia','published',5 FROM auth.users LIMIT 1;"
-seq 1 20 | xargs -P 20 -I{} psql "$DATABASE_URL" -At \
-  -c "SELECT (submit_response('teste-concorrencia','{}','cpf{}'))->>'status';" | sort | uniq -c
-# Esperado: 5 ok + 15 full
-psql "$DATABASE_URL" -c "DELETE FROM forms WHERE slug='teste-concorrencia';"   # respostas somem junto (cascade)
-```
+Cole o arquivo `verificacao-banco.sql` no SQL Editor do Supabase e execute (esperado: 47 PASSOU). Em seguida, execute `verificacao-concorrencia.mjs` via Bun no terminal (esperado: 5 ok + 15 full). Veja o passo a passo detalhado na task T-04 do `tasks.md`.
 
 ## Alterações à mão em `src/integrations/supabase/types.ts`
 

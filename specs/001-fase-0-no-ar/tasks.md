@@ -93,23 +93,27 @@ Status: concluída em 30/09/2026. /saude respondeu {"ok":true,"db":true} no Work
 
 ## T-04 — Migração Fase 0 e tipos
 Depende de: T-02 · RF-03, RF-04, RF-08, RF-10 (banco)
-Ler: data-model.md (migração e verificação); seguranca.md (revisão das funções do banco); qa-plan.md (camada de banco)
+Ler: data-model.md (migração e verificação); seguranca.md (revisão das funções do banco); seguranca.md (SEC-02); qa-plan.md (camada de banco)
 Arquivos: `supabase/migrations/<timestamp>_fase0_inscricao.sql` (novo, conteúdo de `data-model.md`), `src/integrations/supabase/types.ts`
 Fazer:
 1. Criar a migração copiando o SQL de `data-model.md` **sem alterá-lo**; aplicar no Supabase.
 2. Atualizar `types.ts` conforme a última seção de `data-model.md`.
 3. Rodar a verificação do banco e a de concorrência.
 Verificação:
-```bash
-psql "$DATABASE_URL" -f specs/001-fase-0-no-ar/verificacao-banco.sql     # 32 linhas "PASSOU", nenhuma "FALHOU"
-# concorrência: 5 vagas, 20 envios ao mesmo tempo
-psql "$DATABASE_URL" -c "INSERT INTO forms(owner_id,slug,status,max_responses) SELECT id,'teste-concorrencia','published',5 FROM auth.users LIMIT 1;"
-seq 1 20 | xargs -P 20 -I{} psql "$DATABASE_URL" -At -c "SELECT (submit_response('teste-concorrencia','{}','cpf{}'))->>'status';" | sort | uniq -c
-psql "$DATABASE_URL" -c "DELETE FROM forms WHERE slug='teste-concorrencia';"
-bunx tsc --noEmit
+Parte de CÓDIGO (agente): criar a migração `supabase/migrations/<timestamp>_fase0_inscricao.sql` com o SQL de `data-model.md` SEM alterá-lo (use um timestamp posterior ao da última migração do repositório) e atualizar `types.ts`; rodar `bun node_modules/typescript/bin/tsc --noEmit`, `bun node_modules/vitest/vitest.mjs run` e `bun node_modules/vite/bin/vite.js build`. O agente NÃO acessa o banco do Supabase nem guarda senhas.
+Parte MANUAL 🧑 (dono):
+(a) No Supabase, abrir o SQL Editor, colar o conteúdo da migração e rodar (uma única vez; se der erro, NÃO rodar de novo e avisar). 
+(b) No SQL Editor, colar o arquivo `verificacao-banco.sql` inteiro e rodar. O resultado é uma tabela; a última linha deve ser `== RESUMO: 47 PASSOU, 0 FALHOU ==`.
+(c) Concorrência, no PowerShell, na pasta do projeto (a senha do banco nunca é gravada em arquivo nem colada em conversa): 
+```powershell
+$s = Read-Host "Cole a string de conexão do Supabase (Session pooler) com a senha" -AsSecureString
+$env:DATABASE_URL = [System.Net.NetworkCredential]::new("", $s).Password
+bun specs/001-fase-0-no-ar/verificacao-concorrencia.mjs
+Remove-Item Env:DATABASE_URL
 ```
-Esperado: **32 PASSOU**, e na concorrência **`5 ok` + `15 full`**.
-**O que isso prova:** com 20 pessoas enviando ao mesmo tempo para 5 vagas, entram exatamente 5; o mesmo CPF não entra duas vezes; o inscrito consegue editar sem gastar vaga, mas não consegue trocar o CPF; visitantes sem login não leem nada.
+Esperado: `{"ok":5,"full":15}` e quatro linhas PASSOU. A string está em Supabase -> Connect -> "Session pooler"; troque [YOUR-PASSWORD] pela senha do banco (se ela tiver caracteres especiais, redefina para uma senha só com letras e números em Settings -> Database).
+Esperado: 47 PASSOU e 5 ok + 15 full.
+**O que isso prova:** com 20 pessoas enviando ao mesmo tempo para 5 vagas, entram exatamente 5; o mesmo CPF não entra duas vezes; o inscrito consegue editar sem gastar vaga, mas não consegue trocar o CPF; visitantes sem login não leem nada; e o visitante sem login não consegue ler formulários, perguntas, respostas nem perfis, nem gravar direto na tabela, nem chamar as funções de inscrição.
 
 ## T-05 — Regras do endereço (slug)
 Depende de: T-04 · RF-11
@@ -152,11 +156,11 @@ Fazer:
 Verificação local (comandos desta máquina):
 - `bun node_modules/typescript/bin/tsc --noEmit` e `bun node_modules/vite/bin/vite.js build`.
 - `Select-String -Path src/routes/auth.tsx -Pattern "lovable|signUp"` -> sem saída.
-- Com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s http://localhost:8080/auth | Select-String -Pattern "Google|Criar conta"` -> sem saída (hoje aparecem "Continuar com Google" e "Criar conta"); `curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" http://localhost:8080/` -> 30x com destino /painel (hoje: 200 com o placeholder).
+- Com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s http://localhost:8080/auth | Select-String -Pattern "Google|Criar conta" -CaseSensitive` -> sem saída (hoje aparecem "Continuar com Google" e "Criar conta"); controle positivo: `curl.exe -s http://localhost:8080/auth | Select-String -Pattern "Entrar"` deve imprimir ao menos uma linha; `curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" http://localhost:8080/` -> 30x com destino /painel (hoje: 200 com o placeholder).
 
 Verificação no site publicado (feita pelo dono, depois do deploy automático da main pela Cloudflare):
 - `curl.exe -s -o NUL -w "%{http_code} %{redirect_url}`n" https://inscricoes.triadetecnologiaesolucoes.com.br/` -> 30x para /painel.
-- `curl.exe -s https://inscricoes.triadetecnologiaesolucoes.com.br/auth | Select-String -Pattern "Google|Criar conta"` -> sem saída.
+- `curl.exe -s https://inscricoes.triadetecnologiaesolucoes.com.br/auth | Select-String -Pattern "Google|Criar conta" -CaseSensitive` -> sem saída; controle positivo: `curl.exe -s https://inscricoes.triadetecnologiaesolucoes.com.br/auth | Select-String -Pattern "Entrar"` deve imprimir ao menos uma linha.
 
 Parte MANUAL 🧑 (dono, o agente NÃO executa): (a) no painel do Supabase, em Authentication: cadastro público desligado, provedor Google desligado e política de senha com mínimo de 12 caracteres e exigência de complexidade (SEC-05); (b) no site publicado, entrar com o e-mail e a senha do administrador e ver o painel; sair e confirmar que /painel volta a pedir login.
 

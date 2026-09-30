@@ -69,7 +69,7 @@ Adotamos uma distribuição inteligente em **4 camadas complementares**:
 
 ### Camada 2: Verificação do Banco de Dados Real (SQL e Concorrência)
 - **O que cobre:** As funções atômicas dentro do Postgres (`submit_response` e `update_response`), travas de concorrência (`FOR UPDATE`), políticas de acesso (RLS) e regras de unicidade.
-- **Ferramentas:** `psql "$DATABASE_URL" -f specs/001-fase-0-no-ar/verificacao-banco.sql` (32 verificações) e comando `xargs -P 20` para disparar 20 envios simultâneos para 5 vagas.
+- **Ferramentas:** `verificacao-banco.sql` no SQL Editor do Supabase (47 verificações, incluindo permissões) e `verificacao-concorrencia.mjs` (20 envios simultâneos para 5 vagas).
 - **Tradução:** Garante que o banco de dados é imune a fraudes e que nenhuma vaga a mais é criada, mesmo se dezenas de pessoas clicarem no botão no mesmo milésimo de segundo.
 
 ### Camada 3: Verificação de Infraestrutura e Rotas (cURL, Compilação e Deploy)
@@ -211,8 +211,8 @@ Este é o roteiro obrigatório da task final (T-14). Prepare o celular e o compu
 
 ### Cenário 3: Limite Seguro de Vagas sob Concorrência
 1. **Ação:** No painel, crie um formulário com limite de exatamente 3 vagas.
-2. **Ação:** No terminal, execute o comando de concorrência com 10 envios simultâneos (`xargs -P 10`).
-3. **O que você vê na tela (Esperado):** No painel do administrador, a contagem de respostas trava rigorosamente em **3**. No terminal, exatamente 3 requisições retornam `ok` e 7 retornam `full` ("vagas esgotadas"). Nenhuma vaga excedente foi aberta.
+2. **Ação:** No terminal, execute `verificacao-concorrencia.mjs` (20 envios para 5 vagas).
+3. **O que você vê na tela (Esperado):** No painel do administrador, a contagem de respostas trava rigorosamente em **3**. No terminal, exatamente 5 retornam ok e 15 retornam full ("vagas esgotadas"). Nenhuma vaga excedente foi aberta.
 
 ### Cenário 4: Endereço Amigável e Preservação de Links
 1. **Ação:** No editor, altere o endereço do formulário de `treino-oficial` para `etapa-ibirapuera` e salve.
@@ -234,7 +234,7 @@ Marque cada item antes de considerar o sistema oficialmente no ar para eventos r
 
 - [ ] **Compilação e Tipos:** O comando `bunx tsc --noEmit` executa sem nenhum erro (0 erros).
 - [ ] **Bateria de Testes Automatizados:** O comando `bun run test` executa todas as suítes no Vitest e 100% dos testes passam.
-- [ ] **Verificação de Banco:** O script `psql -f verificacao-banco.sql` retorna "PASSOU" em todas as 32 linhas.
+- [ ] **Verificação de Banco:** a última linha do `verificacao-banco.sql` no SQL Editor é `== RESUMO: 47 PASSOU, 0 FALHOU ==`.
 - [ ] **Teste de Concorrência:** O teste de 20 envios simultâneos para 5 vagas retorna exatamente 5 `ok` e 15 `full`.
 - [ ] **Segredos no Git:** O comando `git grep -n "sb_secret_\|SERVICE_ROLE_KEY=\|re_[A-Za-z0-9]"` não encontra nenhum segredo no código.
 - [ ] **Cadastro Público Desativado:** O painel do Supabase está com "Allow new users to sign up" desmarcado e o teste cURL de signup retorna erro 4xx.
