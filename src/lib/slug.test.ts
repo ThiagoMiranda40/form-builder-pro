@@ -75,6 +75,33 @@ describe("Regras do endereço (slug)", () => {
       expect(s).toBe("formulario");
       expect(validateSlug(s)).toBeNull();
     });
+
+    it("mantém o sufixo intacto em título longo e passa em validateSlug", () => {
+      const longTitle =
+        "Este é um título extremamente longo para um formulário que ultrapassa com certeza o limite de sessenta caracteres";
+      const s = suggestSlug(longTitle, "abc123");
+      expect(s.endsWith("-abc123")).toBe(true);
+      expect(s.length).toBeLessThanOrEqual(60);
+      expect(validateSlug(s)).toBeNull();
+    });
+
+    it("passa em validateSlug com base de 59 letras e sufixo", () => {
+      const base59 = "a".repeat(59);
+      const s = suggestSlug(base59, "abc123");
+      expect(s.endsWith("-abc123")).toBe(true);
+      expect(s.length).toBeLessThanOrEqual(60);
+      expect(validateSlug(s)).toBeNull();
+    });
+
+    it("gera valores válidos que passam em validateSlug para 5K e A", () => {
+      const s5k = suggestSlug("5K");
+      expect(s5k).toBe("5k-formulario");
+      expect(validateSlug(s5k)).toBeNull();
+
+      const sa = suggestSlug("A");
+      expect(sa).toBe("a-formulario");
+      expect(validateSlug(sa)).toBeNull();
+    });
   });
 
   describe("sanitizeSlugInput", () => {

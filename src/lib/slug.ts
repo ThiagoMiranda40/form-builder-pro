@@ -48,10 +48,28 @@ export function validateSlug(value: string): string | null {
  * Sugere um slug legível a partir de um título e sufixo opcional (ex.: ID aleatório).
  */
 export function suggestSlug(title: string, suffix?: string): string {
-  const base = slug(title);
-  if (!suffix) return base;
-  const raw = `${base}-${slug(suffix)}`;
-  return raw.slice(0, 60);
+  const trimmedSuffix = suffix?.trim();
+  let result: string;
+
+  if (trimmedSuffix) {
+    const cleanSuffix = slug(trimmedSuffix).replace(/^-+|-+$/g, "");
+    const maxBaseLength = Math.max(0, 60 - (cleanSuffix.length + 1));
+    const base = slug(title);
+    const trimmedBase = base.slice(0, maxBaseLength).replace(/^-+|-+$/g, "");
+    result = trimmedBase ? `${trimmedBase}-${cleanSuffix}` : cleanSuffix;
+  } else {
+    result = slug(title);
+  }
+
+  result = result.replace(/^-+|-+$/g, "").slice(0, 60).replace(/^-+|-+$/g, "");
+
+  if (!result) {
+    result = "formulario";
+  } else if (result.length < 3) {
+    result = `${result}-formulario`;
+  }
+
+  return result;
 }
 
 /**
