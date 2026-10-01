@@ -6,6 +6,7 @@ import {
   SITE_TITLE,
   SITE_DESCRIPTION,
   OG_IMAGE,
+  buildFormMeta,
 } from "./site-meta";
 
 describe("site-meta (T-18)", () => {
@@ -37,8 +38,6 @@ describe("site-meta (T-18)", () => {
     const ogImagePath = path.resolve(process.cwd(), "public/og-image.png");
     const buffer = fs.readFileSync(ogImagePath);
 
-    // PNG Header: 8 bytes assinatura, 4 bytes chunk length ('IHDR'), 4 bytes chunk type ('IHDR'),
-    // bytes 16-19: largura (uint32be), bytes 20-23: altura (uint32be)
     const width = buffer.readUInt32BE(16);
     const height = buffer.readUInt32BE(20);
 
@@ -52,5 +51,163 @@ describe("site-meta (T-18)", () => {
     const header = Array.from(buffer.subarray(0, 4));
 
     expect(header).toEqual([0x00, 0x00, 0x01, 0x00]);
+  });
+});
+
+describe("buildFormMeta (T-19)", () => {
+  const DEFAULT_TITLE = "Formulário de inscrição";
+  const DEFAULT_DESC = "Preencha seus dados para concluir a inscrição neste formulário.";
+  const DEFAULT_OG_TITLE = "Formulário de inscrição";
+  const DEFAULT_OG_DESC = "Preencha seus dados para concluir a inscrição.";
+
+  it("devolve os textos genéricos quando o payload for nulo", () => {
+    const res = buildFormMeta(null);
+    expect(res).toEqual({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      ogTitle: DEFAULT_OG_TITLE,
+      ogDescription: DEFAULT_OG_DESC,
+    });
+  });
+
+  it("devolve os textos genéricos quando o payload for undefined", () => {
+    const res = buildFormMeta(undefined);
+    expect(res).toEqual({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      ogTitle: DEFAULT_OG_TITLE,
+      ogDescription: DEFAULT_OG_DESC,
+    });
+  });
+
+  it("devolve os textos genéricos quando state for 'draft', mesmo com título preenchido", () => {
+    const res = buildFormMeta({
+      state: "draft",
+      form: { title: "Treino Exclusivo", description: "Descrição de rascunho" },
+    });
+    expect(res).toEqual({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      ogTitle: DEFAULT_OG_TITLE,
+      ogDescription: DEFAULT_OG_DESC,
+    });
+  });
+
+  it("devolve os textos genéricos quando state for 'not_found'", () => {
+    const res = buildFormMeta({ state: "not_found" });
+    expect(res).toEqual({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      ogTitle: DEFAULT_OG_TITLE,
+      ogDescription: DEFAULT_OG_DESC,
+    });
+  });
+
+  it("devolve os textos genéricos quando o título for vazio ou só contiver espaços", () => {
+    const res = buildFormMeta({
+      state: "open",
+      form: { title: "   ", description: "Qualquer descrição" },
+    });
+    expect(res).toEqual({
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC,
+      ogTitle: DEFAULT_OG_TITLE,
+      ogDescription: DEFAULT_OG_DESC,
+    });
+  });
+
+  it("open com título e descrição curtos ('SKF Running Team' e 'CORRIDA TRACK & FIELD - SHOPPING IGUATEMI')", () => {
+    const res = buildFormMeta({
+      state: "open",
+      form: {
+        title: "SKF Running Team",
+        description: "CORRIDA TRACK & FIELD - SHOPPING IGUATEMI",
+      },
+    });
+    expect(res).toEqual({
+      title: "SKF Running Team | Corre Time",
+      description: "CORRIDA TRACK & FIELD - SHOPPING IGUATEMI",
+      ogTitle: "SKF Running Team",
+      ogDescription: "CORRIDA TRACK & FIELD - SHOPPING IGUATEMI",
+    });
+  });
+
+  it("descrição de 300 caracteres é cortada em até 161 caracteres com '…' ao final sem cortar palavra no meio", () => {
+    // Frase longa com palavras legíveis somando ~300 caracteres
+    const longDesc =
+      "Venha participar deste super treino preparatório para a maratona com toda a equipe da Corre Time reunida para superar marcas pessoais e incentivar novos corredores a darem os primeiros passos na corrida de rua com segurança e entusiasmo total neste sábado pela manhã na pista principal do parque da cidade.";
+    expect(longDesc.length).toBeGreaterThan(250);
+
+    const res = buildFormMeta({
+      state: "open",
+      form: {
+        title: "Treino Especial",
+        description: longDesc,
+      },
+    });
+
+    expect(res.description.length).toBeLessThanOrEqual(161);
+    expect(res.description.endsWith("…")).toBe(true);
+    expect(res.ogDescription).toBe(res.description);
+
+    // Garante que não cortou palavra no meio: o texto antes de '…' deve terminar em palavra inteira
+    const textBeforeEllipsis = res.description.slice(0, -1);
+    expect(longDesc.startsWith(textBeforeEllipsis)).toBe(true);
+    // O caractere seguinte no texto original deve ser espaço
+    expect(longDesc[textBeforeEllipsis.length]).toBe(" ");
+  });
+
+  it("descrição com quebras de linha e espaços duplos é normalizada para espaços únicos", () => {
+    const res = buildFormMeta({
+      state: "open",
+      form: {
+        title: "Treino de Sábado",
+        description: "Primeira linha.\n\nSegunda linha   com   vários    espaços.",
+      },
+    });
+    expect(res.description).toBe("Primeira linha. Segunda linha com vários espaços.");
+    expect(res.ogDescription).toBe("Primeira linha. Segunda linha com vários espaços.");
+  });
+
+  it("título de 100 caracteres é cortado em 70 caracteres com '…' ao final", () => {
+    const longTitle = "Corrida e Caminhada Solidária de 10km pela Conscientização e Apoio aos Jovens e Adultos Atletas 2026";
+    expect(longTitle.length).toBeGreaterThan(70);
+
+    const res = buildFormMeta({
+      state: "open",
+      form: {
+        title: longTitle,
+        description: "Descrição simples.",
+      },
+    });
+
+    const expectedOgTitle = longTitle.slice(0, 70) + "…";
+    expect(res.ogTitle).toBe(expectedOgTitle);
+    expect(res.ogTitle.length).toBe(71);
+    expect(res.title).toBe(`${expectedOgTitle} | Corre Time`);
+  });
+
+  it("closed e full usam os dados do formulário normalmente", () => {
+    const resClosed = buildFormMeta({
+      state: "closed",
+      form: {
+        title: "Corrida Encerrada",
+        description: "Prazo encerrado.",
+      },
+    });
+    expect(resClosed.ogTitle).toBe("Corrida Encerrada");
+    expect(resClosed.title).toBe("Corrida Encerrada | Corre Time");
+    expect(resClosed.description).toBe("Prazo encerrado.");
+
+    const resFull = buildFormMeta({
+      state: "full",
+      form: {
+        title: "Corrida Lotada",
+        description: "Vagas esgotadas.",
+      },
+    });
+    expect(resFull.ogTitle).toBe("Corrida Lotada");
+    expect(resFull.title).toBe("Corrida Lotada | Corre Time");
+    expect(resFull.description).toBe("Vagas esgotadas.");
   });
 });

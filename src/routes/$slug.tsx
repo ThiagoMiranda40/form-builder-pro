@@ -11,19 +11,30 @@ import {
   checkEmailConfirmation,
   shouldSyncConfirmation,
 } from "@/lib/email-hints";
+import { buildFormMeta } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Formulário de inscrição" },
-      {
-        name: "description",
-        content: "Preencha seus dados para concluir a inscrição neste formulário.",
-      },
-      { property: "og:title", content: "Formulário de inscrição" },
-      { property: "og:description", content: "Preencha seus dados para concluir a inscrição." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    try {
+      return await getPublicForm({ data: { slug: params.slug } });
+    } catch {
+      return null;
+    }
+  },
+  head: ({ loaderData }) => {
+    const meta = buildFormMeta(loaderData);
+    return {
+      meta: [
+        { title: meta.title },
+        {
+          name: "description",
+          content: meta.description,
+        },
+        { property: "og:title", content: meta.ogTitle },
+        { property: "og:description", content: meta.ogDescription },
+      ],
+    };
+  },
   component: PublicForm,
 });
 
