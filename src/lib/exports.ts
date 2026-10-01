@@ -1,6 +1,3 @@
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { slug } from "./slug";
 
 export type ExportQuestion = { id: string; label: string };
@@ -12,7 +9,7 @@ export type ExportResponse = {
 const fmtDate = (value: string) =>
   new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-function buildRows(questions: ExportQuestion[], responses: ExportResponse[]) {
+export function buildRows(questions: ExportQuestion[], responses: ExportResponse[]) {
   const header = ["Enviado em", ...questions.map((q) => q.label)];
   const rows = responses.map((r) => [
     fmtDate(r.submitted_at),
@@ -24,11 +21,12 @@ function buildRows(questions: ExportQuestion[], responses: ExportResponse[]) {
   return { header, rows };
 }
 
-export function exportToExcel(
+export async function exportToExcel(
   formTitle: string,
   questions: ExportQuestion[],
   responses: ExportResponse[],
-) {
+): Promise<void> {
+  const XLSX = await import("xlsx");
   const { header, rows } = buildRows(questions, responses);
   const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
   sheet["!cols"] = header.map(() => ({ wch: 26 }));
@@ -37,11 +35,18 @@ export function exportToExcel(
   XLSX.writeFile(book, `${slug(formTitle)}-respostas.xlsx`);
 }
 
-export function exportToPDF(
+export async function exportToPDF(
   formTitle: string,
   questions: ExportQuestion[],
   responses: ExportResponse[],
-) {
+): Promise<void> {
+  const [jsPdfModule, autoTableModule] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const jsPDF = jsPdfModule.default ?? jsPdfModule;
+  const autoTable = autoTableModule.default ?? autoTableModule;
+
   const { header, rows } = buildRows(questions, responses);
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   doc.setFontSize(16);
@@ -63,4 +68,3 @@ export function exportToPDF(
   });
   doc.save(`${slug(formTitle)}-respostas.pdf`);
 }
-
