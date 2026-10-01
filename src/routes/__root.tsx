@@ -12,6 +12,11 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import {
+  SITE_TITLE,
+  SITE_DESCRIPTION,
+  OG_IMAGE,
+} from "../lib/site-meta";
 
 
 function NotFoundComponent() {
@@ -79,19 +84,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "FormulárioLab — crie formulários de inscrição" },
+      { title: SITE_TITLE },
       {
         name: "description",
-        content:
-          "Crie formulários de inscrição, provas e quizzes com link público, validação de CPF e RG, limites de vagas e exportação em PDF e Excel.",
+        content: SITE_DESCRIPTION,
       },
-      { property: "og:title", content: "FormulárioLab" },
+      { property: "og:title", content: SITE_TITLE },
       {
         property: "og:description",
-        content: "Formulários de inscrição com link público, validação de documentos e exportação.",
+        content: SITE_DESCRIPTION,
       },
       { property: "og:type", content: "website" },
+      { property: "og:locale", content: "pt_BR" },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "Logotipo Corre Time" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: OG_IMAGE },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "theme-color", content: "#101B33" },
     ],
     links: [
       {
@@ -104,7 +116,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
 
