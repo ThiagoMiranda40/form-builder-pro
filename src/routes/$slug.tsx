@@ -44,6 +44,7 @@ function PublicForm() {
   const [copyError, setCopyError] = useState(false);
 
   const successTitleRef = useRef<HTMLHeadingElement>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (done) {
@@ -92,7 +93,7 @@ function PublicForm() {
         title: "Formulário indisponível",
         body: "Este formulário ainda não foi publicado pelo organizador.",
       },
-      closed: { title: "Inscrições encerradas", body: "O prazo para este formulário já terminou." },
+      closed: { title: "Inscrições encerradas", body: "Este formulário não está mais recebendo inscrições." },
       full: {
         title: "Vagas esgotadas",
         body: "O limite de inscrições deste formulário já foi atingido.",
@@ -204,28 +205,31 @@ function PublicForm() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const nextErrors: Record<string, string> = {};
-    for (const q of questions) {
-      const message = validateAnswer(q.field_type as FieldType, q.required, answers[q.id]);
-      if (message) nextErrors[q.id] = message;
-    }
-    if (form.consent_text && !consent) {
-      nextErrors["__consent"] = "É necessário aceitar o termo para continuar.";
-    }
-    setErrors(nextErrors);
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
-    if (Object.keys(nextErrors).length > 0) {
-      const firstFieldId = Object.keys(nextErrors)[0];
-      if (firstFieldId === "__consent") {
-        document.getElementById("consent-checkbox")?.focus();
-      } else if (firstFieldId) {
-        document.getElementById(`field-${firstFieldId}`)?.focus();
-      }
-      return;
-    }
-
-    setSending(true);
     try {
+      const nextErrors: Record<string, string> = {};
+      for (const q of questions) {
+        const message = validateAnswer(q.field_type as FieldType, q.required, answers[q.id]);
+        if (message) nextErrors[q.id] = message;
+      }
+      if (form.consent_text && !consent) {
+        nextErrors["__consent"] = "É necessário aceitar o termo para continuar.";
+      }
+      setErrors(nextErrors);
+
+      if (Object.keys(nextErrors).length > 0) {
+        const firstFieldId = Object.keys(nextErrors)[0];
+        if (firstFieldId === "__consent") {
+          document.getElementById("consent-checkbox")?.focus();
+        } else if (firstFieldId) {
+          document.getElementById(`field-${firstFieldId}`)?.focus();
+        }
+        return;
+      }
+
+      setSending(true);
       const result = await send({ data: { slug, answers, consent, hp } });
       if (!result.ok) {
         const isKnownField =
@@ -253,6 +257,7 @@ function PublicForm() {
     } catch {
       setErrors({ __form: "Não foi possível enviar sua inscrição. Tente novamente." });
     } finally {
+      isSubmittingRef.current = false;
       setSending(false);
     }
   }

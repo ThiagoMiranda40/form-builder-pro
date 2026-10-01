@@ -7,6 +7,8 @@ import {
   type SubmitResult,
 } from "./submit-response";
 
+import { resolvePublicState } from "./form-state";
+
 import type { Json } from "@/integrations/supabase/types";
 
 export type { SubmitResult };
@@ -51,7 +53,9 @@ export const getPublicForm = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (!form) return { state: "not_found" };
-    if (form.status !== "published") return { state: "draft" };
+    if (form.status !== "published") {
+      return { state: resolvePublicState(form, 0, new Date()) };
+    }
 
     const { count } = await supabaseAdmin
       .from("responses")
@@ -67,9 +71,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
       .eq("form_id", form.id)
       .order("position", { ascending: true });
 
-    let state: PublicFormPayload["state"] = "open";
-    if (form.closes_at && new Date(form.closes_at).getTime() < Date.now()) state = "closed";
-    else if (form.max_responses !== null && responsesCount >= form.max_responses) state = "full";
+    const state = resolvePublicState(form, responsesCount, new Date());
 
     return {
       state,

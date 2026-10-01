@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
+import { normalizeOptions } from "@/lib/options";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { StatusPill } from "./_authenticated.painel";
 
@@ -493,19 +494,11 @@ function Editor() {
                   Resposta obrigatória
                 </label>
                 {(current.field_type === "single_choice" || current.field_type === "multi_choice") && (
-                  <Field label="Opções (uma por linha)">
-                    <textarea
-                      rows={5}
-                      value={current.options.join("\n")}
-                      onChange={(e) =>
-                        patchQuestion({
-                          options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean),
-                        })
-                      }
-                      className={inputClass}
-                      placeholder={"Opção A\nOpção B"}
-                    />
-                  </Field>
+                  <QuestionOptionsField
+                    key={current.id}
+                    options={current.options}
+                    onChange={(options) => patchQuestion({ options })}
+                  />
                 )}
               </div>
             ) : (
@@ -627,5 +620,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
+  );
+}
+
+function QuestionOptionsField({
+  options,
+  onChange,
+}: {
+  options: string[];
+  onChange: (options: string[]) => void;
+}) {
+  const [text, setText] = useState(() => options.join("\n"));
+
+  return (
+    <Field label="Opções (uma por linha)">
+      <textarea
+        rows={5}
+        value={text}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setText(raw);
+          onChange(normalizeOptions(raw));
+        }}
+        onBlur={() => {
+          const normalized = normalizeOptions(text);
+          setText(normalized.join("\n"));
+        }}
+        className={inputClass}
+        placeholder={"Opção A\nOpção B"}
+      />
+    </Field>
   );
 }
