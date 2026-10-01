@@ -130,15 +130,17 @@ Verificação: `bun node_modules/vitest/vitest.mjs run slug` (os testes do slug 
 ## T-06 — Endereço direto na raiz + editor de endereço
 Depende de: T-05 · RF-11
 Ler: spec.md RF-11; design/ui-ux.md (Tela A); qa-plan.md 4.1 e 5.4
-Arquivos: `src/routes/f.$slug.tsx` → **renomear para** `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/_authenticated.painel.tsx`
+Arquivos: `src/routes/f.$slug.tsx` → **renomear para** `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/_authenticated.painel.tsx`, `src/lib/slug.ts`, `src/lib/slug.test.ts`
 Fazer:
 1. Mover a rota pública para `/$slug` (`createFileRoute("/$slug")`, `useParams({ from: "/$slug" })`); nada mais referencia `/f/`. (Nota de segurança: no head de `/editar/$token`, planejado em T-06 e implementado em T-11, incluir meta `referrer=no-referrer` e `robots=noindex, nofollow`).
 2. Editor: no cartão "Link de compartilhamento", campo de endereço com prefixo `origin/` que converte ao digitar (`sanitizeSlugInput`), tira hífens das pontas ao sair do campo (`trimSlugEdges`), validação ao digitar (`validateSlug`), `publicUrl = ${origin}/${slug}`, aviso "links já compartilhados deixarão de funcionar" ao trocar em formulário publicado, e `slug` incluído no `save()`. Mapear erros do banco: `23505` → "Esse endereço já está em uso"; `23514`+`forms_slug_reserved` → "Esse nome é reservado pelo sistema"; `forms_slug_format` → mensagem de formato.
 3. Painel: criação com `suggestSlug(title, sufixoAleatório)`.
 4. Mensagens literais: use exatamente as de `validateSlug` e as do spec.md RF-11, sem ponto final nas mensagens do banco ('Esse endereço já está em uso', 'Esse nome é reservado pelo sistema'). Se houver diferença de pontuação entre o spec.md e o design/ui-ux.md (Tela A), vale o spec.md.
+5. Acessibilidade do campo de endereço: o campo tem `id` e o rótulo 'Link de compartilhamento' usa `htmlFor`; `aria-invalid` quando houver erro; a mensagem de erro tem `id` e `role="alert"`, e o campo a referencia com `aria-describedby`.
+6. Extrair o mapeamento dos erros do banco para uma função pura `mapSlugDbError(error: { code?: string; message?: string; details?: string }): string | null` em `src/lib/slug.ts` (devolve a mensagem em pt-BR ou `null` se não for erro de endereço), usada pelo editor no lugar do trecho inline. Testes primeiro, com as mensagens reais do Postgres: código `23505` e mensagem `duplicate key value violates unique constraint "forms_slug_key"` -> 'Esse endereço já está em uso'; código `23514` e mensagem com `forms_slug_reserved` -> 'Esse nome é reservado pelo sistema'; código `23514` e mensagem com `forms_slug_format` -> 'Use apenas letras minúsculas, números e hífens.'; qualquer outro erro -> `null`.
 Verificação local (agente, comandos desta máquina):
 - `Get-ChildItem src -Recurse -Include *.ts,*.tsx | Where-Object { $_.Name -ne 'routeTree.gen.ts' } | Select-String -Pattern '"/f/|/f/\$\{'` -> sem saída.
-- `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vitest/vitest.mjs run` (todos passando, 62 hoje); `bun node_modules/vite/bin/vite.js build`.
+- `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vitest/vitest.mjs run slug`; `bun node_modules/vitest/vitest.mjs run` (todos passando, 62 hoje); `bun node_modules/vite/bin/vite.js build`.
 - Com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8080/qualquer-endereco` -> 200 (hoje 404); `curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8080/f/qualquer` -> 404; `curl.exe -s http://localhost:8080/qualquer-endereco | Select-String -Pattern "Carregando formulário"` imprime uma linha.
 - O arquivo `src/routeTree.gen.ts` é regenerado pelo build e pode aparecer no `git status`; é permitido.
 
@@ -201,14 +203,19 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
 Ler: plan.md (função de servidor de inscrição); data-model.md (contrato das funções); seguranca.md SEC-02, SEC-03, SEC-04, SEC-09; qa-plan.md 4.3 a 4.6
-Arquivos: `src/lib/public-forms.functions.ts`
-Fazer:
+Arquivos: `src/lib/submit-response.ts` (novo; lógica testável com dependências injetadas) e `src/lib/submit-response.test.ts` (novo); `src/lib/public-forms.functions.ts` (fica fino: só liga as dependências reais ao `handleSubmission`).
+Fazer (testes primeiro; mostre-os falhando):
 1. `getPublicForm` passa a devolver `consent_text` (no `form`).
-2. Reescrever `submitResponse` conforme "Função de servidor de inscrição" do `plan.md` (honeypot → validação com `validateAnswer` devolvendo `field` → `identifier` → `rpc("submit_response")` → `mapSubmitStatus` → e-mail seguro com `isSafeRecipient` → `editUrl` com `getRequest()`), devolvendo `SubmitResult` com `emailSent: boolean`. Segredos lidos de `process.env` (`RESEND_API_KEY`, `EMAIL_FROM`). Exportar o schema Zod de submissão (`submitSchema`) com limite de 200 chaves no objeto `answers` (`.refine(obj => Object.keys(obj).length <= 200)`), com testes cobrindo 3 chaves válidas (passa) e 201 chaves (rejeitado).
-3. Higiene de logs: assegurar e testar que em caso de erro na gravação da inscrição o log de erro do servidor não contém o CPF nem o objeto `answers` (apenas código do erro e ID do formulário).
-4. Nenhum caminho de resposta pode conter o `edit_token` além do `editUrl`.
-5. Testes com `fetchFn` simulado verificando `emailSent: true` quando o envio dá certo e `emailSent: false` quando falha ou quando o formulário não tem campo de e-mail.
-Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T-08 continua verde; e no banco real, chamar a função pela interface (T-10) e conferir uma linha nova em `responses` com `identifier`, `edit_token` e `consented_at` preenchidos conforme o formulário.
+2. Em `submit-response.ts`, exportar `submitSchema` (Zod) e `handleSubmission(deps, input)`. `deps` traz: carregar formulário e perguntas, o `rpc` de `submit_response`, o `fetchFn` do e-mail, `getOrigin`, `readEnv` (`RESEND_API_KEY`, `EMAIL_FROM`) e `logError`. A ordem é a do plan.md ("Função de servidor de inscrição"): honeypot (`hp` preenchido responde `{ ok: true, message, emailSent: false }` SEM gravar e SEM chamar o rpc) -> carregar -> `validateAnswer` por pergunta (erro devolve `field`) -> `identifier` -> rpc -> `mapSubmitStatus` -> e-mail seguro com `isSafeRecipient` -> `editUrl`. Devolve `SubmitResult` com `emailSent: boolean`; a mensagem de sucesso vem de `success_message`.
+3. Limites do `answers` em `submitSchema` (SEC-02): no máximo 200 chaves; cada chave com até 100 caracteres; cada valor de texto com até 10000 caracteres; tamanho total serializado de até 100 KB. Testes: 3 chaves passa; 200 passa; 201 rejeitado; chave de 101 caracteres rejeitada; valor de 10001 caracteres rejeitado; total acima de 100 KB rejeitado. O erro devolve a mensagem genérica "Não foi possível enviar. Verifique os campos e tente novamente.", sem detalhes.
+4. Origem do link de edição (SEC-04, abuso do cabeçalho Host): `getOrigin` só aceita origens de uma lista fixa na constante `ALLOWED_ORIGINS` (`https://inscricoes.triadetecnologiaesolucoes.com.br` e `http://localhost:8080`); qualquer outra origem (inclusive workers.dev) é trocada pela primeira da lista. Teste: uma origem estranha vira `https://inscricoes.triadetecnologiaesolucoes.com.br`.
+5. E-mail com tempo limite: o `fetchFn` real passa `signal: AbortSignal.timeout(5000)`; um teste confirma que o `signal` é enviado. Falha, lentidão ou falta de chave nunca derrubam a inscrição (`emailSent: false`).
+6. Higiene de logs (SEC-03): em erro de gravação, `logError` recebe só o código do erro e o ID do formulário; um teste confirma que nem o CPF nem o objeto `answers` aparecem nos argumentos do log.
+7. O `edit_token` não pode aparecer em nenhum campo do resultado além do `editUrl` (o teste serializa o resultado e procura o token fora do `editUrl`).
+8. Testes de `emailSent`: `true` quando o envio dá certo; `false` quando falha (resposta 500 e exceção), quando falta a chave e quando o formulário não tem campo de e-mail.
+9. Em `public-forms.functions.ts`, trocar `.inputValidator(...)` por `.validator(...)` (o build avisa que `.inputValidator` está depreciado; as duas formas existem nos tipos instalados). O aviso deve desaparecer do build.
+Verificação (comandos desta máquina): `bun node_modules/vitest/vitest.mjs run` (suíte completa, incluindo os testes novos de `submit-response`); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build` (sem o aviso de `inputValidator`). A conferência no banco real passa para o roteiro manual da T-10, a primeira tarefa com tela de inscrição.
+Revisão: obrigatória por segunda sessão e auditoria independente (camada 2 do playbook).
 **O que isso prova:** o servidor é a única porta de entrada, todas as regras (vagas, CPF único, consentimento) vêm do banco, e a inscrição vale mesmo com o e-mail fora do ar indicando corretamente o estado do envio.
 
 ## T-10 — Tela de inscrição: consentimento, anti-robô, sucesso com link, mensagens
@@ -222,7 +229,7 @@ Fazer:
 4. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF ("CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.").
 5. Tela de sucesso: mostra `result.message`, o `editUrl` com botão "Copiar link", o aviso "guarde este link", e mostra a linha "Enviamos um resumo e o link para o seu e-mail" SOMENTE se `result.emailSent === true`.
 6. No layout raiz (`__root.tsx`), trocar `<html lang="en">` por `<html lang="pt-BR">` (a interface é em português; ajuda leitores de tela e buscadores). NÃO alterar `src/lib/error-page.ts` (a página de erro é em inglês). Verificação local: `curl.exe -s http://localhost:8080/auth | Select-String -CaseSensitive 'lang="pt-BR"'` imprime uma linha.
-Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece, botão legível com cor customizada.
+Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece, botão legível com cor customizada. No banco real (SQL Editor do Supabase), depois de uma inscrição de teste: `select identifier, left(edit_token, 6) as token_inicio, consented_at from public.responses order by submitted_at desc limit 3;` deve mostrar `identifier` (CPF só com dígitos), o começo do token e `consented_at` preenchido quando o formulário tem termo. Apagar a inscrição de teste ao fim.
 **O que isso prova:** RF-03, RF-08, RF-12 e RF-13 funcionando como o usuário final vê.
 
 ## T-11 — Editar pelo link
