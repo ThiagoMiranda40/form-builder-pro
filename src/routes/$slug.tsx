@@ -228,7 +228,11 @@ function PublicForm() {
     try {
       const result = await send({ data: { slug, answers, consent, hp } });
       if (!result.ok) {
-        if (result.field) {
+        const isKnownField =
+          Boolean(result.field) &&
+          (result.field === "__consent" || questions.some((q) => q.id === result.field));
+
+        if (isKnownField && result.field) {
           setErrors({ [result.field]: result.error ?? "Resposta inválida." });
           if (result.field === "__consent") {
             document.getElementById("consent-checkbox")?.focus();
@@ -237,6 +241,7 @@ function PublicForm() {
           }
         } else {
           setErrors({ __form: result.error ?? "Não foi possível enviar." });
+          query.refetch();
         }
         return;
       }
@@ -460,7 +465,7 @@ function PublicForm() {
           )}
 
           {errors["__form"] && (
-            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-red-800">
               {errors["__form"]}
             </p>
           )}

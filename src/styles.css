@@ -138,6 +138,12 @@
   animation: rise 0.5s ease both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
