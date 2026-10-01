@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,14 @@ function Editor() {
   const [saving, setSaving] = useState(false);
   const [initialSlug, setInitialSlug] = useState<string>("");
   const [slugError, setSlugError] = useState<string | null>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const el = descriptionTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [form?.description]);
 
   const query = useQuery({
     queryKey: ["form", id],
@@ -360,13 +368,29 @@ function Editor() {
             placeholder="Título do formulário"
           />
           <textarea
+            ref={descriptionTextareaRef}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             maxLength={1000}
-            rows={2}
-            className="mt-2 w-full resize-none bg-transparent text-sm text-muted-foreground focus:outline-none"
-            placeholder="Descrição exibida para quem for se inscrever"
+            rows={4}
+            aria-label="Descrição do formulário"
+            aria-describedby="description-counter"
+            placeholder="Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
+            className="mt-2 w-full resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 overflow-y-auto"
+            style={{ minHeight: "6rem", maxHeight: "24rem" }}
           />
+          <div className="mt-1 flex justify-end">
+            <span
+              id="description-counter"
+              className={`text-xs ${
+                (form.description?.length ?? 0) >= 900
+                  ? "font-medium text-amber-800"
+                  : "text-slate-600"
+              }`}
+            >
+              {form.description?.length ?? 0}/1000
+            </span>
+          </div>
 
           <div className="mt-5 space-y-3">
             {questions.map((q, index) => (
@@ -442,7 +466,7 @@ function Editor() {
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`flex-1 rounded-md px-2 py-1.5 font-medium capitalize transition-colors ${
+                className={`flex-1 rounded-md px-2 py-1.5 font-medium transition-colors ${
                   tab === key ? "bg-brand text-primary-foreground" : "text-muted-foreground"
                 }`}
               >

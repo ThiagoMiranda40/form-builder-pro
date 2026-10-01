@@ -12,6 +12,7 @@ import {
   shouldSyncConfirmation,
 } from "@/lib/email-hints";
 import { buildFormMeta } from "@/lib/site-meta";
+import { normalizeDescription } from "@/lib/description";
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
@@ -331,6 +332,7 @@ function PublicForm() {
 
   const remaining =
     form.max_responses != null ? Math.max(0, form.max_responses - form.responses_count) : null;
+  const description = normalizeDescription(form.description);
 
   return (
     <Frame>
@@ -346,8 +348,10 @@ function PublicForm() {
         <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
           {form.title}
         </h1>
-        {form.description && (
-          <p className="mt-2 text-sm text-muted-foreground">{form.description}</p>
+        {description && (
+          <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
+            {description}
+          </p>
         )}
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
           {remaining != null && (
