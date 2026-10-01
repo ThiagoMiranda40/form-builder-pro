@@ -40,6 +40,7 @@ Foram identificados **9 pontos de atenção**, classificados estritamente confor
 | **SEC-12** | A04 | **(B) Recomendado Fase 0** | Baixa | Uma requisição forjada envia uma lista no lugar do texto no CPF e derruba a função com exceção (erro 500), ou grava lista em campo de e-mail ou texto. | Aceitar lista somente em perguntas `multi_choice`; qualquer outro tipo com lista devolve erro genérico, sem lançar exceção. | T-09 (ajuste) e T-11 |
 | **SEC-13** | A09 | **(B) Recomendado Fase 0** | Baixa | Uma falha de rede ou do banco lança exceção não tratada e a mensagem original da falha sobe para o navegador e para o log da plataforma. | Capturar a exceção, devolver erro genérico e registrar só o código `EXCEPTION` e o ID do formulário. | T-09 (ajuste) e T-11 |
 | **SEC-14** | A04 | **(B) Recomendado Fase 0** | Baixa | A função de validação reutilizada pela edição (T-11), chamada sem o schema da inscrição, aceitaria números, objetos e booleanos em perguntas de texto e os gravaria como estão. | `validateAndCleanAnswers` rejeita qualquer valor que não seja texto ou lista de textos (erro genérico, sem lançar exceção), para não depender do schema de quem a chama. | T-09 (ajuste 2) e T-11 |
+| **SEC-15** | A05 | **(B) Recomendado Fase 0** | Baixa | Ao abrir um formulário cujo logotipo é hospedado em outro site, o navegador informa o endereço da página ao servidor da imagem. | `referrerPolicy="no-referrer"` no `<img>` do logotipo (o IP do visitante continua visível ao servidor da imagem, o que é inerente a imagem externa e fica aceito). | T-10 (ajuste) |
 
 ---
 
