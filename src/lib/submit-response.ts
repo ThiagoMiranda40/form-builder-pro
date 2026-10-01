@@ -15,11 +15,10 @@ import {
 
 export const ALLOWED_ORIGINS = [
   "https://inscricoes.triadetecnologiaesolucoes.com.br",
-  "http://localhost:8080",
 ] as const;
 
 /**
- * Valida a origem para construção do link de edição, prevenindo ataque de Host Header (SEC-04).
+ * Valida a origem para construção do link de edição, prevenindo ataque de Host Header (SEC-04, SEC-10).
  * Qualquer origem fora da lista permitida é substituída pela origem padrão.
  */
 export function getOrigin(rawOrigin?: string): string {
@@ -142,6 +141,104 @@ export function createTimedFetch(
 }
 
 /**
+ * Valida e limpa as respostas de inscrição ou edição (SEC-11, SEC-12, QA-GAP-05, T-09, T-11).
+ * - Aceita lista somente em multi_choice (SEC-12);
+ * - Apara espaços em branco de strings e itens de lista (QA-GAP-05);
+ * - Valida contra options cadastradas para single_choice e multi_choice (SEC-11);
+ * - Ignora opções não-texto e compara strings aparadas.
+ */
+export function validateAndCleanAnswers(
+  questions: SubmissionQuestion[],
+  answers: Record<string, unknown>,
+):
+  | { ok: true; cleanAnswers: Record<string, unknown> }
+  | { ok: false; error: string; field: string } {
+  const cleanAnswers: Record<string, unknown> = {};
+
+  for (const q of questions) {
+    const raw = answers[q.id];
+
+    // Item 11 (SEC-12): um valor em lista só é aceito para perguntas do tipo multi_choice.
+    // Para qualquer outro tipo, uma lista devolve erro genérico sem lançar exceção.
+    if (Array.isArray(raw) && q.field_type !== "multi_choice") {
+      return {
+        ok: false,
+        error: GENERIC_SUBMIT_ERROR,
+        field: q.id,
+      };
+    }
+
+    // Item 13 (QA-GAP-05): antes de validar, aparar (trim) todo valor de texto e cada item das listas.
+    let trimmed: unknown = raw;
+    if (typeof raw === "string") {
+      trimmed = raw.trim();
+    } else if (Array.isArray(raw)) {
+      trimmed = raw.map((item) => (typeof item === "string" ? item.trim() : item));
+    }
+
+    const isEmpty =
+      trimmed === undefined ||
+      trimmed === null ||
+      (typeof trimmed === "string" && trimmed === "") ||
+      (Array.isArray(trimmed) && trimmed.length === 0);
+
+    const error = validateAnswer(q.field_type, q.required, trimmed);
+    if (error) {
+      return {
+        ok: false,
+        error: `${q.label}: ${error}`,
+        field: q.id,
+      };
+    }
+
+    // Resposta vazia em pergunta não obrigatória continua aceita
+    if (isEmpty) {
+      continue;
+    }
+
+    // Item 16 (SEC-11): validar a escolha contra as opções cadastradas
+    if (q.field_type === "single_choice" || q.field_type === "multi_choice") {
+      const validOptions = Array.isArray(q.options)
+        ? q.options
+            .filter((opt): opt is string => typeof opt === "string")
+            .map((opt) => opt.trim())
+        : [];
+
+      if (q.field_type === "single_choice") {
+        if (
+          typeof trimmed !== "string" ||
+          validOptions.length === 0 ||
+          !validOptions.includes(trimmed)
+        ) {
+          return {
+            ok: false,
+            error: `${q.label}: Selecione uma das opções disponíveis.`,
+            field: q.id,
+          };
+        }
+      } else if (q.field_type === "multi_choice") {
+        if (
+          !Array.isArray(trimmed) ||
+          trimmed.length === 0 ||
+          validOptions.length === 0 ||
+          trimmed.some((item) => typeof item !== "string" || !validOptions.includes(item))
+        ) {
+          return {
+            ok: false,
+            error: `${q.label}: Selecione uma das opções disponíveis.`,
+            field: q.id,
+          };
+        }
+      }
+    }
+
+    cleanAnswers[q.id] = trimmed;
+  }
+
+  return { ok: true, cleanAnswers };
+}
+
+/**
  * Executa o fluxo de submissão de inscrição no servidor com regras atômicas no banco (T-09).
  */
 export async function handleSubmission(
@@ -166,8 +263,21 @@ export async function handleSubmission(
     };
   }
 
-  // 2. Carrega formulário e perguntas
-  const { form, questions } = await deps.loadFormAndQuestions(data.slug);
+  // 2. Carrega formulário e perguntas com tratamento de exceção (SEC-13)
+  let form: SubmissionForm | null = null;
+  let questions: SubmissionQuestion[] = [];
+  try {
+    const loaded = await deps.loadFormAndQuestions(data.slug);
+    form = loaded.form;
+    questions = loaded.questions;
+  } catch {
+    deps.logError("EXCEPTION", "");
+    return {
+      ok: false,
+      error: "Não foi possível concluir a inscrição. Tente novamente.",
+    };
+  }
+
   if (!form || form.status !== "published") {
     return {
       ok: false,
@@ -175,35 +285,47 @@ export async function handleSubmission(
     };
   }
 
-  // 3. Valida cada resposta com validateAnswer
-  const cleanAnswers: Record<string, unknown> = {};
-  for (const q of questions) {
-    const raw = data.answers[q.id];
-    const error = validateAnswer(q.field_type, q.required, raw);
-    if (error) {
-      return {
-        ok: false,
-        error: `${q.label}: ${error}`,
-        field: q.id,
-      };
-    }
-    if (raw !== undefined && raw !== null && raw !== "") {
-      cleanAnswers[q.id] = raw;
-    }
+  // 3. Valida e limpa cada resposta com validateAndCleanAnswers (SEC-11, SEC-12, QA-GAP-05, Reuso)
+  const validationResult = validateAndCleanAnswers(questions, data.answers);
+  if (!validationResult.ok) {
+    return {
+      ok: false,
+      error: validationResult.error,
+      field: validationResult.field,
+    };
   }
+  const cleanAnswers = validationResult.cleanAnswers;
 
   // 4. Identificador (CPF normalizado)
   const cpfQuestion = findIdentifierQuestion(questions);
   const rawCPF = cpfQuestion ? (cleanAnswers[cpfQuestion.id] as string | undefined) : undefined;
   const identifier = normalizeCPF(rawCPF);
 
-  // 5. RPC submit_response no banco
-  const { data: rpcData, error: rpcError } = await deps.rpcSubmitResponse({
-    slug: data.slug,
-    answers: cleanAnswers,
-    identifier,
-    consented: Boolean(data.consent),
-  });
+  // 5. RPC submit_response no banco com tratamento de exceção (SEC-13)
+  let rpcData: {
+    status: string;
+    edit_token?: string;
+    success_message?: string;
+    response_id?: string;
+  } | null = null;
+  let rpcError: { code?: string; message?: string } | null = null;
+
+  try {
+    const rpcRes = await deps.rpcSubmitResponse({
+      slug: data.slug,
+      answers: cleanAnswers,
+      identifier,
+      consented: Boolean(data.consent),
+    });
+    rpcData = rpcRes.data;
+    rpcError = rpcRes.error;
+  } catch {
+    deps.logError("EXCEPTION", form.id);
+    return {
+      ok: false,
+      error: "Não foi possível concluir a inscrição. Tente novamente.",
+    };
+  }
 
   if (rpcError || !rpcData) {
     // Higiene de logs (SEC-03): registra apenas código do erro e id do formulário
@@ -228,7 +350,7 @@ export async function handleSubmission(
     };
   }
 
-  // 7. Monta editUrl com origem segura
+  // 7. Monta editUrl com origem segura (SEC-04, SEC-10)
   const rawOrigin = deps.getOrigin();
   const safeOrigin = getOrigin(rawOrigin);
   const editUrl = rpcData.edit_token ? `${safeOrigin}/editar/${rpcData.edit_token}` : undefined;

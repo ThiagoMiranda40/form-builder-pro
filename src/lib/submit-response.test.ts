@@ -1,16 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
+import * as confirmationEmailModule from "./confirmation-email";
 import {
   ALLOWED_ORIGINS,
   getOrigin,
   handleSubmission,
   submitSchema,
   createTimedFetch,
+  validateAndCleanAnswers,
   type SubmissionDeps,
+  type SubmissionQuestion,
   type SubmitInput,
 } from "./submit-response";
 
 describe("T-09: Servidor de inscrição via banco", () => {
-  describe("submitSchema e limites do answers (SEC-02)", () => {
+  describe("submitSchema e limites do answers (SEC-02, QA-GAP-01, QA-GAP-04)", () => {
     it("aceita payload com 3 chaves", () => {
       const valid = {
         slug: "corrida-2026",
@@ -21,6 +24,24 @@ describe("T-09: Servidor de inscrição via banco", () => {
         },
       };
       const res = submitSchema.safeParse(valid);
+      expect(res.success).toBe(true);
+    });
+
+    it("aceita chave com exatamente 100 caracteres (QA-GAP-04 limite positivo)", () => {
+      const exactKey = "k".repeat(100);
+      const res = submitSchema.safeParse({
+        slug: "corrida-2026",
+        answers: { [exactKey]: "teste" },
+      });
+      expect(res.success).toBe(true);
+    });
+
+    it("aceita valor de texto com exatamente 10000 caracteres (QA-GAP-04 limite positivo)", () => {
+      const exactValue = "v".repeat(10000);
+      const res = submitSchema.safeParse({
+        slug: "corrida-2026",
+        answers: { q1: exactValue },
+      });
       expect(res.success).toBe(true);
     });
 
@@ -76,7 +97,6 @@ describe("T-09: Servidor de inscrição via banco", () => {
     });
 
     it("rejeita tamanho total serializado acima de 100 KB com mensagem genérica", () => {
-      // 12 chaves com 9000 caracteres cada ~ 108 KB > 100 KB
       const answers: Record<string, string> = {};
       for (let i = 1; i <= 12; i++) {
         answers[`k${i}`] = "y".repeat(9000);
@@ -91,10 +111,12 @@ describe("T-09: Servidor de inscrição via banco", () => {
     });
   });
 
-  describe("getOrigin e origens permitidas (SEC-04)", () => {
-    it("contém as origens permitidas esperadas", () => {
-      expect(ALLOWED_ORIGINS).toContain("https://inscricoes.triadetecnologiaesolucoes.com.br");
-      expect(ALLOWED_ORIGINS).toContain("http://localhost:8080");
+  describe("getOrigin e origens permitidas (SEC-04, SEC-10)", () => {
+    it("contém somente a origem oficial de produção (SEC-10)", () => {
+      expect(ALLOWED_ORIGINS).toEqual([
+        "https://inscricoes.triadetecnologiaesolucoes.com.br",
+      ]);
+      expect(ALLOWED_ORIGINS).not.toContain("http://localhost:8080");
     });
 
     it("troca origem estranha pela primeira origem permitida", () => {
@@ -103,11 +125,131 @@ describe("T-09: Servidor de inscrição via banco", () => {
       expect(getOrigin(undefined)).toBe(ALLOWED_ORIGINS[0]);
     });
 
-    it("mantém origens da lista permitida", () => {
+    it("origem localhost vira a origem de produção (SEC-10)", () => {
+      expect(getOrigin("http://localhost:8080")).toBe(
+        "https://inscricoes.triadetecnologiaesolucoes.com.br",
+      );
+    });
+
+    it("mantém a origem de produção", () => {
       expect(getOrigin("https://inscricoes.triadetecnologiaesolucoes.com.br")).toBe(
         "https://inscricoes.triadetecnologiaesolucoes.com.br",
       );
-      expect(getOrigin("http://localhost:8080")).toBe("http://localhost:8080");
+    });
+  });
+
+  describe("validateAndCleanAnswers (SEC-11, SEC-12, QA-GAP-05, Reuso)", () => {
+    const sampleQuestions: SubmissionQuestion[] = [
+      {
+        id: "q-single",
+        label: "Opção única",
+        field_type: "single_choice",
+        required: true,
+        options: [" Opção A ", "Opção B", "Opção C"],
+        position: 0,
+      },
+      {
+        id: "q-multi",
+        label: "Múltipla escolha",
+        field_type: "multi_choice",
+        required: true,
+        options: ["Item 1", "Item 2", "Item 3"],
+        position: 1,
+      },
+      {
+        id: "q-opt",
+        label: "Opcional",
+        field_type: "single_choice",
+        required: false,
+        options: ["Sim", "Não"],
+        position: 2,
+      },
+    ];
+
+    it("apara espaços e valida single_choice corretamente", () => {
+      const res = validateAndCleanAnswers(sampleQuestions, {
+        "q-single": "  Opção A  ",
+        "q-multi": ["Item 1", "Item 2"],
+      });
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.cleanAnswers["q-single"]).toBe("Opção A");
+      }
+    });
+
+    it("rejeita valor fora das opções para single_choice", () => {
+      const res = validateAndCleanAnswers(sampleQuestions, {
+        "q-single": "Opção Inexistente",
+        "q-multi": ["Item 1"],
+      });
+      expect(res).toEqual({
+        ok: false,
+        error: "Opção única: Selecione uma das opções disponíveis.",
+        field: "q-single",
+      });
+    });
+
+    it("rejeita multi_choice contendo item fora da lista no meio de itens válidos", () => {
+      const res = validateAndCleanAnswers(sampleQuestions, {
+        "q-single": "Opção B",
+        "q-multi": ["Item 1", "Item Falso", "Item 2"],
+      });
+      expect(res).toEqual({
+        ok: false,
+        error: "Múltipla escolha: Selecione uma das opções disponíveis.",
+        field: "q-multi",
+      });
+    });
+
+    it("aceita resposta vazia para pergunta opcional de escolha", () => {
+      const res = validateAndCleanAnswers(sampleQuestions, {
+        "q-single": "Opção B",
+        "q-multi": ["Item 1"],
+        "q-opt": "",
+      });
+      expect(res.ok).toBe(true);
+    });
+
+    it("rejeita qualquer valor se pergunta de escolha não tiver opções cadastradas", () => {
+      const qNoOptions: SubmissionQuestion[] = [
+        {
+          id: "q-sem-opcoes",
+          label: "Sem Opções",
+          field_type: "single_choice",
+          required: true,
+          options: [],
+          position: 0,
+        },
+      ];
+      const res = validateAndCleanAnswers(qNoOptions, {
+        "q-sem-opcoes": "Qualquer coisa",
+      });
+      expect(res).toEqual({
+        ok: false,
+        error: "Sem Opções: Selecione uma das opções disponíveis.",
+        field: "q-sem-opcoes",
+      });
+    });
+
+    it("rejeita lista em campo que não é multi_choice com erro genérico (SEC-12)", () => {
+      const qText: SubmissionQuestion[] = [
+        {
+          id: "q-cpf",
+          label: "CPF",
+          field_type: "cpf",
+          required: true,
+          options: [],
+          position: 0,
+        },
+      ];
+      const res = validateAndCleanAnswers(qText, {
+        "q-cpf": ["123", "456"],
+      });
+      expect(res).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-cpf",
+      });
     });
   });
 
@@ -146,6 +288,22 @@ describe("T-09: Servidor de inscrição via banco", () => {
         required: true,
         options: [],
         position: 0,
+      },
+      {
+        id: "q-camiseta",
+        label: "Tamanho da Camiseta",
+        field_type: "single_choice",
+        required: false,
+        options: ["P", "M", "G", "GG"],
+        position: 3,
+      },
+      {
+        id: "q-interesses",
+        label: "Interesses",
+        field_type: "multi_choice",
+        required: false,
+        options: ["5K", "10K", "Caminhada"],
+        position: 4,
       },
     ];
 
@@ -232,6 +390,221 @@ describe("T-09: Servidor de inscrição via banco", () => {
         identifier: "52998224725",
         consented: true,
       });
+    });
+
+    it("SEC-12: lista em CPF, e-mail ou texto devolve erro genérico e não chama rpc", async () => {
+      const deps = createMockDeps();
+
+      // CPF como lista
+      const resCpf = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: { ...validSubmission.answers, "q-cpf": ["52998224725"] },
+      });
+      expect(resCpf).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-cpf",
+      });
+      expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
+
+      // E-mail como lista
+      const resEmail = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: { ...validSubmission.answers, "q-email": ["maria@example.com"] },
+      });
+      expect(resEmail).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-email",
+      });
+
+      // Texto como lista
+      const resNome = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: { ...validSubmission.answers, "q-nome": ["Maria", "Souza"] },
+      });
+      expect(resNome).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-nome",
+      });
+      expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
+    });
+
+    it("SEC-12: multi_choice com lista é aceito normalmente", async () => {
+      const deps = createMockDeps();
+      const res = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: {
+          ...validSubmission.answers,
+          "q-interesses": ["5K", "10K"],
+        },
+      });
+      expect(res.ok).toBe(true);
+      expect(deps.rpcSubmitResponse).toHaveBeenCalled();
+    });
+
+    it("SEC-13: exceção em loadFormAndQuestions devolve erro genérico e loga EXCEPTION com id vazio", async () => {
+      const deps = createMockDeps({
+        loadFormAndQuestions: vi.fn().mockRejectedValue(new Error("Database connection refused")),
+      });
+      const res = await handleSubmission(deps, validSubmission);
+
+      expect(res).toEqual({
+        ok: false,
+        error: "Não foi possível concluir a inscrição. Tente novamente.",
+      });
+      expect(deps.logError).toHaveBeenCalledWith("EXCEPTION", "");
+
+      const logCalls = JSON.stringify(vi.mocked(deps.logError).mock.calls);
+      expect(logCalls).not.toContain("Database connection refused");
+    });
+
+    it("SEC-13: exceção em rpcSubmitResponse devolve erro genérico e loga EXCEPTION com form.id", async () => {
+      const deps = createMockDeps({
+        rpcSubmitResponse: vi.fn().mockRejectedValue(new Error("RPC timeout or failure")),
+      });
+      const res = await handleSubmission(deps, validSubmission);
+
+      expect(res).toEqual({
+        ok: false,
+        error: "Não foi possível concluir a inscrição. Tente novamente.",
+      });
+      expect(deps.logError).toHaveBeenCalledWith("EXCEPTION", "form-123");
+
+      const logCalls = JSON.stringify(vi.mocked(deps.logError).mock.calls);
+      expect(logCalls).not.toContain("RPC timeout or failure");
+    });
+
+    it("QA-GAP-05: apara espaços de texto e e-mail antes de validar, grava aparado e envia e-mail ao endereço aparado", async () => {
+      const deps = createMockDeps();
+      const res = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: {
+          "q-nome": "  Maria Souza  ",
+          "q-cpf": "  529.982.247-25  ",
+          "q-email": "  maria@example.com  ",
+        },
+      });
+
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.emailSent).toBe(true);
+      }
+
+      // Gravado aparado
+      expect(deps.rpcSubmitResponse).toHaveBeenCalledWith({
+        slug: "corrida-skf",
+        answers: {
+          "q-nome": "Maria Souza",
+          "q-cpf": "529.982.247-25",
+          "q-email": "maria@example.com",
+        },
+        identifier: "52998224725",
+        consented: true,
+      });
+
+      // E-mail enviado ao endereço aparado
+      expect(deps.fetchFn).toHaveBeenCalled();
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.to).toEqual(["maria@example.com"]);
+    });
+
+    it("QA-GAP-02: entradas que passam em isValidEmail mas são barradas por isSafeRecipient gravam a resposta mas não chamam a rede", async () => {
+      const unsafeEmails = ['"a"@b.com', "ma\u0000ria@b.com"];
+      const sendEmailSpy = vi.spyOn(confirmationEmailModule, "sendConfirmationEmail");
+
+      for (const unsafeEmail of unsafeEmails) {
+        sendEmailSpy.mockClear();
+        const deps = createMockDeps();
+        const res = await handleSubmission(deps, {
+          ...validSubmission,
+          answers: {
+            ...validSubmission.answers,
+            "q-email": unsafeEmail,
+          },
+        });
+
+        // Inscrição gravada no banco
+        expect(res.ok).toBe(true);
+        expect(deps.rpcSubmitResponse).toHaveBeenCalled();
+
+        // E-mail não enviado e nenhuma chamada de rede realizada
+        if (res.ok) {
+          expect(res.emailSent).toBe(false);
+        }
+        expect(sendEmailSpy).not.toHaveBeenCalled();
+        expect(deps.fetchFn).not.toHaveBeenCalled();
+      }
+
+      sendEmailSpy.mockRestore();
+    });
+
+    it("QA-GAP-01: rpc com status full retorna mensagem e sem email e sem editUrl", async () => {
+      const deps = createMockDeps({
+        rpcSubmitResponse: vi.fn().mockResolvedValue({
+          data: { status: "full" },
+          error: null,
+        }),
+      });
+      const res = await handleSubmission(deps, validSubmission);
+
+      expect(res).toEqual({
+        ok: false,
+        error: "O limite de inscrições foi atingido.",
+      });
+      expect(deps.fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("QA-GAP-01: rpc com status closed retorna mensagem e sem email e sem editUrl", async () => {
+      const deps = createMockDeps({
+        rpcSubmitResponse: vi.fn().mockResolvedValue({
+          data: { status: "closed" },
+          error: null,
+        }),
+      });
+      const res = await handleSubmission(deps, validSubmission);
+
+      expect(res).toEqual({
+        ok: false,
+        error: "O prazo de preenchimento encerrou.",
+      });
+      expect(deps.fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("SEC-11: single_choice e multi_choice validados contra options cadastradas", async () => {
+      const deps = createMockDeps();
+
+      // Valor fora de single_choice
+      const resInvalidSingle = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: {
+          ...validSubmission.answers,
+          "q-camiseta": "Extra G",
+        },
+      });
+      expect(resInvalidSingle).toEqual({
+        ok: false,
+        error: "Tamanho da Camiseta: Selecione uma das opções disponíveis.",
+        field: "q-camiseta",
+      });
+      expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
+
+      // Valor fora de multi_choice
+      const resInvalidMulti = await handleSubmission(deps, {
+        ...validSubmission,
+        answers: {
+          ...validSubmission.answers,
+          "q-interesses": ["5K", "Maratona 42K"],
+        },
+      });
+      expect(resInvalidMulti).toEqual({
+        ok: false,
+        error: "Interesses: Selecione uma das opções disponíveis.",
+        field: "q-interesses",
+      });
+      expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
     });
 
     it("mapeia erro duplicate do rpc trocando 'cpf' pelo id da pergunta CPF", async () => {
