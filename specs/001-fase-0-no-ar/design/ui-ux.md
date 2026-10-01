@@ -619,6 +619,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Ao Clicar em Copiar** | Copia o link com o domínio de produção (`ALLOWED_ORIGINS[0]`): `${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}` para o clipboard. |
 | **Feedback** | Toast disparado via Sonner: *"Link de edição copiado!"*. |
 | **Falha ao copiar** | Toast disparado via Sonner: *"Não foi possível copiar o link."*. |
+| **Ao Clicar em Excluir** | Abre o diálogo `AlertDialog` com título *"Excluir esta inscrição?"*, texto *"Isto apaga de vez as respostas de {nome} (enviada em {data}). O CPF e a vaga voltam a ficar livres e o link de edição deixa de funcionar. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* (Esc também cancela) e botão destrutivo *"Excluir inscrição"*. |
+| **Exclusão com Sucesso** | Toast disparado via Sonner: *"Inscrição excluída."* e recarrega a consulta. Se a última linha for excluída, a tabela passa a exibir o estado vazio. |
+| **Falha na Exclusão** | Caso a exclusão falhe ou o banco retorne 0 linhas: toast *"Não foi possível excluir. Tente novamente."*. O botão fica desabilitado durante o envio. |
 | **Erro de carga** | *"Não foi possível carregar as respostas."* e o botão *"Tentar de novo"*. |
 
 ### 5.4 Textos Exatos da Interface
@@ -629,6 +632,13 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Filtro vazio:** "Nenhuma inscrição editada."
 - **Título da coluna de ações:** "Ações"
 - **Texto do botão por linha:** "Copiar link de edição"
+- **Texto do botão de exclusão:** "Excluir"
+- **Título do diálogo de exclusão:** "Excluir esta inscrição?"
+- **Texto do diálogo de exclusão:** "Isto apaga de vez as respostas de {nome} (enviada em {data}). O CPF e a vaga voltam a ficar livres e o link de edição deixa de funcionar. Esta ação não pode ser desfeita."
+- **Botão cancelar exclusão:** "Cancelar"
+- **Botão confirmar exclusão:** "Excluir inscrição"
+- **Sucesso da exclusão:** "Inscrição excluída."
+- **Falha da exclusão:** "Não foi possível excluir. Tente novamente."
 - **Feedback de cópia:** "Link de edição copiado!"
 - **Falha ao copiar:** "Não foi possível copiar o link."
 - **Erro de carga:** "Não foi possível carregar as respostas."
@@ -732,6 +742,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
 7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
 8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
+9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
 
 ---
 

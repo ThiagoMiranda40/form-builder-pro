@@ -197,6 +197,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Filtro vazio:** Caso o filtro esteja ativo e não haja inscrições correspondentes, exibe *"Nenhuma inscrição editada."*.
 - [ ] **CPF completo na tabela e nas exportações:** Os números de CPF devem aparecer completos e sem ofuscação na visualização do administrador e nas planilhas/PDFs gerados.
 - [ ] **Copiar link de qualquer inscrito:** Clicar no botão "Copiar link de edição" na nova coluna de Ações; o link copiado deve abrir diretamente a edição daquela pessoa específica.
+- [ ] **Botão Excluir por linha:** Na coluna de Ações, ao lado de "Copiar link de edição", botão discreto "Excluir" em tom destrutivo (`text-destructive`).
+- [ ] **Diálogo de confirmação:** Ao clicar em "Excluir", abre o `AlertDialog` com título "Excluir esta inscrição?", corpo explicativo contendo nome e data de envio, foco inicial no botão "Cancelar" e tecla Esc para cancelar.
+- [ ] **Exclusão com sucesso:** Ao confirmar em "Excluir inscrição", a linha é removida da tabela, surge o toast "Inscrição excluída.", o resumo de vagas/respostas atualiza e o link de edição daquela inscrição passa a exibir "Inscrição não encontrada".
 - [ ] **Exportação Excel e PDF:** Clicar nos botões de exportar; os arquivos baixados devem conter todas as respostas preenchidas e com acentuação correta em português.
 - [ ] **Proteção de rota:** Sem login, o endereço de respostas leva a /auth e não mostra dados.
 
@@ -249,7 +252,7 @@ Marque cada item antes de considerar o sistema oficialmente no ar para eventos r
 
 - [ ] **Compilação e Tipos:** O comando `bunx tsc --noEmit` executa sem nenhum erro (0 erros).
 - [ ] **Bateria de Testes Automatizados:** O comando `bun run test` executa todas as suítes no Vitest e 100% dos testes passam.
-- [ ] **Verificação de Banco:** a última linha do `verificacao-banco.sql` no SQL Editor é `== RESUMO: 47 PASSOU, 0 FALHOU ==`.
+- [ ] **Verificação de Banco:** a última linha do `verificacao-banco.sql` no SQL Editor é `== RESUMO: 49 PASSOU, 0 FALHOU ==`.
 - [ ] **Teste de Concorrência:** O teste de 20 envios simultâneos para 5 vagas retorna exatamente 5 `ok` e 15 `full`.
 - [ ] **Segredos no Git:** O comando `git grep -n "sb_secret_\|SERVICE_ROLE_KEY=\|re_[A-Za-z0-9]"` não encontra nenhum segredo no código.
 - [ ] **Cadastro Público Desativado:** O painel do Supabase está com "Allow new users to sign up" desmarcado e o teste cURL de signup retorna erro 4xx.
