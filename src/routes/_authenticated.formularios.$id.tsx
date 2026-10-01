@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
-import { sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
+import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { StatusPill } from "./_authenticated.painel";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id")({
@@ -188,26 +188,11 @@ function Editor() {
         })
         .eq("id", id);
       if (error) {
-        if (error.code === "23505") {
-          const msg = "Esse endereço já está em uso";
-          setSlugError(msg);
-          toast.error(msg);
+        const slugDbError = mapSlugDbError(error);
+        if (slugDbError) {
+          setSlugError(slugDbError);
+          toast.error(slugDbError);
           return;
-        }
-        const combined = `${error.message ?? ""} ${error.details ?? ""}`;
-        if (error.code === "23514" || combined.includes("forms_slug_")) {
-          if (combined.includes("forms_slug_reserved")) {
-            const msg = "Esse nome é reservado pelo sistema";
-            setSlugError(msg);
-            toast.error(msg);
-            return;
-          }
-          if (combined.includes("forms_slug_format")) {
-            const msg = "Use apenas letras minúsculas, números e hífens.";
-            setSlugError(msg);
-            toast.error(msg);
-            return;
-          }
         }
         throw error;
       }
@@ -289,7 +274,7 @@ function Editor() {
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label htmlFor="slug-input" className="text-xs font-medium text-muted-foreground">
           Link de compartilhamento
         </label>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -298,8 +283,11 @@ function Editor() {
               {origin}/
             </span>
             <input
+              id="slug-input"
               type="text"
               value={form.slug}
+              aria-invalid={Boolean(slugError)}
+              aria-describedby={slugError ? "slug-error" : undefined}
               onChange={(e) => {
                 const nextSlug = sanitizeSlugInput(e.target.value);
                 setForm((prev) => (prev ? { ...prev, slug: nextSlug } : null));
@@ -340,7 +328,9 @@ function Editor() {
         </div>
 
         {slugError && (
-          <p className="mt-2 text-xs text-destructive">{slugError}</p>
+          <p id="slug-error" role="alert" className="mt-2 text-xs text-destructive">
+            {slugError}
+          </p>
         )}
 
         {form.status === "published" && form.slug !== initialSlug && (

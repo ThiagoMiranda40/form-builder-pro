@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   RESERVED_SLUGS,
+  mapSlugDbError,
   sanitizeSlugInput,
   slug,
   suggestSlug,
@@ -162,6 +163,38 @@ describe("Regras do endereço (slug)", () => {
       const sqlReservedSlugs = Array.from(innerList.matchAll(/'([^']+)'/g), (m) => m[1]);
       expect(sqlReservedSlugs.length).toBe(9);
       expect(new Set(sqlReservedSlugs)).toEqual(new Set(RESERVED_SLUGS));
+    });
+  });
+
+  describe("mapSlugDbError", () => {
+    it("mapeia erro 23505 (forms_slug_key) para 'Esse endereço já está em uso'", () => {
+      const err = {
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "forms_slug_key"',
+      };
+      expect(mapSlugDbError(err)).toBe("Esse endereço já está em uso");
+    });
+
+    it("mapeia erro 23514 com forms_slug_reserved para 'Esse nome é reservado pelo sistema'", () => {
+      const err = {
+        code: "23514",
+        message: 'new row for relation "forms" violates check constraint "forms_slug_reserved"',
+      };
+      expect(mapSlugDbError(err)).toBe("Esse nome é reservado pelo sistema");
+    });
+
+    it("mapeia erro 23514 com forms_slug_format para 'Use apenas letras minúsculas, números e hífens.'", () => {
+      const err = {
+        code: "23514",
+        message: 'new row for relation "forms" violates check constraint "forms_slug_format"',
+      };
+      expect(mapSlugDbError(err)).toBe("Use apenas letras minúsculas, números e hífens.");
+    });
+
+    it("retorna null para qualquer outro erro", () => {
+      expect(mapSlugDbError({ code: "42P01", message: "relation forms does not exist" })).toBeNull();
+      expect(mapSlugDbError({ message: "Network connection lost" })).toBeNull();
+      expect(mapSlugDbError({})).toBeNull();
     });
   });
 });

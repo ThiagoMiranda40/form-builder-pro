@@ -93,3 +93,29 @@ export function sanitizeSlugInput(input: string): string {
 export function trimSlugEdges(input: string): string {
   return input.replace(/^-+|-+$/g, "");
 }
+
+/**
+ * Mapeia erros do banco de dados (PostgreSQL/Supabase) relacionados a slug
+ * para mensagens amigáveis em pt-BR. Retorna null se não for um erro de slug.
+ */
+export function mapSlugDbError(error?: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null): string | null {
+  if (!error) return null;
+  const combined = `${error.message ?? ""} ${error.details ?? ""}`;
+  if (error.code === "23505" || combined.includes("forms_slug_key")) {
+    return "Esse endereço já está em uso";
+  }
+  if (error.code === "23514" || combined.includes("forms_slug_")) {
+    if (combined.includes("forms_slug_reserved")) {
+      return "Esse nome é reservado pelo sistema";
+    }
+    if (combined.includes("forms_slug_format")) {
+      return "Use apenas letras minúsculas, números e hífens.";
+    }
+  }
+  return null;
+}
+
