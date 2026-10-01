@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { slug } from "./slug";
 
 export type ExportQuestion = { id: string; label: string };
 export type ExportResponse = {
@@ -63,14 +64,3 @@ export function exportToPDF(
   doc.save(`${slug(formTitle)}-respostas.pdf`);
 }
 
-export function slug(value: string) {
-  return (
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 60) || "formulario"
-  );
-}
