@@ -80,6 +80,7 @@ export interface EditGetDeps {
     questions: EditQuestion[];
   }>;
   now?: () => number;
+  logError?: (code: string | undefined, responseId?: string) => void;
 }
 
 export interface EditUpdateDeps {
@@ -129,9 +130,10 @@ export function shouldSendUpdateEmail(
 }
 
 /**
- * Carrega formulário, perguntas e respostas para a página de edição (RF-06, SEC-17, SEC-18).
- * PRIVACIDADE (SEC-17): A resposta do CPF é mascarada (ex.: ***.***.***-25) e o CPF completo
- * ou o edit_token nunca saem do servidor.
+ * Carrega formulário, perguntas e respostas para a página de edição (RF-06, SEC-17, SEC-18, SEC-19, SEC-20).
+ * PRIVACIDADE (SEC-17, SEC-20): Apenas respostas de perguntas existentes são devolvidas; qualquer valor
+ * cujos dígitos sejam iguais ao CPF guardado é mascarado com hideDocument (ex.: ***.***.***-25),
+ * e o CPF completo ou o edit_token nunca saem do servidor.
  */
 export async function handleGetForEdit(
   deps: EditGetDeps,
@@ -142,7 +144,20 @@ export async function handleGetForEdit(
     return { state: "not_found" };
   }
 
-  const { response, form, questions } = await deps.loadByToken(parsed.data);
+  let response: EditResponseRecord | null = null;
+  let form: EditForm | null = null;
+  let questions: EditQuestion[] = [];
+
+  try {
+    const loaded = await deps.loadByToken(parsed.data);
+    response = loaded.response;
+    form = loaded.form;
+    questions = loaded.questions;
+  } catch {
+    deps.logError?.("EXCEPTION", "");
+    throw new Error("Não foi possível carregar o formulário.");
+  }
+
   if (!response || !form) {
     return { state: "not_found" };
   }
@@ -156,19 +171,32 @@ export async function handleGetForEdit(
     return { state: "closed" };
   }
 
-  // Prepara as respostas mascarando campos de CPF (SEC-17)
+  // Prepara as respostas (SEC-17, SEC-20):
+  // 1. Devolve só respostas de perguntas que existem atualmente no formulário.
+  // 2. Mascara com hideDocument qualquer valor, de qualquer tipo de pergunta, cujos dígitos sejam iguais ao identifier.
   const maskedAnswers: EditAnswers = {};
-  for (const [k, v] of Object.entries(response.answers)) {
-    if (typeof v === "string" || (Array.isArray(v) && v.every((i) => typeof i === "string"))) {
-      maskedAnswers[k] = v as EditAnswerValue;
-    }
-  }
+  const identifierDigits = response.identifier ? response.identifier.replace(/\D/g, "") : "";
+
   for (const q of questions) {
-    if (q.field_type === "cpf") {
-      const rawVal = maskedAnswers[q.id];
-      if (rawVal !== undefined && rawVal !== null) {
-        maskedAnswers[q.id] = hideDocument(applyMask("cpf", String(rawVal)));
+    const rawVal = response.answers?.[q.id];
+    if (rawVal === undefined || rawVal === null) continue;
+
+    if (typeof rawVal === "string") {
+      const rawDigits = rawVal.replace(/\D/g, "");
+      const isIdentifierMatch = identifierDigits !== "" && rawDigits === identifierDigits;
+      if (isIdentifierMatch || q.field_type === "cpf") {
+        maskedAnswers[q.id] = hideDocument(applyMask("cpf", rawVal));
+      } else {
+        maskedAnswers[q.id] = rawVal;
       }
+    } else if (Array.isArray(rawVal) && rawVal.every((i) => typeof i === "string")) {
+      maskedAnswers[q.id] = (rawVal as string[]).map((item) => {
+        const itemDigits = item.replace(/\D/g, "");
+        if (identifierDigits !== "" && itemDigits === identifierDigits) {
+          return hideDocument(applyMask("cpf", item));
+        }
+        return item;
+      });
     }
   }
 
@@ -181,7 +209,7 @@ export async function handleGetForEdit(
 }
 
 /**
- * Atualiza as respostas do inscrito via RPC segura (RF-06, SEC-04, SEC-11, SEC-12, SEC-13, SEC-17, SEC-18).
+ * Atualiza as respostas do inscrito via RPC segura (RF-06, SEC-04, SEC-11, SEC-12, SEC-13, SEC-17, SEC-18, SEC-19).
  */
 export async function handleUpdate(
   deps: EditUpdateDeps,
@@ -195,7 +223,7 @@ export async function handleUpdate(
     };
   }
 
-  let responseIdForLog = "UNKNOWN";
+  let responseIdForLog = "";
 
   try {
     const { response, form, questions } = await deps.loadByToken(parsed.data);

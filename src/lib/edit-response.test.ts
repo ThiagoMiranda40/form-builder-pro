@@ -179,64 +179,65 @@ describe("T-11: Edição pelo link", () => {
     });
   });
 
-  describe("handleUpdate (RF-06, SEC-04, SEC-11, SEC-12, SEC-13, SEC-17, SEC-18)", () => {
-    const baseForm = {
-      id: "form-1",
-      title: "Corrida SKF 2026",
-      description: "Edição 2026",
-      status: "published",
-      closes_at: null,
-      max_responses: 3,
-      theme: { color: "#ffff00", font: "display", logo_url: null },
-      success_message: "Salvo com sucesso!",
-    };
+  const baseForm = {
+    id: "form-1",
+    title: "Corrida SKF 2026",
+    description: "Edição 2026",
+    status: "published",
+    closes_at: null,
+    max_responses: 3,
+    theme: { color: "#ffff00", font: "display", logo_url: null },
+    success_message: "Salvo com sucesso!",
+  };
 
-    const baseQuestions = [
-      { id: "q-cpf", label: "CPF", field_type: "cpf", required: true, options: [], position: 1 },
-      { id: "q-nome", label: "Nome", field_type: "short_text", required: true, options: [], position: 2 },
-      { id: "q-dist", label: "Distância", field_type: "single_choice", required: true, options: ["5 km", "10 km"], position: 3 },
-      { id: "q-email", label: "E-mail", field_type: "email", required: true, options: [], position: 4 },
-    ];
+  const baseQuestions = [
+    { id: "q-cpf", label: "CPF", field_type: "cpf", required: true, options: [], position: 1 },
+    { id: "q-nome", label: "Nome", field_type: "short_text", required: true, options: [], position: 2 },
+    { id: "q-dist", label: "Distância", field_type: "single_choice", required: true, options: ["5 km", "10 km"], position: 3 },
+    { id: "q-email", label: "E-mail", field_type: "email", required: true, options: [], position: 4 },
+  ];
 
-    const baseSavedResponse = {
-      id: "resp-123",
-      answers: {
-        "q-cpf": "529.982.247-25",
-        "q-nome": "Maria da Silva",
-        "q-dist": "5 km",
-        "q-email": "maria@example.com",
+  const baseSavedResponse = {
+    id: "resp-123",
+    answers: {
+      "q-cpf": "529.982.247-25",
+      "q-nome": "Maria da Silva",
+      "q-dist": "5 km",
+      "q-email": "maria@example.com",
+    },
+    identifier: "52998224725",
+    updated_at: new Date(1700000000000 - 700000).toISOString(),
+  };
+
+  function createMockDeps(overrides: Partial<EditUpdateDeps> = {}): EditUpdateDeps {
+    return {
+      loadByToken: vi.fn().mockResolvedValue({
+        response: { ...baseSavedResponse },
+        form: { ...baseForm },
+        questions: [...baseQuestions],
+      }),
+      rpcUpdateResponse: vi.fn().mockResolvedValue({
+        data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-123" },
+        error: null,
+      }),
+      fetchFn: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "email-1" }),
+      } as Response),
+      getOrigin: () => "https://inscricoes.triadetecnologiaesolucoes.com.br",
+      readEnv: (key: string) => {
+        if (key === "RESEND_API_KEY") return "re_test_key";
+        if (key === "EMAIL_FROM") return "inscricoes@triadetecnologiaesolucoes.com.br";
+        return undefined;
       },
-      identifier: "52998224725",
-      updated_at: new Date(1700000000000 - 700000).toISOString(),
+      now: () => 1700000000000,
+      logError: vi.fn(),
+      ...overrides,
     };
+  }
 
-    function createMockDeps(overrides: Partial<EditUpdateDeps> = {}): EditUpdateDeps {
-      return {
-        loadByToken: vi.fn().mockResolvedValue({
-          response: { ...baseSavedResponse },
-          form: { ...baseForm },
-          questions: [...baseQuestions],
-        }),
-        rpcUpdateResponse: vi.fn().mockResolvedValue({
-          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-123" },
-          error: null,
-        }),
-        fetchFn: vi.fn().mockResolvedValue({
-          ok: true,
-          status: 200,
-          json: async () => ({ id: "email-1" }),
-        } as Response),
-        getOrigin: () => "https://inscricoes.triadetecnologiaesolucoes.com.br",
-        readEnv: (key: string) => {
-          if (key === "RESEND_API_KEY") return "re_test_key";
-          if (key === "EMAIL_FROM") return "inscricoes@triadetecnologiaesolucoes.com.br";
-          return undefined;
-        },
-        now: () => 1700000000000,
-        logError: vi.fn(),
-        ...overrides,
-      };
-    }
+  describe("handleUpdate (RF-06, SEC-04, SEC-11, SEC-12, SEC-13, SEC-17, SEC-18)", () => {
 
     it("rejeita token com formato inválido", async () => {
       const deps = createMockDeps();
@@ -576,4 +577,228 @@ describe("T-11: Edição pelo link", () => {
       expect(fetchBody.html).not.toContain("evil-attacker.com");
     });
   });
+
+  describe("Ajuste pós-revisão (SEC-19, SEC-20)", () => {
+    it("SEC-20: devolve só as respostas de perguntas que existem no formulário (pergunta apagada)", async () => {
+      const deps = createMockDeps({
+        loadByToken: async () => ({
+          response: {
+            id: "resp-1",
+            answers: {
+              "q-nome": "João da Silva",
+              "q-cpf-antiga": "52998224725",
+              "q-removida": "dado fantasma",
+            },
+            identifier: "52998224725",
+            updated_at: new Date(Date.now() - 3600000).toISOString(),
+          },
+          form: {
+            id: "form-1",
+            title: "Formulário Ativo",
+            status: "published",
+            closes_at: null,
+            max_responses: null,
+          },
+          // A pergunta q-removida e q-cpf-antiga foram apagadas pelo organizador
+          questions: [
+            {
+              id: "q-nome",
+              label: "Nome completo",
+              field_type: "text",
+              required: true,
+              options: [],
+              position: 1,
+            },
+          ],
+        }),
+      });
+
+      const res = await handleGetForEdit(deps, { token: VALID_TOKEN });
+      expect(res.state).toBe("open");
+      if (res.state === "open") {
+        expect(res.answers).toHaveProperty("q-nome", "João da Silva");
+        expect(res.answers).not.toHaveProperty("q-removida");
+        expect(res.answers).not.toHaveProperty("q-cpf-antiga");
+      }
+    });
+
+    it("SEC-20: mascara com hideDocument qualquer valor cujos dígitos sejam iguais ao identifier mesmo se o tipo for alterado para text", async () => {
+      const deps = createMockDeps({
+        loadByToken: async () => ({
+          response: {
+            id: "resp-1",
+            answers: {
+              "q-documento": "52998224725",
+            },
+            identifier: "52998224725",
+            updated_at: new Date(Date.now() - 3600000).toISOString(),
+          },
+          form: {
+            id: "form-1",
+            title: "Formulário Ativo",
+            status: "published",
+            closes_at: null,
+            max_responses: null,
+          },
+          questions: [
+            {
+              id: "q-documento",
+              label: "Documento de Identificação",
+              field_type: "text", // Tipo alterado pelo organizador para text
+              required: true,
+              options: [],
+              position: 1,
+            },
+          ],
+        }),
+      });
+
+      const res = await handleGetForEdit(deps, { token: VALID_TOKEN });
+      expect(res.state).toBe("open");
+      if (res.state === "open") {
+        expect(res.answers["q-documento"]).toBe("***.***.***-25");
+      }
+    });
+
+    it("SEC-20: mascara valor com pontuação cujos dígitos batem com o identifier", async () => {
+      const deps = createMockDeps({
+        loadByToken: async () => ({
+          response: {
+            id: "resp-1",
+            answers: {
+              "q-cpf-formatado": "529.982.247-25",
+            },
+            identifier: "52998224725",
+            updated_at: new Date(Date.now() - 3600000).toISOString(),
+          },
+          form: {
+            id: "form-1",
+            title: "Formulário Ativo",
+            status: "published",
+            closes_at: null,
+            max_responses: null,
+          },
+          questions: [
+            {
+              id: "q-cpf-formatado",
+              label: "CPF",
+              field_type: "text",
+              required: true,
+              options: [],
+              position: 1,
+            },
+          ],
+        }),
+      });
+
+      const res = await handleGetForEdit(deps, { token: VALID_TOKEN });
+      expect(res.state).toBe("open");
+      if (res.state === "open") {
+        expect(res.answers["q-cpf-formatado"]).toBe("***.***.***-25");
+      }
+    });
+
+    it("SEC-20: um valor que não é o CPF não é mascarado", async () => {
+      const deps = createMockDeps({
+        loadByToken: async () => ({
+          response: {
+            id: "resp-1",
+            answers: {
+              "q-telefone": "11987654321",
+              "q-nome": "52998224726", // 1 dígito diferente
+            },
+            identifier: "52998224725",
+            updated_at: new Date(Date.now() - 3600000).toISOString(),
+          },
+          form: {
+            id: "form-1",
+            title: "Formulário Ativo",
+            status: "published",
+            closes_at: null,
+            max_responses: null,
+          },
+          questions: [
+            {
+              id: "q-telefone",
+              label: "Telefone",
+              field_type: "phone",
+              required: true,
+              options: [],
+              position: 1,
+            },
+            {
+              id: "q-nome",
+              label: "Outro número",
+              field_type: "text",
+              required: true,
+              options: [],
+              position: 2,
+            },
+          ],
+        }),
+      });
+
+      const res = await handleGetForEdit(deps, { token: VALID_TOKEN });
+      expect(res.state).toBe("open");
+      if (res.state === "open") {
+        expect(res.answers["q-telefone"]).toBe("11987654321");
+        expect(res.answers["q-nome"]).toBe("52998224726");
+      }
+    });
+
+    it("SEC-19: handleGetForEdit relança erro genérico sem mensagem original do banco quando loadByToken falha (não vira not_found)", async () => {
+      const logErrorMock = vi.fn();
+      const deps = {
+        loadByToken: vi.fn().mockRejectedValue(new Error("PGRST500: Database connection failure")),
+        logError: logErrorMock,
+      };
+
+      await expect(handleGetForEdit(deps as any, { token: VALID_TOKEN })).rejects.toThrow(
+        "Não foi possível carregar o formulário.",
+      );
+      expect(logErrorMock).toHaveBeenCalledWith("EXCEPTION", "");
+    });
+
+    it("SEC-19: handleGetForEdit registra EXCEPTION e o ID no log sem expor o token", async () => {
+      const logErrorMock = vi.fn();
+      const deps = {
+        loadByToken: vi.fn().mockImplementation(async () => {
+          throw new Error("Fatal network error in query");
+        }),
+        logError: logErrorMock,
+      };
+
+      try {
+        await handleGetForEdit(deps as any, { token: VALID_TOKEN });
+      } catch (err: any) {
+        expect(err.message).toBe("Não foi possível carregar o formulário.");
+        expect(err.message).not.toContain("Fatal network error");
+      }
+
+      expect(logErrorMock).toHaveBeenCalledWith("EXCEPTION", "");
+      expect(logErrorMock).not.toHaveBeenCalledWith(expect.stringContaining(VALID_TOKEN), expect.anything());
+    });
+
+    it("SEC-19: handleUpdate trata erro do banco no loadByToken sem virar not_found e registrando EXCEPTION sem o token", async () => {
+      const logErrorMock = vi.fn();
+      const deps = createMockDeps({
+        loadByToken: vi.fn().mockRejectedValue(new Error("Supabase internal error")),
+        logError: logErrorMock,
+      });
+
+      const res = await handleUpdate(deps, {
+        token: VALID_TOKEN,
+        answers: { "q-nome": "Carlos" },
+      });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe("Não foi possível salvar. Tente novamente.");
+        expect(res.error).not.toContain("Supabase internal error");
+      }
+      expect(logErrorMock).toHaveBeenCalledWith("EXCEPTION", "");
+      expect(logErrorMock).not.toHaveBeenCalledWith(expect.stringContaining(VALID_TOKEN), expect.anything());
+    });
+  });
 });
+

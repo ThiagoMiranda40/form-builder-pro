@@ -44,7 +44,13 @@ export function QuestionField({
   const fieldId = `field-${question.id}`;
   const errorId = `error-${question.id}`;
   const labelId = `label-${question.id}`;
+  const noticeId = `notice-${question.id}`;
   const isChoice = type === "single_choice" || type === "multi_choice";
+
+  const readOnlyDescribedBy =
+    [error ? errorId : undefined, readOnly && readOnlyNotice ? noticeId : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   const handleChange = (newVal: string) => {
     if (readOnly) return;
@@ -96,7 +102,7 @@ export function QuestionField({
               value={(value as string) ?? ""}
               className={`${fieldClass} bg-black/[0.03] cursor-not-allowed pr-9`}
               aria-invalid={Boolean(error)}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={readOnlyDescribedBy}
             />
             <span
               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm select-none"
@@ -106,7 +112,7 @@ export function QuestionField({
             </span>
           </div>
           {readOnlyNotice && (
-            <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+            <p id={noticeId} className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
               <span aria-hidden="true">ℹ</span> {readOnlyNotice}
             </p>
           )}

@@ -40,6 +40,7 @@ function EditFormPage() {
   const [success, setSuccess] = useState<{ emailSent: boolean } | null>(null);
 
   const successBannerRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (query.data?.state === "open" && !initialized) {
@@ -129,7 +130,10 @@ function EditFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+
     setErrors({});
+    setSuccess(null); // UX-08: limpar o banner de sucesso anterior ao iniciar um salvamento
 
     const newErrors: Record<string, string> = {};
     for (const q of questions) {
@@ -150,6 +154,7 @@ function EditFormPage() {
       return;
     }
 
+    isSubmittingRef.current = true;
     setSaving(true);
     try {
       const res = await saveEditData({
@@ -175,6 +180,7 @@ function EditFormPage() {
     } catch {
       setErrors({ __form: "Não foi possível salvar. Tente novamente." });
     } finally {
+      isSubmittingRef.current = false;
       setSaving(false);
     }
   };
