@@ -1,7 +1,7 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
@@ -41,6 +41,15 @@ function PublicForm() {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<DoneState | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+
+  const successTitleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (done) {
+      successTitleRef.current?.focus();
+    }
+  }, [done]);
 
   const query = useQuery({
     queryKey: ["public-form", slug],
@@ -51,6 +60,26 @@ function PublicForm() {
     return (
       <Frame>
         <p className="text-sm text-muted-foreground">Carregando formulário...</p>
+      </Frame>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <Frame>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
+          Não foi possível carregar o formulário
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Verifique sua conexão e tente novamente.
+        </p>
+        <button
+          type="button"
+          onClick={() => query.refetch()}
+          className="mt-5 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-brand/90"
+        >
+          Tentar de novo
+        </button>
       </Frame>
     );
   }
@@ -84,17 +113,39 @@ function PublicForm() {
   const fontClass =
     theme?.font === "display" ? "font-display" : theme?.font === "serif" ? "font-serif" : "font-body";
 
+  async function handleCopy() {
+    if (!done?.editUrl) return;
+    setCopyError(false);
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(done.editUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+      setCopyError(true);
+    }
+  }
+
   if (done) {
     return (
       <Frame>
-        <div className={`text-center ${fontClass}`}>
+        <div role="status" className={`text-center ${fontClass}`}>
           <div
             className="mx-auto grid size-12 place-items-center rounded-full text-xl font-bold"
             style={{ backgroundColor: accent, color: readableTextColor(accent) }}
           >
             ✓
           </div>
-          <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">Tudo certo!</h1>
+          <h1
+            ref={successTitleRef}
+            tabIndex={-1}
+            className="mt-4 font-display text-2xl font-semibold tracking-tight outline-none"
+          >
+            Tudo certo!
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{done.message}</p>
 
           {done.editUrl && (
@@ -108,18 +159,17 @@ function PublicForm() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (done.editUrl) {
-                      navigator.clipboard.writeText(done.editUrl);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }
-                  }}
+                  onClick={handleCopy}
                   className="rounded-lg bg-brand px-3 py-2.5 text-xs font-medium text-primary-foreground hover:bg-brand/90 shrink-0"
                 >
                   {copied ? "Link copiado!" : "Copiar link"}
                 </button>
               </div>
+              {copyError && (
+                <p role="alert" className="mt-2 text-xs text-destructive">
+                  Não foi possível copiar. Selecione o link acima e copie manualmente.
+                </p>
+              )}
               <div className="mt-4 rounded-lg bg-amber-50/80 p-3 text-xs text-amber-900 ring-1 ring-amber-200/60">
                 <span className="font-semibold">Guarde este link.</span> Ele é a única forma de você corrigir seus dados caso precise.
               </div>
@@ -209,7 +259,12 @@ function PublicForm() {
     <Frame>
       <div className={fontClass}>
         {theme?.logo_url && (
-          <img src={theme.logo_url} alt="" className="mb-5 h-12 w-auto object-contain" />
+          <img
+            src={theme.logo_url}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="mb-5 h-12 w-auto object-contain"
+          />
         )}
         <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
           {form.title}
@@ -260,13 +315,22 @@ function PublicForm() {
             const error = errors[q.id];
             const fieldId = `field-${q.id}`;
             const errorId = `error-${q.id}`;
+            const labelId = `label-${q.id}`;
+            const isChoice = type === "single_choice" || type === "multi_choice";
 
             return (
               <div key={q.id}>
-                <label htmlFor={fieldId} className="mb-1.5 block text-sm font-medium">
-                  {q.label}
-                  {q.required && <span className="ml-1" style={{ color: accent }}>*</span>}
-                </label>
+                {isChoice ? (
+                  <span id={labelId} className="mb-1.5 block text-sm font-medium">
+                    {q.label}
+                    {q.required && <span className="ml-1" style={{ color: accent }}>*</span>}
+                  </span>
+                ) : (
+                  <label htmlFor={fieldId} className="mb-1.5 block text-sm font-medium">
+                    {q.label}
+                    {q.required && <span className="ml-1" style={{ color: accent }}>*</span>}
+                  </label>
+                )}
                 {q.help_text && (
                   <p className="mb-1.5 text-xs text-muted-foreground">{q.help_text}</p>
                 )}
@@ -283,7 +347,12 @@ function PublicForm() {
                     aria-describedby={error ? errorId : undefined}
                   />
                 ) : type === "single_choice" ? (
-                  <div className="space-y-2" role="radiogroup" aria-describedby={error ? errorId : undefined}>
+                  <div
+                    className="space-y-2"
+                    role="radiogroup"
+                    aria-labelledby={labelId}
+                    aria-describedby={error ? errorId : undefined}
+                  >
                     {(q.options as string[]).map((option, optIdx) => (
                       <label
                         key={option}
@@ -307,7 +376,12 @@ function PublicForm() {
                     ))}
                   </div>
                 ) : type === "multi_choice" ? (
-                  <div className="space-y-2" role="group" aria-describedby={error ? errorId : undefined}>
+                  <div
+                    className="space-y-2"
+                    role="group"
+                    aria-labelledby={labelId}
+                    aria-describedby={error ? errorId : undefined}
+                  >
                     {(q.options as string[]).map((option, optIdx) => (
                       <label
                         key={option}
