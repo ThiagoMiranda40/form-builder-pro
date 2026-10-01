@@ -167,6 +167,8 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Anti-robô:** O campo invisível de armadilha não deve ser visível nem acessível com a tecla Tab.
 - [ ] **Consentimento e Links Legais:** Se o formulário tiver termo, surge a linha *"Leia os Termos de Uso e a Política de Privacidade."* com os dois links (`target="_blank"`, `rel="noopener noreferrer"`, sublinhados, contraste mínimo 4,5:1) contendo o texto para leitor de tela *" (abre em outra aba)"*.
 - [ ] **Rótulo da caixa de consentimento:** A caixa de aceite deve exibir o rótulo *"Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade."*. Desmarcar e tentar enviar deve exibir: *"É necessário aceitar o termo para continuar."*.
+- [ ] **Descrição com quebras de linha preservadas:** Abrir o formulário público no computador e no celular; as linhas da descrição aparecem exatamente como digitadas, com uma linha em branco entre blocos de texto (`whitespace-pre-line`).
+- [ ] **Formulário sem descrição:** Num formulário de teste com descrição vazia ou apagada, não aparece parágrafo vazio acima das perguntas.
 - [ ] **Rodapé de documentos legais:** Abaixo do cartão do formulário (em todos os estados: aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"*, ambos abrindo em nova aba com texto para leitor de tela.
 
 ### 5.2 Tela de Sucesso da Inscrição
@@ -188,7 +190,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 ### 5.4 Painel do Administrador e Editor (`/painel` e `/formularios/$id`)
 - [ ] **Sugestão de endereço:** Digitar o título "Copa Primavera de Vôlei"; o campo de endereço deve preencher sozinho com `copa-primavera-de-volei`.
 - [ ] **Aviso de quebra:** Em formulário já publicado, alterar uma letra do endereço; deve surgir o alerta âmbar avisando que links já divulgados deixarão de funcionar.
-- [ ] **Aba Limites e Termos:** O rótulo da aba deve ser exatamente "Limites e Termos", contendo o campo de vagas, a data de encerramento e a caixa do texto de consentimento LGPD.
+- [ ] **Descrição do formulário (crescimento automático, borda e contador):** No editor do formulário, digitar uma descrição com várias linhas: o campo cresce sozinho conforme o conteúdo (mínimo de 4 linhas, máximo de 24rem com rolagem), possui borda visível, anel de foco e exibe o contador "N/1000" abaixo à direita ligado por `aria-describedby`.
+- [ ] **Alerta de caracteres e limite máximo:** Digitar mais de 900 caracteres na descrição: o contador muda de cor para tom âmbar escuro (com contraste >= 4,5:1) e o campo impede ultrapassar 1000 caracteres (`maxLength={1000}`).
+- [ ] **Aba Limites e Termos:** O rótulo da aba deve ser exatamente "Limites e Termos" (classe `capitalize` removida, sem produzir "Limites E Termos"), contendo o campo de vagas, a data de encerramento e a caixa do texto de consentimento LGPD.
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.

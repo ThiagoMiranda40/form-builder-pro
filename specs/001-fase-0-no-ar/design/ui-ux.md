@@ -160,6 +160,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Erro: Nome reservado** | Texto vermelho: *"Esse nome é reservado pelo sistema."* (para `auth`, `painel`, `formularios`, `api`, `saude`, `admin`, `assets`, `login`, `editar`). |
 | **Erro do Banco ao Salvar (23505)** | Conflito de unicidade retornado no save: *"Esse endereço já está em uso."*. |
 | **Aviso: Formulário Publicado** | Bloco âmbar (`bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 rounded-lg p-3 text-xs`) visível quando `form.status === "published"` e o slug foi alterado: *"Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço."*. |
+| **Descrição do Formulário (Edição)** | Campo textarea com crescimento automático conforme o conteúdo (ref + efeito a cada mudança e no carregamento: mínimo de 4 linhas, máximo de 24rem com rolagem vertical). Aparência de campo editável: `rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none resize-none`. Acessibilidade: `aria-label="Descrição do formulário"`, placeholder explicativo e contador `"N/1000"` (`text-xs text-slate-600`, contraste >= 4,5:1, ligado por `aria-describedby`, cor âmbar escuro a partir de 900 caracteres, `maxLength={1000}`). |
+| **Abas do Editor** | Botões com texto exato sem transformação CSS (`capitalize` removido): "Pergunta", "Aparência" e "Limites e Termos" (evita que a aba apareça como "Limites E Termos"). |
 | **Salvando** | Botão "Salvar" desabilitado com texto *"Salvando..."*. |
 | **Sucesso** | Toast via Sonner com os textos já usados no código: *"Alterações salvas."* ao salvar alterações e *"Formulário publicado! O link já pode ser compartilhado."* ao publicar. |
 
@@ -174,11 +176,15 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Toast ao publicar formulário:** "Formulário publicado! O link já pode ser compartilhado."
 - **Rótulo do consentimento:** "Texto de consentimento (LGPD)"
 - **Ajuda do consentimento:** "Opcional. Se preenchido, o participante só poderá concluir a inscrição após marcar a caixa de aceite."
+- **Aria-label da descrição:** "Descrição do formulário"
+- **Placeholder da descrição:** "Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
+- **Rótulo exato da aba:** "Limites e Termos"
 
 ### 2.5 Markup e Classes Reutilizadas (de `_authenticated.formularios.$id.tsx`)
 - Cartão de compartilhamento: `<div className="glass rounded-2xl p-4">`.
 - Helper `Field` para agrupamento: `<Field label="Endereço do formulário">`.
 - Classe padrão de input: `inputClass = "w-full rounded-lg bg-white/80 px-3 py-2 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"`.
+- Textarea da descrição: `className="w-full resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40" style={{ minHeight: "6rem", maxHeight: "24rem" }}`.
 - Botão salvar: `<button className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60">`.
 - Botão copiar link: `<button className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90">`.
 
@@ -373,6 +379,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |---|---|
 | **Carregando** | Frame centralizado com texto *"Carregando formulário..."*. |
 | **Formulário Aberto** | Campos do formulário com `fieldClass`, máscara de CPF/telefone/RG, badges de vagas e prazo. Botão com `backgroundColor: accent` e `color: readableTextColor(accent)`. |
+| **Descrição com quebras de linha** | Parágrafo de descrição utilizando `normalizeDescription(form.description)` exibido somente quando não for vazio (evita parágrafo vazio acima das perguntas). Classes: `whitespace-pre-line break-words text-sm leading-relaxed text-slate-700`, preservando as quebras de linha digitadas e gerando espaçamento legível entre blocos. |
 | **Sugestão de E-mail (Blur)** | Ao sair de campo de e-mail com erro de digitação de domínio comum (ex.: gmial.com), exibe abaixo em `aria-live="polite"`: *"Você quis dizer <sugestão>?"* e o botão *"Usar este endereço"*. |
 | **Confirmação de E-mail** | Segundo campo obrigatório de confirmação exibido abaixo de cada e-mail. Se divergirem, bloqueia o envio com foco e erro: *"Os e-mails não são iguais."*. |
 | **Anti-robô (Honeypot)** | Campo com atributo invisível ao humano (`style={{ position: "absolute", left: "-9999px", opacity: 0 }}`, `tabIndex={-1}`, `autoComplete="off"`). |
@@ -809,6 +816,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
 9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
 10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
+11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 

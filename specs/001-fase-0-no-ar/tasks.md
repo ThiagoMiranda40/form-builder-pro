@@ -411,6 +411,18 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) no PowerShell, `[C
 
 ---
 
+## T-20 — Descrição do formulário: edição mais confortável e quebras de linha na tela pública
+Depende de: T-19
+Arquivos: `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/$slug.tsx`, `src/lib/description.ts` e `src/lib/description.test.ts` (novos).
+Fazer (testes primeiro, vistos falhando):
+ 1. `description.ts` exporta `normalizeDescription(text: string | null | undefined): string`: troca CRLF e CR por LF; remove espaços e tabs no fim de cada linha; reduz 3 ou mais quebras de linha seguidas a 2; remove quebras e espaços do começo e do fim; nulo, indefinido ou só espaços e quebras -> "". Testes: nulo; undefined; "   \n \n "; CRLF; texto sem quebras fica igual; 4 quebras seguidas viram 2; espaços no fim das linhas; começo e fim aparados; uma única quebra é preservada; o texto da SKF colado em linhas ("Data: 11/10/2026\nDistâncias: 5k, 10k e 21k") sai igual.
+ 2. Tela pública (`$slug.tsx`): o parágrafo da descrição usa `normalizeDescription(form.description)` e só aparece se o resultado NÃO for vazio. Classes: `whitespace-pre-line break-words text-sm leading-relaxed text-slate-700` (as quebras digitadas aparecem como foram digitadas e a linha em branco vira espaço entre blocos). NÃO mude o `head`, o `loader` nem nenhuma outra parte da tela.
+ 3. Editor (`_authenticated.formularios.$id.tsx`), SOMENTE o textarea da descrição e o rótulo da aba: (a) o campo cresce com o conteúdo (ref + efeito que ajusta a altura a cada mudança do valor e quando o formulário é carregado): mínimo de 4 linhas, máximo de 24rem, e acima disso rola; (b) aparência de campo editável: `rounded-lg border border-black/10 bg-white/60 px-3 py-2`, texto `text-sm text-slate-700` (contraste mínimo de 4,5:1), anel de foco visível, `resize-none` mantido; (c) `aria-label="Descrição do formulário"` e placeholder "Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."; (d) contador "N/1000" abaixo, à direita, `text-xs`, contraste mínimo de 4,5:1, ligado ao campo por `aria-describedby`; a partir de 900 caracteres o texto fica âmbar escuro (o número escrito já informa, a cor não é o único sinal); mantém `maxLength={1000}`; (e) o botão das abas "Pergunta", "Aparência" e "Limites e Termos" usa hoje a classe `capitalize`, que produz "Limites E Termos": remova a classe `capitalize` desse botão; o rótulo exato é "Limites e Termos" e os outros dois ficam como estão. NÃO altere o campo de título, as perguntas, o salvar nem nada de banco ou servidor.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run description`; `bun node_modules/vitest/vitest.mjs run` (os 233 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. As telas dependem do banco, então diga explicitamente no relatório que a conferência visual fica para a parte manual.
+Parte MANUAL (dono, no site publicado, depois do deploy): (1) no editor do formulário da SKF, digite uma descrição com várias linhas: o campo cresce sozinho, tem borda visível e mostra o contador; (2) a aba aparece como "Limites e Termos"; (3) abra o formulário público no computador e no celular: as linhas aparecem como digitadas, com uma linha em branco entre blocos; (4) num formulário de TESTE, apague a descrição: não aparece parágrafo vazio acima das perguntas; (5) digite mais de 900 caracteres: o contador muda de cor e o campo não aceita passar de 1000.
+
+---
+
 
 ## Fluxo de execução recomendado
 
