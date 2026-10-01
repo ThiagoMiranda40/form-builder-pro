@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { validateAnswer } from "./validators";
+import {
+  ALLOWED_ORIGINS,
+  handleSubmission,
+  submitSchema,
+  type SubmitResult,
+} from "./submit-response";
+
+import type { Json } from "@/integrations/supabase/types";
+
+export type { SubmitResult };
 
 export type PublicQuestion = {
   id: string;
@@ -22,6 +31,7 @@ export type PublicFormPayload = {
     max_responses: number | null;
     closes_at: string | null;
     success_message: string;
+    consent_text: string | null;
     responses_count: number;
   };
   questions?: PublicQuestion[];
@@ -30,7 +40,7 @@ export type PublicFormPayload = {
 const slugSchema = z.object({ slug: z.string().min(1).max(120) });
 
 export const getPublicForm = createServerFn({ method: "GET" })
-  .inputValidator((data: unknown) => slugSchema.parse(data))
+  .validator((data: unknown) => slugSchema.parse(data))
   .handler(async ({ data }): Promise<PublicFormPayload> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -75,6 +85,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
         max_responses: form.max_responses,
         closes_at: form.closes_at,
         success_message: form.success_message,
+        consent_text: (form.consent_text as string | null) ?? null,
         responses_count: responsesCount,
       },
       questions: (questions ?? []).map((q) => ({
@@ -84,60 +95,81 @@ export const getPublicForm = createServerFn({ method: "GET" })
     };
   });
 
-export type SubmitResult =
-  | { ok: true; message: string; editUrl?: string; emailSent?: boolean }
-  | { ok: false; error: string; field?: string };
-
-const submitSchema = z.object({
-  slug: z.string().min(1).max(120),
-  answers: z.record(z.union([z.string().max(5000), z.array(z.string().max(500)).max(50)])),
-});
-
 export const submitResponse = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => submitSchema.parse(data))
-  .handler(
-    async ({ data }): Promise<SubmitResult> => {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  .validator((data: unknown) => submitSchema.parse(data))
+  .handler(async ({ data }): Promise<SubmitResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getRequest } = await import("@tanstack/react-start/server");
 
-      const { data: form } = await supabaseAdmin
-        .from("forms")
-        .select("*")
-        .eq("slug", data.slug)
-        .maybeSingle();
+    return handleSubmission(
+      {
+        loadFormAndQuestions: async (slug: string) => {
+          const { data: form } = await supabaseAdmin
+            .from("forms")
+            .select("id, title, status, closes_at, max_responses, success_message, consent_text")
+            .eq("slug", slug)
+            .maybeSingle();
 
-      if (!form || form.status !== "published")
-        return { ok: false, error: "Este formulário não está disponível." };
+          if (!form) return { form: null, questions: [] };
 
-      if (form.closes_at && new Date(form.closes_at).getTime() < Date.now())
-        return { ok: false, error: "O prazo de preenchimento encerrou." };
+          const { data: questions } = await supabaseAdmin
+            .from("questions")
+            .select("id, label, field_type, required, options, position")
+            .eq("form_id", form.id)
+            .order("position", { ascending: true });
 
-      const { count } = await supabaseAdmin
-        .from("responses")
-        .select("id", { count: "exact", head: true })
-        .eq("form_id", form.id);
+          return {
+            form: {
+              id: form.id,
+              title: form.title,
+              status: form.status,
+              closes_at: form.closes_at,
+              max_responses: form.max_responses,
+              success_message: form.success_message,
+              consent_text: (form.consent_text as string | null) ?? null,
+            },
+            questions: (questions ?? []).map((q) => ({
+              id: q.id,
+              label: q.label,
+              field_type: q.field_type,
+              required: Boolean(q.required),
+              options: Array.isArray(q.options) ? (q.options as string[]) : [],
+              position: q.position,
+            })),
+          };
+        },
+        rpcSubmitResponse: async ({ slug, answers, identifier, consented }) => {
+          const { data: resData, error } = await supabaseAdmin.rpc("submit_response", {
+            p_slug: slug,
+            p_answers: answers as unknown as Json,
+            p_identifier: identifier,
+            p_consented: consented,
+          });
 
-      if (form.max_responses !== null && (count ?? 0) >= form.max_responses)
-        return { ok: false, error: "O limite de inscrições foi atingido." };
-
-      const { data: questions } = await supabaseAdmin
-        .from("questions")
-        .select("id,label,field_type,required,options")
-        .eq("form_id", form.id);
-
-      const clean: Record<string, string | string[]> = {};
-      for (const q of questions ?? []) {
-        const raw = data.answers[q.id];
-        const error = validateAnswer(q.field_type, q.required, raw);
-        if (error) return { ok: false, error: `${q.label}: ${error}`, field: q.id };
-        if (raw !== undefined && raw !== null && raw !== "") clean[q.id] = raw;
-      }
-
-      const { error: insertError } = await supabaseAdmin
-        .from("responses")
-        .insert({ form_id: form.id, answers: clean });
-
-      if (insertError) return { ok: false, error: "Não foi possível salvar sua resposta." };
-
-      return { ok: true, message: form.success_message };
-    },
-  );
+          return {
+            data: resData as {
+              status: string;
+              edit_token?: string;
+              success_message?: string;
+              response_id?: string;
+            } | null,
+            error: error ? { code: error.code, message: error.message } : null,
+          };
+        },
+        fetchFn: fetch,
+        getOrigin: () => {
+          try {
+            const req = getRequest();
+            return new URL(req.url).origin;
+          } catch {
+            return ALLOWED_ORIGINS[0];
+          }
+        },
+        readEnv: (key: string) => process.env[key],
+        logError: (code, formId) => {
+          console.error(`Erro ao gravar resposta: código=${code ?? "UNKNOWN"} formId=${formId}`);
+        },
+      },
+      data,
+    );
+  });
