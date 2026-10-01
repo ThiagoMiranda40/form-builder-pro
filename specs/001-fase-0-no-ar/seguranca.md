@@ -39,6 +39,7 @@ Foram identificados **9 pontos de atenção**, classificados estritamente confor
 | **SEC-11** | A04 | **(B) Recomendado Fase 0** | Baixa | Um participante envia, numa pergunta de escolha, um valor fora da lista de opções e ele é gravado. | Validar no servidor que o valor pertence às `options` da pergunta, na inscrição e na edição (mesma função nas duas). | T-09 (ajuste) e T-11 |
 | **SEC-12** | A04 | **(B) Recomendado Fase 0** | Baixa | Uma requisição forjada envia uma lista no lugar do texto no CPF e derruba a função com exceção (erro 500), ou grava lista em campo de e-mail ou texto. | Aceitar lista somente em perguntas `multi_choice`; qualquer outro tipo com lista devolve erro genérico, sem lançar exceção. | T-09 (ajuste) e T-11 |
 | **SEC-13** | A09 | **(B) Recomendado Fase 0** | Baixa | Uma falha de rede ou do banco lança exceção não tratada e a mensagem original da falha sobe para o navegador e para o log da plataforma. | Capturar a exceção, devolver erro genérico e registrar só o código `EXCEPTION` e o ID do formulário. | T-09 (ajuste) e T-11 |
+| **SEC-14** | A04 | **(B) Recomendado Fase 0** | Baixa | A função de validação reutilizada pela edição (T-11), chamada sem o schema da inscrição, aceitaria números, objetos e booleanos em perguntas de texto e os gravaria como estão. | `validateAndCleanAnswers` rejeita qualquer valor que não seja texto ou lista de textos (erro genérico, sem lançar exceção), para não depender do schema de quem a chama. | T-09 (ajuste 2) e T-11 |
 
 ---
 
