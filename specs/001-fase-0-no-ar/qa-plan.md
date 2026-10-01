@@ -165,7 +165,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Contraste:** Criar um formulário com cor de tema amarela (`#ffff00`) e outro com azul escuro (`#4f46e5`); o texto do botão deve ficar **preto puro** no amarelo e **branco puro** no azul, perfeitamente legíveis.
 - [ ] **Validação de obrigatórios:** Clicar em "Enviar inscrição" com tudo vazio; a tela deve marcar os campos em vermelho e focar automaticamente no primeiro erro.
 - [ ] **Anti-robô:** O campo invisível de armadilha não deve ser visível nem acessível com a tecla Tab.
-- [ ] **Consentimento:** Se o formulário tiver termo, desmarcar e tentar enviar; deve surgir o aviso: *"É necessário aceitar o termo para continuar."*.
+- [ ] **Consentimento e Links Legais:** Se o formulário tiver termo, surge a linha *"Leia os Termos de Uso e a Política de Privacidade."* com os dois links (`target="_blank"`, `rel="noopener noreferrer"`, sublinhados, contraste mínimo 4,5:1) contendo o texto para leitor de tela *" (abre em outra aba)"*.
+- [ ] **Rótulo da caixa de consentimento:** A caixa de aceite deve exibir o rótulo *"Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade."*. Desmarcar e tentar enviar deve exibir: *"É necessário aceitar o termo para continuar."*.
+- [ ] **Rodapé de documentos legais:** Abaixo do cartão do formulário (em todos os estados: aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"*, ambos abrindo em nova aba com texto para leitor de tela.
 
 ### 5.2 Tela de Sucesso da Inscrição
 - [ ] **Ordem dos blocos:** O aviso de e-mail (quando enviado) deve vir posicionado **antes** do cartão do link de edição.
@@ -192,7 +194,7 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.
 - [ ] **Coluna "Atualizado em":** Posicionada logo após "Enviado em", exibe a data e hora da alteração em pt-BR ou "—" quando a inscrição nunca foi editada.
 - [ ] **Selo de inscrição editada:** Linhas de inscrições retificadas exibem o selo textual *"Editada"* ao lado da data e fundo âmbar claro.
-- [ ] **Resumo de respostas e editadas:** Cabeçalho exibe `"{n} resposta(s)"` ou, havendo editadas, `"{n} resposta(s) · {e} editada(s)"`.
+- [ ] **Resumo de respostas, vagas, editadas e prazo:** Cabeçalho exibe `"{n} resposta(s)"` + (se houver limite) `" de {v} vagas"` + (se houver editadas) `" · {e} editada(s)"` + (se houver prazo) `" · prazo {data}"`.
 - [ ] **Filtro de editadas:** Havendo inscrições editadas, exibe o botão alternador *"Mostrar só editadas"* / *"Mostrar todas"* (`aria-pressed`).
 - [ ] **Filtro vazio:** Caso o filtro esteja ativo e não haja inscrições correspondentes, exibe *"Nenhuma inscrição editada."*.
 - [ ] **CPF completo na tabela e nas exportações:** Os números de CPF devem aparecer completos e sem ofuscação na visualização do administrador e nas planilhas/PDFs gerados.
@@ -206,6 +208,12 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 ### 5.6 Tela de Entrada (`/auth`)
 - [ ] **Apenas e-mail e senha:** Não pode existir botão de "Criar conta", nem link alternativo, nem botão de login com o Google.
 - [ ] **Redirecionamento:** Acessar o endereço raiz (`/`); deve redirecionar automaticamente para `/painel` (se logado) ou `/auth` (se deslogado).
+
+### 5.7 Páginas Legais (`/legal/termos-de-uso` e `/legal/politica-de-privacidade`)
+- [ ] **Abertura em nova aba sem login:** Os links `/legal/termos-de-uso` e `/legal/politica-de-privacidade` abrem em nova aba sem exigir autenticação.
+- [ ] **Conteúdo dos Termos de Uso:** Exibe 10 itens com CNPJ "43.425.201/0001-43", e-mail "contato@triadetecnologiaesolucoes.com.br", foro "Cajamar/SP", data de atualização "01/10/2026", link "Ver também: Política de Privacidade" e dica "Você pode fechar esta aba para voltar ao formulário.".
+- [ ] **Conteúdo da Política de Privacidade:** Exibe 11 itens com CNPJ, e-mail de contato, prazos de retenção e resposta ("30 dias" e "15 dias"), data de atualização "01/10/2026", link "Ver também: Termos de Uso" e dica "Você pode fechar esta aba para voltar ao formulário.".
+- [ ] **Responsividade em 360 px:** As duas páginas leem bem no celular (360 px), sem overflow horizontal e com tipografia legível.
 
 ---
 
@@ -252,7 +260,7 @@ Marque cada item antes de considerar o sistema oficialmente no ar para eventos r
 
 - [ ] **Compilação e Tipos:** O comando `bunx tsc --noEmit` executa sem nenhum erro (0 erros).
 - [ ] **Bateria de Testes Automatizados:** O comando `bun run test` executa todas as suítes no Vitest e 100% dos testes passam.
-- [ ] **Verificação de Banco:** a última linha do `verificacao-banco.sql` no SQL Editor é `== RESUMO: 49 PASSOU, 0 FALHOU ==`.
+- [ ] **Verificação de Banco:** a última linha do `verificacao-banco.sql` no SQL Editor é `== RESUMO: 52 PASSOU, 0 FALHOU ==`.
 - [ ] **Teste de Concorrência:** O teste de 20 envios simultâneos para 5 vagas retorna exatamente 5 `ok` e 15 `full`.
 - [ ] **Segredos no Git:** O comando `git grep -n "sb_secret_\|SERVICE_ROLE_KEY=\|re_[A-Za-z0-9]"` não encontra nenhum segredo no código.
 - [ ] **Cadastro Público Desativado:** O painel do Supabase está com "Allow new users to sign up" desmarcado e o teste cURL de signup retorna erro 4xx.

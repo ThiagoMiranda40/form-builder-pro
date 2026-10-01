@@ -13,10 +13,11 @@
 3. [Tela B — Formulário Público (Inscrição, Consentimento e Sucesso)](#3-tela-b--formulário-público)
 4. [Tela C — Nova Página /editar/{token} (Edição pelo Inscrito)](#4-tela-c--página-de-edição-de-inscrição-editartoken)
 5. [Tela D — Página de Respostas (Copiar Link de Edição)](#5-tela-d--página-de-respostas)
-6. [Tela E — Tela de Entrada /auth (Acesso Único do Administrador)](#6-tela-e--tela-de-entrada-auth)
-7. [Padrões de Markup e Classes Reutilizadas](#7-padrões-de-markup-e-classes-reutilizadas)
-8. [Propostas de Mudança no spec / plan / tasks](#8-propostas-de-mudança-no-spec--plan--tasks)
-9. [Ideias para a Fase 1](#9-ideias-para-a-fase-1)
+6. [Tela E — Páginas legais (`/legal/termos-de-uso` e `/legal/politica-de-privacidade`)](#6-tela-e--páginas-legais)
+7. [Tela F — Tela de Entrada /auth (Acesso Único do Administrador)](#7-tela-f--tela-de-entrada-auth)
+8. [Padrões de Markup e Classes Reutilizadas](#8-padrões-de-markup-e-classes-reutilizadas)
+9. [Propostas de Mudança no spec / plan / tasks](#9-propostas-de-mudança-no-spec--plan--tasks)
+10. [Ideias para a Fase 1](#10-ideias-para-a-fase-1)
 
 ---
 
@@ -249,11 +250,20 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | [ maria@gmail.com                ] |
 | (X) Os e-mails não são iguais.     | <- erro quando os campos diferem
 |                                    |
-| [x] Declaro que li e concordo com  | <- caixa de consentimento (se houver)
-|     o regulamento do evento... *   |
+| [Texto do consentimento definido ] |
+| [pelo organizador do evento...   ] |
+|                                    |
+| Leia os Termos de Uso e a          | <- links em nova aba com texto para leitor
+| Política de Privacidade.           |
+|                                    |
+| [x] Declaro que li e concordo com  | <- novo rótulo da caixa
+|     os termos acima, com os Termos |
+|     de Uso e com a Política de     |
+|     Privacidade. *                 |
 |                                    |
 | [      Enviar inscrição          ] | <- cor do tema com readableTextColor
 +------------------------------------+
+| Termos de Uso · Política de Priv.  | <- rodapé discreto em todos os estados (<nav>)
 ```
 
 #### Tela de Sucesso — Estado 1: `emailSent === true` (Mobile 360 px)
@@ -366,14 +376,16 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Sugestão de E-mail (Blur)** | Ao sair de campo de e-mail com erro de digitação de domínio comum (ex.: gmial.com), exibe abaixo em `aria-live="polite"`: *"Você quis dizer <sugestão>?"* e o botão *"Usar este endereço"*. |
 | **Confirmação de E-mail** | Segundo campo obrigatório de confirmação exibido abaixo de cada e-mail. Se divergirem, bloqueia o envio com foco e erro: *"Os e-mails não são iguais."*. |
 | **Anti-robô (Honeypot)** | Campo com atributo invisível ao humano (`style={{ position: "absolute", left: "-9999px", opacity: 0 }}`, `tabIndex={-1}`, `autoComplete="off"`). |
+| **Consentimento e Links Legais** | Se o formulário tiver texto de consentimento: exibe o texto, seguido imediatamente da linha *"Leia os Termos de Uso e a Política de Privacidade."* com os dois links (`target="_blank"`, `rel="noopener noreferrer"`, sublinhados, contraste >= 4,5:1) contendo o texto para leitor de tela *" (abre em outra aba)"*. Caixa de aceite com rótulo *"Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade."*. |
+| **Rodapé de Documentos Legais** | Em **todos os estados** da tela pública (aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), abaixo do cartão principal, exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"* abrindo em nova aba com texto para leitor de tela. |
 | **Erro: Consentimento** | Mensagem vermelha abaixo da caixa: *"É necessário aceitar o termo para continuar."*. |
 | **Erro: CPF Duplicado** | Mensagem no próprio campo CPF com foco automático: *"CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."*. |
 | **Erro Geral (Banco)** | Alertas no topo: *"O limite de inscrições foi atingido."* ou *"O prazo de preenchimento encerrou."*. |
 | **Enviando** | Botão com opacidade reduzida (`disabled={true}`), texto *"Enviando..."*. |
-| **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição. |
-| **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."*. |
-| **Sucesso (sem pergunta de e-mail)** | Cartão do link de edição sem nenhuma menção a e-mail. |
-| **Vagas Esgotadas / Encerrado** | Telas estáticas em `Frame`: *"Vagas esgotadas"* ou *"Inscrições encerradas"*. |
+| **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição e do rodapé legal. |
+| **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."* e do rodapé legal. |
+| **Sucesso (sem pergunta de e-mail)** | Cartão do link de edição sem nenhuma menção a e-mail, seguido do rodapé legal. |
+| **Vagas Esgotadas / Encerrado** | Telas estáticas em `Frame`: *"Vagas esgotadas"* ou *"Inscrições encerradas"*, com rodapé legal abaixo do cartão. |
 
 ### 3.4 Textos Exatos da Interface
 - **Botão de envio:** "Enviar inscrição"
@@ -381,6 +393,11 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Erro divergência de e-mail:** "Os e-mails não são iguais."
 - **Sugestão de e-mail:** "Você quis dizer "
 - **Botão aplicar sugestão:** "Usar este endereço"
+- **Linha de introdução aos links legais:** "Leia os Termos de Uso e a Política de Privacidade."
+- **Texto acessível de link em nova aba:** " (abre em outra aba)"
+- **Rótulo da caixa de consentimento:** "Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade."
+- **Aria-label do rodapé legal:** "Documentos legais"
+- **Links do rodapé legal:** "Termos de Uso" e "Política de Privacidade"
 - **Erro consentimento:** "É necessário aceitar o termo para continuar."
 - **Erro CPF duplicado:** "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."
 - **Título de sucesso:** "Tudo certo!"
@@ -613,7 +630,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Vazio** | Mantém mensagem existente: *"Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber inscrições."*. |
 | **Com Dados** | Tabela acrescida da coluna `<th>Atualizado em</th>` (logo após "Enviado em") e `<th>Ações</th>`. |
 | **Linha Editada** | Linha com fundo âmbar claro sutil, data/hora da última alteração em pt-BR e selo textual *"Editada"* (`bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-xs font-medium`). Linha não editada exibe *"—"*. |
-| **Resumo de Respostas** | Exibe `"{n} resposta(s)"` ou, havendo respostas editadas, `"{n} resposta(s) · {e} editada(s)"`. |
+| **Resumo de Respostas** | Exibe `"{n} resposta(s)"` + (se houver limite) `" de {v} vagas"` + (se houver editadas) `" · {e} editada(s)"` + (se houver prazo) `" · prazo {data}"`. |
 | **Filtro de Editadas** | Havendo editadas, botão *"Mostrar só editadas"* / *"Mostrar todas"* (`aria-pressed`). Quando ativado, filtra a tabela exibindo apenas as inscrições editadas. |
 | **Filtro Vazio** | Quando o filtro está ativo e não há inscrições correspondentes: *"Nenhuma inscrição editada."*. |
 | **Ao Clicar em Copiar** | Copia o link com o domínio de produção (`ALLOWED_ORIGINS[0]`): `${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}` para o clipboard. |
@@ -652,9 +669,57 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 
 ---
 
-## 6. Tela E — Tela de Entrada (`/auth`)
+## 6. Tela E — Páginas legais (`/legal/termos-de-uso` e `/legal/politica-de-privacidade`)
 
 ### 6.1 Objetivo e Fluxo
+- **Objetivo:** Disponibilizar páginas públicas de Termos de Uso e Política de Privacidade acessíveis sem login, integradas ao fluxo de consentimento do formulário e com links em nova aba para consulta antes ou durante o preenchimento.
+- **Rotas:** `/legal/termos-de-uso` e `/legal/politica-de-privacidade` (endereços compostos com prefixo `legal/`, garantindo que nunca colidam com slugs de formulários nem exijam ampliação de palavras reservadas).
+- **Conteúdo Estruturado:** Fonte única de dados em `src/content/legal.ts` contendo `{ title, updatedAt, paragraphs: string[] }`.
+- **Renderização Segura:** O texto dos parágrafos suporta marcação de negrito com `**…**`, processada via função pura `parseInline` em `src/lib/legal-inline.ts` que retorna nós `{ text, bold }`, sem gerar HTML cru e sem uso de `dangerouslySetInnerHTML`.
+
+### 6.2 Wireframes de Baixa Fidelidade
+
+#### Mobile (360 px) e Desktop (Max 672 px centralizado)
+```text
++------------------------------------+
+| [ F ] FormulárioLab                |
+|                                    |
+| Termos de Uso                      |
+| Última atualização: 01/10/2026     |
+|                                    |
+| 1. O que é este sistema. Este site |
+| permite que você se inscreva em... |
+|                                    |
+| 2. Quem pode usar. Qualquer...     |
+| ...                                |
+|                                    |
+| Ver também: Política de Priv.  ↗   |
+|                                    |
+| (i) Você pode fechar esta aba para |
+|     voltar ao formulário.          |
++------------------------------------+
+```
+
+### 6.3 Estrutura e Comportamento
+- **Casca e Estilo:** Cartão centralizado com mesmo efeito de vidro suave do `Frame` (`glass-strong rounded-2xl p-6 sm:p-8 max-w-2xl w-full rise`).
+- **Cabeçalho:** `<h1>` semântico com o título do documento ("Termos de Uso" ou "Política de Privacidade") e linha de metadados: *"Última atualização: 01/10/2026"*.
+- **Parágrafos:** Lista de parágrafos legíveis e espaçados (`space-y-4 text-sm leading-relaxed text-slate-700`), com termos em negrito realçados.
+- **Rodapé do Documento:** Link para a outra página legal correspondente (*"Ver também: Política de Privacidade"* ou *"Ver também: Termos de Uso"*) e dica sutil para o usuário: *"Você pode fechar esta aba para voltar ao formulário."*.
+- **Metatags (`head`):** Título da página definido como `"Termos de Uso"` ou `"Política de Privacidade"`.
+
+### 6.4 Textos Exatos da Interface
+- **Título Termos:** "Termos de Uso"
+- **Título Política:** "Política de Privacidade"
+- **Data de atualização:** "Última atualização: 01/10/2026"
+- **Link cruzado para Política:** "Ver também: Política de Privacidade"
+- **Link cruzado para Termos:** "Ver também: Termos de Uso"
+- **Dica de navegação:** "Você pode fechar esta aba para voltar ao formulário."
+
+---
+
+## 7. Tela F — Tela de Entrada (`/auth`)
+
+### 7.1 Objetivo e Fluxo
 - **Objetivo:** Garantir acesso único e seguro ao administrador do sistema (RF-01), eliminando links públicos de cadastro e autenticação de terceiros (Google/Lovable Cloud).
 - **Fluxo do Administrador:**
   ```mermaid
@@ -668,7 +733,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
       F -->|Sucesso| C
   ```
 
-### 6.2 Wireframes de Baixa Fidelidade
+### 7.2 Wireframes de Baixa Fidelidade
 
 #### Mobile (360 px) e Desktop (Max 420 px centralizado)
 ```text
@@ -691,7 +756,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 +------------------------------------+
 ```
 
-### 6.3 Todos os Estados
+### 7.3 Todos os Estados
 | Estado | Elemento Visual / Comportamento |
 |---|---|
 | **Padrão** | Card centralizado `glass-strong rounded-2xl p-6 sm:p-8` com logo, chapéu "ÁREA DO ADMINISTRADOR", título "Entrar", e campos de E-mail e Senha. Sem botão Google e sem alternador de cadastro. |
@@ -699,7 +764,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Erro de Credenciais** | Toast de erro: *"E-mail ou senha incorretos."*. |
 | **Sucesso** | Redirecionamento para `/painel`. |
 
-### 6.4 Textos Exatos da Interface
+### 7.4 Textos Exatos da Interface
 - **Chapéu:** "Área do administrador"
 - **Título:** "Entrar"
 - **Rótulos:** "E-mail" e "Senha"
@@ -707,14 +772,14 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Botão processando:** "Entrando..."
 - **Erro de login:** "E-mail ou senha incorretos."
 
-### 6.5 Markup e Classes Reutilizadas (de `src/routes/auth.tsx`)
+### 7.5 Markup e Classes Reutilizadas (de `src/routes/auth.tsx`)
 - Container: `<div className="flex min-h-screen items-center justify-center px-5 py-12"><div className="w-full max-w-md rise"><div className="glass-strong rounded-2xl p-6 sm:p-8">...</div></div></div>`.
 - Inputs: `className="w-full rounded-lg bg-white/80 px-3 py-2.5 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"`.
 - Botão: `className="w-full rounded-lg bg-brand py-2.5 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 transition-colors hover:bg-brand/90 disabled:opacity-60"`.
 
 ---
 
-## 7. Padrões de Markup e Classes Reutilizadas
+## 8. Padrões de Markup e Classes Reutilizadas
 
 Não há dependência de novos componentes pesados de UI; o projeto reaproveita estritamente o vocabulário HTML e as classes utilitárias já existentes no repositório:
 
@@ -731,7 +796,7 @@ Não há dependência de novos componentes pesados de UI; o projeto reaproveita 
 
 ---
 
-## 8. Propostas de Mudança no spec / plan / tasks
+## 9. Propostas de Mudança no spec / plan / tasks
 
 As propostas discutidas e incorporadas na documentação oficial:
 1. **Rótulo da Aba no Editor:** Renomear o rótulo da aba existente de "Limites" para **"Limites e Termos"** (mantendo a chave interna `limites`), posicionando o campo de consentimento LGPD junto às configurações de encerramento e capacidade do formulário.
@@ -743,10 +808,13 @@ As propostas discutidas e incorporadas na documentação oficial:
 7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
 8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
 9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
+10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
+
+> **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 
 ---
 
-## 9. Ideias para a Fase 1
+## 10. Ideias para a Fase 1
 
 Melhorias registradas para consideração futura:
 1. **Reenvio do link de edição pelo próprio inscrito:** Campo "Esqueci meu link de edição" onde o participante informa o CPF e o sistema reenvia o token ao e-mail cadastrado.
