@@ -141,7 +141,8 @@ export function createTimedFetch(
 }
 
 /**
- * Valida e limpa as respostas de inscrição ou edição (SEC-11, SEC-12, QA-GAP-05, T-09, T-11).
+ * Valida e limpa as respostas de inscrição ou edição (SEC-11, SEC-12, SEC-14, QA-GAP-05, T-09, T-11).
+ * - Rejeita tipos não-texto ou listas com itens não-texto (SEC-14);
  * - Aceita lista somente em multi_choice (SEC-12);
  * - Apara espaços em branco de strings e itens de lista (QA-GAP-05);
  * - Valida contra options cadastradas para single_choice e multi_choice (SEC-11);
@@ -157,6 +158,21 @@ export function validateAndCleanAnswers(
 
   for (const q of questions) {
     const raw = answers[q.id];
+
+    // Item 18 (SEC-14): rejeita qualquer valor que não seja undefined, null, string ou array de strings
+    const isValidType =
+      raw === undefined ||
+      raw === null ||
+      typeof raw === "string" ||
+      (Array.isArray(raw) && raw.every((item) => typeof item === "string"));
+
+    if (!isValidType) {
+      return {
+        ok: false,
+        error: GENERIC_SUBMIT_ERROR,
+        field: q.id,
+      };
+    }
 
     // Item 11 (SEC-12): um valor em lista só é aceito para perguntas do tipo multi_choice.
     // Para qualquer outro tipo, uma lista devolve erro genérico sem lançar exceção.

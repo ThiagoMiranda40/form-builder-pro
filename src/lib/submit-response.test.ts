@@ -251,6 +251,74 @@ describe("T-09: Servidor de inscrição via banco", () => {
         field: "q-cpf",
       });
     });
+
+    it("SEC-14: rejeita número, objeto, booleano e lista com número em pergunta de texto com erro genérico", () => {
+      const qText: SubmissionQuestion[] = [
+        {
+          id: "q-nome",
+          label: "Nome completo",
+          field_type: "short_text",
+          required: true,
+          options: [],
+          position: 0,
+        },
+      ];
+
+      // Número
+      expect(validateAndCleanAnswers(qText, { "q-nome": 12345 })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-nome",
+      });
+
+      // Objeto
+      expect(validateAndCleanAnswers(qText, { "q-nome": { injected: "obj" } })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-nome",
+      });
+
+      // Booleano
+      expect(validateAndCleanAnswers(qText, { "q-nome": true })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-nome",
+      });
+
+      // Lista com número
+      expect(validateAndCleanAnswers(qText, { "q-nome": ["Texto", 99] })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-nome",
+      });
+    });
+
+    it("SEC-14: rejeita lista com item não-texto ou aninhada em multi_choice", () => {
+      const qMulti: SubmissionQuestion[] = [
+        {
+          id: "q-multi",
+          label: "Interesses",
+          field_type: "multi_choice",
+          required: true,
+          options: ["5K", "10K"],
+          position: 0,
+        },
+      ];
+
+      // Lista com número
+      expect(validateAndCleanAnswers(qMulti, { "q-multi": ["5K", 10] })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-multi",
+      });
+
+      // Lista aninhada
+      expect(validateAndCleanAnswers(qMulti, { "q-multi": [["5K"]] })).toEqual({
+        ok: false,
+        error: "Não foi possível enviar. Verifique os campos e tente novamente.",
+        field: "q-multi",
+      });
+    });
   });
 
   describe("handleSubmission e fluxo de inscrição", () => {
