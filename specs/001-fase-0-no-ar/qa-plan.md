@@ -169,6 +169,12 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Rótulo da caixa de consentimento:** A caixa de aceite deve exibir o rótulo *"Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade."*. Desmarcar e tentar enviar deve exibir: *"É necessário aceitar o termo para continuar."*.
 - [ ] **Descrição com quebras de linha preservadas:** Abrir o formulário público no computador e no celular; as linhas da descrição aparecem exatamente como digitadas, com uma linha em branco entre blocos de texto (`whitespace-pre-line`).
 - [ ] **Formulário sem descrição:** Num formulário de teste com descrição vazia ou apagada, não aparece parágrafo vazio acima das perguntas.
+- [ ] **Bloco de vagas e prazo no computador:** No formulário da SKF (40 vagas, prazo 07/10), o bloco aparece logo abaixo da descrição com "40 vagas restantes" e "07/10/2026 às 23:59", visivelmente maior que o texto.
+- [ ] **Vagas e prazo no celular (360px):** No celular (360 px), os dois cartões ficam um sobre o outro, sem rolagem lateral.
+- [ ] **Alerta de últimas vagas:** Num formulário de teste com limite de 5 vagas, o cartão fica âmbar com o selo textual *"Últimas vagas"*.
+- [ ] **Alerta de prazo iminente:** Num formulário de teste com prazo para hoje, exibe o selo *"Encerra hoje"*; para amanhã, *"Encerra amanhã"*.
+- [ ] **Formulário sem limite e sem prazo:** Num formulário de teste sem limite de vagas e sem prazo cadastrados, o bloco não aparece.
+- [ ] **Fuso horário fixo:** O horário do prazo exibido é rigorosamente o mesmo no computador e no celular (fuso de São Paulo).
 - [ ] **Rodapé de documentos legais:** Abaixo do cartão do formulário (em todos os estados: aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"*, ambos abrindo em nova aba com texto para leitor de tela.
 
 ### 5.2 Tela de Sucesso da Inscrição

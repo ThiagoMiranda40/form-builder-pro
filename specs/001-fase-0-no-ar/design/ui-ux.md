@@ -378,8 +378,10 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | Estado | Elemento Visual / Comportamento |
 |---|---|
 | **Carregando** | Frame centralizado com texto *"Carregando formulário..."*. |
-| **Formulário Aberto** | Campos do formulário com `fieldClass`, máscara de CPF/telefone/RG, badges de vagas e prazo. Botão com `backgroundColor: accent` e `color: readableTextColor(accent)`. |
+| **Formulário Aberto** | Campos do formulário com `fieldClass`, máscara de CPF/telefone/RG. Botão com `backgroundColor: accent` e `color: readableTextColor(accent)`. |
 | **Descrição com quebras de linha** | Parágrafo de descrição utilizando `normalizeDescription(form.description)` exibido somente quando não for vazio (evita parágrafo vazio acima das perguntas). Classes: `whitespace-pre-line break-words text-sm leading-relaxed text-slate-700`, preservando as quebras de linha digitadas e gerando espaçamento legível entre blocos. |
+| **Destaque de Vagas e Prazo** | Bloco `<div role="group" aria-label="Vagas e prazo" className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">` com cartões em destaque (`rounded-xl bg-white px-4 py-3 ring-1 ring-black/10`). Se apenas um existir, ocupa a largura inteira. Se ambos forem nulos, não renderiza. Cartão de Vagas: rótulo *"Vagas"*, valor `number` (`text-3xl font-bold text-slate-900`) e `label` (*"vaga restante"* ou *"vagas restantes"* em `text-sm text-slate-700`). Cartão de Prazo: rótulo *"Inscrições até"*, valor `dateText` (`text-2xl font-bold text-slate-900`) e `timeText` com prefixo *"às"* em `text-sm text-slate-700`, ambos calculados no fuso fixo "America/Sao_Paulo". |
+| **Urgência de Vagas e Prazo** | Quando `urgent` for verdadeiro: fundo âmbar `bg-amber-50 ring-amber-300`, valor em `text-amber-950` e selo de texto explicativo (`rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900`). Vagas urgentes (<= 10 restantes): selo *"Últimas vagas"*. Prazo urgente: selo *"Encerra hoje"* ou *"Encerra amanhã"*. A cor nunca é o único sinal e o contraste respeita >= 4,5:1. Cores do tema não são aplicadas nesses cartões. |
 | **Sugestão de E-mail (Blur)** | Ao sair de campo de e-mail com erro de digitação de domínio comum (ex.: gmial.com), exibe abaixo em `aria-live="polite"`: *"Você quis dizer <sugestão>?"* e o botão *"Usar este endereço"*. |
 | **Confirmação de E-mail** | Segundo campo obrigatório de confirmação exibido abaixo de cada e-mail. Se divergirem, bloqueia o envio com foco e erro: *"Os e-mails não são iguais."*. |
 | **Anti-robô (Honeypot)** | Campo com atributo invisível ao humano (`style={{ position: "absolute", left: "-9999px", opacity: 0 }}`, `tabIndex={-1}`, `autoComplete="off"`). |
@@ -417,6 +419,15 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Feedback após copiar:** "Link copiado!"
 - **Aviso de segurança:** "Guarde este link. Ele é a única forma de você corrigir seus dados caso precise."
 - **Texto de inscrições encerradas:** "Este formulário não está mais recebendo inscrições."
+- **Aria-label do grupo vagas e prazo:** "Vagas e prazo"
+- **Rótulo do cartão de vagas:** "Vagas"
+- **Sufixo de vaga restante singular:** "vaga restante"
+- **Sufixo de vagas restantes plural:** "vagas restantes"
+- **Selo de vagas urgentes:** "Últimas vagas"
+- **Rótulo do cartão de prazo:** "Inscrições até"
+- **Prefixo de horário:** "às"
+- **Selo de encerramento hoje:** "Encerra hoje"
+- **Selo de encerramento amanhã:** "Encerra amanhã"
 
 ### 3.5 Markup e Classes Reutilizadas (de `src/routes/f.$slug.tsx`)
 - Container: `<div className="flex min-h-screen items-start justify-center px-5 py-10 sm:py-16"><div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">{children}</div></div>`.
@@ -817,6 +828,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
 10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
 11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
+12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 
