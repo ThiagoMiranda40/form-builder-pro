@@ -13,6 +13,8 @@ import {
 } from "@/lib/email-hints";
 import { buildFormMeta } from "@/lib/site-meta";
 import { normalizeDescription } from "@/lib/description";
+import { Calendar, Users } from "lucide-react";
+import { buildAvailability } from "@/lib/availability";
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
@@ -330,9 +332,14 @@ function PublicForm() {
     }
   }
 
-  const remaining =
-    form.max_responses != null ? Math.max(0, form.max_responses - form.responses_count) : null;
   const description = normalizeDescription(form.description);
+  const availability = buildAvailability({
+    maxResponses: form.max_responses,
+    responsesCount: form.responses_count,
+    closesAt: form.closes_at,
+    now: new Date(),
+  });
+  const hasBoth = Boolean(availability.slots && availability.deadline);
 
   return (
     <Frame>
@@ -353,22 +360,85 @@ function PublicForm() {
             {description}
           </p>
         )}
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {remaining != null && (
-            <span className="rounded-full bg-white/70 px-2.5 py-1 ring-1 ring-black/5">
-              {remaining} vaga(s) restante(s)
-            </span>
-          )}
-          {form.closes_at && (
-            <span className="rounded-full bg-white/70 px-2.5 py-1 ring-1 ring-black/5">
-              Prazo:{" "}
-              {new Date(form.closes_at).toLocaleString("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              })}
-            </span>
-          )}
-        </div>
+        {(availability.slots || availability.deadline) && (
+          <div
+            role="group"
+            aria-label="Vagas e prazo"
+            className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"
+          >
+            {availability.slots && (
+              <div
+                className={`rounded-xl px-4 py-3 ring-1 transition-colors ${
+                  !hasBoth ? "sm:col-span-2" : ""
+                } ${
+                  availability.slots.urgent
+                    ? "bg-amber-50 ring-amber-300"
+                    : "bg-white ring-black/10"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <Users className="size-4 text-slate-500" aria-hidden="true" />
+                    Vagas
+                  </span>
+                  {availability.slots.badge && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                      {availability.slots.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span
+                    className={`text-3xl font-bold ${
+                      availability.slots.urgent ? "text-amber-950" : "text-slate-900"
+                    }`}
+                  >
+                    {availability.slots.number}
+                  </span>
+                  <span className="text-sm text-slate-700">
+                    {availability.slots.label}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {availability.deadline && (
+              <div
+                className={`rounded-xl px-4 py-3 ring-1 transition-colors ${
+                  !hasBoth ? "sm:col-span-2" : ""
+                } ${
+                  availability.deadline.urgent
+                    ? "bg-amber-50 ring-amber-300"
+                    : "bg-white ring-black/10"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <Calendar className="size-4 text-slate-500" aria-hidden="true" />
+                    Inscrições até
+                  </span>
+                  {availability.deadline.badge && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                      {availability.deadline.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                  <span
+                    className={`text-2xl font-bold ${
+                      availability.deadline.urgent ? "text-amber-950" : "text-slate-900"
+                    }`}
+                  >
+                    {availability.deadline.dateText}
+                  </span>
+                  <span className="text-sm text-slate-700">
+                    às {availability.deadline.timeText}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           {/* Campo invisível armadilha anti-robô (RF-09, SEC-09, T-10) */}
