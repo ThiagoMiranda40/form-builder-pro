@@ -215,6 +215,11 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Conteúdo da Política de Privacidade:** Exibe 11 itens com CNPJ, e-mail de contato, prazos de retenção e resposta ("30 dias" e "15 dias"), data de atualização "01/10/2026", link "Ver também: Termos de Uso" e dica "Você pode fechar esta aba para voltar ao formulário.".
 - [ ] **Responsividade em 360 px:** As duas páginas leem bem no celular (360 px), sem overflow horizontal e com tipografia legível.
 
+### 5.8 Identidade do Link
+- [ ] **Ícone e título na aba:** A aba do navegador mostra o ícone da Corre Time e o título "Inscrições | Corre Time".
+- [ ] **Prévia no WhatsApp:** Ao enviar para si mesmo, no WhatsApp, o link de um formulário: a prévia mostra a imagem com a logo (se aparecer a prévia antiga, o WhatsApp guardou cache: acrescente `?v=2` ao fim do link e envie de novo).
+- [ ] **Robots noindex:** `curl.exe -s https://inscricoes.corretime.com.br/legal/termos-de-uso | findstr robots` mostra "noindex".
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)

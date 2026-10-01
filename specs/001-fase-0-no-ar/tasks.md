@@ -390,6 +390,15 @@ Parte MANUAL 🧑 (dono, no site publicado, depois do deploy): (1) abrir um form
 
 ---
 
+## T-18 — Identidade do link: ícone, título e prévia (C-c)
+Depende de: T-17
+Arquivos: `src/routes/__root.tsx`, `src/lib/site-meta.ts` e `src/lib/site-meta.test.ts` (novos), `public/favicon.ico`, `public/apple-touch-icon.png`, `public/og-image.png`.
+Fazer: (a) `site-meta.ts` exporta as constantes SITE_URL = "https://inscricoes.corretime.com.br", SITE_TITLE = "Inscrições | Corre Time", SITE_DESCRIPTION = "Faça sua inscrição online e corrija seus dados depois pelo link que enviamos ao seu e-mail.", OG_IMAGE = SITE_URL + "/og-image.png"; (b) `__root.tsx` usa essas constantes no `head`: title; description; og:title; og:description; og:type "website"; og:locale "pt_BR"; og:image (URL absoluta) com og:image:width 1200, og:image:height 630 e og:image:alt "Logotipo Corre Time"; twitter:card "summary_large_image" e twitter:image; `robots` com "noindex, nofollow"; `theme-color` "#101B33"; links `icon` para /favicon.ico (sizes="any") e `apple-touch-icon` para /apple-touch-icon.png. Remova todo "FormulárioLab" e a descrição antiga ("Crie formulários de inscrição...") do `head`; (c) NÃO altere `public/robots.txt` nem nenhuma outra rota. Se "FormulárioLab" aparecer em outros arquivos de tela, apenas LISTE no relatório, sem alterar. Testes (primeiro, vistos falhando): título e descrição conforme acima; OG_IMAGE é URL absoluta https; os três arquivos existem em `public/`; `og-image.png` tem exatamente 1200x630 (leia a largura e a altura dos bytes 16 a 24 do cabeçalho PNG); `favicon.ico` começa com os bytes 00 00 01 00.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run site-meta`; `bun node_modules/vitest/vitest.mjs run` (os 218 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`; com `bun node_modules/vite/bin/vite.js dev` (porta 8080): `curl.exe -s http://localhost:8080/legal/termos-de-uso | Select-String -Pattern "og:image","noindex"` imprime as duas.
+Parte MANUAL (dono, no site publicado, depois do deploy): (1) a aba do navegador mostra o ícone da Corre Time e o título "Inscrições | Corre Time"; (2) enviar para si mesmo, no WhatsApp, o link de um formulário: a prévia mostra a imagem com a logo (se aparecer a prévia antiga, o WhatsApp guardou cache: acrescente `?v=2` ao fim do link e envie de novo); (3) `curl.exe -s https://inscricoes.corretime.com.br/legal/termos-de-uso | findstr robots` mostra "noindex".
+
+---
+
 
 ## Fluxo de execução recomendado
 
