@@ -149,6 +149,7 @@ Esta seção identifica exatamente **o que ainda não estava coberto** nos teste
 | **TC-EDIT-02** | Inscrito edita novamente 2 minutos depois | Salvo no banco, **nenhum e-mail disparado**, tela avisa apenas que salvou | Impede spam e esgotamento da cota de 100 e-mails/dia. |
 | **TC-EDIT-03** | Inscrito edita novamente após 11 minutos | Salvo no banco e novo e-mail disparado | Após a janela de segurança, nova confirmação é enviada. |
 | **TC-EDIT-04** | Tentativa de adulterar 1 caractere no link de edição | Retorna página "Inscrição não encontrada" | Links incorretos ou falsos não acessam dados de ninguém. |
+| **TC-EDIT-05** | Inscrito edita menos de 10 minutos depois de se inscrever | Salvo no banco, nenhum e-mail disparado | A confirmação da inscrição conta como o último e-mail da janela. |
 
 ---
 
@@ -171,7 +172,7 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
   - Se o envio falhou ou o formulário não tem e-mail: essa frase **não deve aparecer** (só o link na tela).
 
 ### 5.3 Página de Edição do Participante (`/editar/{token}`)
-- [ ] **CPF bloqueado:** O campo do CPF deve exibir os dados originais com fundo acinzentado, ícone de cadeado e aviso *"O CPF não pode ser alterado."*, sem permitir digitação.
+- [ ] **CPF bloqueado:** O campo do CPF deve exibir o CPF mascarado (`***.***.***-25`) com fundo acinzentado, ícone de cadeado e aviso *"O CPF não pode ser alterado."*, sem permitir digitação.
 - [ ] **Aparência do evento:** A página deve exibir o logotipo, a cor e a **fonte** configuradas no tema do formulário.
 - [ ] **Salvamento:** Alterar um dado (ex.: tamanho de camiseta ou distância) e salvar; deve surgir *"Alterações salvas!"*.
 - [ ] **Formulário fechado:** Entrar no painel, encerrar o formulário e recarregar o link de edição no celular; deve exibir a tela estática *"Edição encerrada - Este formulário não aceita mais alterações."*.

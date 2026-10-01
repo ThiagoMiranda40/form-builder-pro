@@ -486,7 +486,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | Estado | Elemento Visual / Comportamento |
 |---|---|
 | **Carregando** | Frame com mensagem *"Carregando dados da inscrição..."*. |
-| **Edição Aberta** | Formulário preenchido com as respostas originais. Campo CPF com `readOnly`, ícone de cadeado e aviso *"O CPF não pode ser alterado."*. Sem reexibição de consentimento. |
+| **Edição Aberta** | Formulário preenchido com as respostas originais. Campo CPF com `readOnly` exibindo o CPF MASCARADO (`***.***.***-25`), ícone de cadeado e aviso *"O CPF não pode ser alterado."*. Sem reexibição de consentimento. |
 | **Salvando** | Botão "Salvar alterações" desabilitado com texto *"Salvando..."*. |
 | **Sucesso (emailSent === true)** | Banner verde no topo: *"Alterações salvas! Enviamos um resumo atualizado para o seu e-mail."*. |
 | **Sucesso (emailSent === false)** | Banner verde no topo: *"Alterações salvas!"* (sem menção a e-mail). |
@@ -510,7 +510,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - Mesma casca `Frame` (`glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8`).
 - Tipografia do tema aplicada na raiz do container com `fontClass` (`theme?.font === "display" ? "font-display" : theme?.font === "serif" ? "font-serif" : "font-body"`).
 - Mesma classe de campo `fieldClass`.
-- Campo CPF bloqueado: `<input readOnly value={cpf} className={`${fieldClass} bg-black/[0.03] cursor-not-allowed`} />`.
+- Campo CPF bloqueado: `<input readOnly value="***.***.***-25" className={`${fieldClass} bg-black/[0.03] cursor-not-allowed`} />`.
 - Botão: `style={{ backgroundColor: accent, color: readableTextColor(accent) }}`.
 
 ---
@@ -675,6 +675,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 2. **Contrato do Servidor com `emailSent: boolean`:** Incorporado no `plan.md` e `tasks.md` para suportar a exibição condicional da mensagem de confirmação de e-mail na tela de sucesso e na tela de edição.
 3. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`, devolvendo `#ffffff` ou `#000000` para garantir contraste >= 4,5:1.
 4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
+5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
 
 ---
 
