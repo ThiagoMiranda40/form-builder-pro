@@ -339,10 +339,10 @@ Verificação: comando acima sem saída (nenhuma linha); `git diff --stat main -
 Depende de: T-10, T-11, T-12, T-03
 Ler: spec.md (cenários-chave); qa-plan.md seções 6 e 7; seguranca.md (checklist final)
 Fazer:
-1. Resend: criar conta, **verificar o subdomínio de envio** (registros DNS na Cloudflare; pode levar alguns minutos), cadastrar `RESEND_API_KEY` e `EMAIL_FROM` como **Segredo** no Worker.
-2. Monitor externo gratuito chamando `https://inscricoes.<dominio>/saude` a cada poucos minutos (evita a pausa do banco e avisa de queda).
-3. Rodar os **5 cenários-chave** do `spec.md` no endereço real, no celular, **com gravação de tela**; garantir como regra operacional que todo formulário publicado tem limite de vagas definido; exportar Excel e PDF; guardar um Excel de backup ao final.
-Verificação: os 5 cenários do `spec.md` passam; `curl https://inscricoes.<dominio>/saude` → `ok`; o e-mail chega com o CPF ocultado e o link funciona.
+1. Resend: criar conta, **verificar o subdomínio de envio** `envio.corretime.com.br` (registros DNS na Cloudflare; pode levar alguns minutos), cadastrar `RESEND_API_KEY` e `EMAIL_FROM` (`inscricoes@envio.corretime.com.br`) como **Segredo** no Worker.
+2. Monitor externo gratuito chamando `https://inscricoes.corretime.com.br/saude` a cada poucos minutos (evita a pausa do banco e avisa de queda).
+3. Rodar os **5 cenários-chave** do `spec.md` no endereço real (`https://inscricoes.corretime.com.br`), no celular, **com gravação de tela**; garantir como regra operacional que todo formulário publicado tem limite de vagas definido; exportar Excel e PDF; guardar um Excel de backup ao final.
+Verificação: os 5 cenários do `spec.md` passam; `curl.exe -s https://inscricoes.corretime.com.br/saude` → `ok`; o e-mail chega com o CPF ocultado e o link funciona.
 **O que isso prova:** o sistema está pronto para o primeiro evento real.
 
 ---

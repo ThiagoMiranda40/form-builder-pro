@@ -129,3 +129,7 @@ Regra: cadastrar como **Segredo**, não como variável de build (variáveis de b
 ## Fora de escopo (técnico)
 
 Não regenerar `types.ts` por CLI; não migrar dados do projeto Lovable antigo (não há formulário real); não reformatar o repositório para zerar o lint; não remover a dependência do Lovable; não criar redirecionamentos de `/f/...`; sem testes de interface (jsdom); sem captcha; sem cache; sem fila de e-mail.
+
+## Decisões registradas
+
+- **01/10/2026 — Domínio canônico e subdomínio de e-mail:** O endereço canônico do app passa a ser `https://inscricoes.corretime.com.br` e o subdomínio de envio de e-mail passa a ser `envio.corretime.com.br` (remetente `inscricoes@envio.corretime.com.br`). O endereço antigo (`inscricoes.triadetecnologiaesolucoes.com.br`) continua ligado ao mesmo Worker só para links de teste já emitidos; nenhum link novo o usa.
