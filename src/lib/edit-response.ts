@@ -249,11 +249,26 @@ export async function handleUpdate(
       };
     }
 
-    // CPF handling (SEC-17): o valor do CPF enviado pelo navegador é ignorado.
-    // O valor original guardado na inscrição prevalece.
+    // CPF handling (SEC-17, SEC-21): o valor do CPF enviado pelo navegador é ignorado.
+    // O valor original guardado na inscrição prevalece. Toda pergunta cuja resposta guardada
+    // tem dígitos iguais ao identifier da inscrição (ou seja de field_type === "cpf") é tratada como CPF.
+    const identifierDigits = response.identifier ? response.identifier.replace(/\D/g, "") : "";
+
+    const isCpfQuestion = (q: EditQuestion): boolean => {
+      if (q.field_type === "cpf") return true;
+      const savedVal = response.answers?.[q.id];
+      if (typeof savedVal === "string") {
+        const savedDigits = savedVal.replace(/\D/g, "");
+        if (identifierDigits !== "" && savedDigits === identifierDigits) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     const finalAnswers: Record<string, unknown> = { ...input.answers };
     for (const q of questions) {
-      if (q.field_type === "cpf") {
+      if (isCpfQuestion(q)) {
         if (response.answers && response.answers[q.id] !== undefined) {
           finalAnswers[q.id] = response.answers[q.id];
         } else {
@@ -265,7 +280,7 @@ export async function handleUpdate(
     // Na edição, a pergunta de CPF não é obrigatória para que perguntas adicionadas
     // posteriormente não travem a edição de quem se inscreveu antes.
     const questionsForValidation = questions.map((q) =>
-      q.field_type === "cpf" ? { ...q, required: false } : q,
+      isCpfQuestion(q) ? { ...q, required: false } : q,
     );
 
     const validationResult = validateAndCleanAnswers(questionsForValidation, finalAnswers);
@@ -280,7 +295,7 @@ export async function handleUpdate(
     const cleanAnswers = validationResult.cleanAnswers;
     // Garante que o CPF guardado original é mantido intacto em cleanAnswers
     for (const q of questions) {
-      if (q.field_type === "cpf" && response.answers && response.answers[q.id] !== undefined) {
+      if (isCpfQuestion(q) && response.answers && response.answers[q.id] !== undefined) {
         cleanAnswers[q.id] = response.answers[q.id];
       }
     }

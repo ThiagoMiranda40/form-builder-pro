@@ -799,6 +799,200 @@ describe("T-11: Edição pelo link", () => {
       expect(logErrorMock).toHaveBeenCalledWith("EXCEPTION", "");
       expect(logErrorMock).not.toHaveBeenCalledWith(expect.stringContaining(VALID_TOKEN), expect.anything());
     });
+
+    describe("SEC-21: CPF guardado preservado quando o tipo da pergunta muda", () => {
+      it("tipo alterado para texto e a pessoa salva o que a leitura devolveu (mascarado) -> o valor guardado NÃO muda", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-cpf-alterada": "52998224725",
+                "q-dist": "5 km",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: { ...baseForm },
+            questions: [
+              {
+                id: "q-cpf-alterada",
+                label: "Documento",
+                field_type: "text", // Tipo alterado pelo organizador para texto
+                required: true,
+                options: [],
+                position: 1,
+              },
+              {
+                id: "q-dist",
+                label: "Distância",
+                field_type: "single_choice",
+                required: true,
+                options: ["5 km", "10 km"],
+                position: 2,
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        // O navegador envia o que a leitura devolveu (mascarado: ***.***.***-25)
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-cpf-alterada": "***.***.***-25",
+            "q-dist": "10 km",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(rpcMock).toHaveBeenCalled();
+        const rpcPayload = rpcMock.mock.calls[0]![0];
+        // O valor guardado original (52998224725) DEVE ser preservado, não o mascarado
+        expect(rpcPayload.answers["q-cpf-alterada"]).toBe("52998224725");
+        expect(rpcPayload.answers["q-dist"]).toBe("10 km");
+      });
+
+      it("valor forjado no campo cujo valor guardado é o CPF é ignorado e vale o guardado", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-doc": "529.982.247-25",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: { ...baseForm },
+            questions: [
+              {
+                id: "q-doc",
+                label: "Documento",
+                field_type: "text",
+                required: true,
+                options: [],
+                position: 1,
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        // O atacante tenta enviar outro CPF ou valor forjado
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-doc": "111.444.777-35",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(rpcMock).toHaveBeenCalled();
+        const rpcPayload = rpcMock.mock.calls[0]![0];
+        // O valor guardado original prevalece
+        expect(rpcPayload.answers["q-doc"]).toBe("529.982.247-25");
+      });
+
+      it("uma pergunta comum de texto não é afetada", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-cidade": "São Paulo",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: { ...baseForm },
+            questions: [
+              {
+                id: "q-cidade",
+                label: "Cidade",
+                field_type: "text",
+                required: true,
+                options: [],
+                position: 1,
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-cidade": "Campinas",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(rpcMock).toHaveBeenCalled();
+        const rpcPayload = rpcMock.mock.calls[0]![0];
+        // Pergunta comum aceita a nova resposta normalmente
+        expect(rpcPayload.answers["q-cidade"]).toBe("Campinas");
+      });
+
+      it("pergunta de CPF de tipo cpf continua protegida como antes", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-cpf": "529.982.247-25",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: { ...baseForm },
+            questions: [
+              {
+                id: "q-cpf",
+                label: "CPF",
+                field_type: "cpf",
+                required: true,
+                options: [],
+                position: 1,
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-cpf": "000.000.000-00",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(rpcMock).toHaveBeenCalled();
+        const rpcPayload = rpcMock.mock.calls[0]![0];
+        expect(rpcPayload.answers["q-cpf"]).toBe("529.982.247-25");
+      });
+    });
   });
 });
 
