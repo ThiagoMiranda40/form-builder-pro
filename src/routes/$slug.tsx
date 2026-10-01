@@ -5,7 +5,7 @@ import { useState } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 
-export const Route = createFileRoute("/f/$slug")({
+export const Route = createFileRoute("/$slug")({
   head: () => ({
     meta: [
       { title: "Formulário de inscrição" },
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/f/$slug")({
 type Answers = Record<string, string | string[]>;
 
 function PublicForm() {
-  const { slug } = useParams({ from: "/f/$slug" });
+  const { slug } = useParams({ from: "/$slug" });
   const fetchForm = useServerFn(getPublicForm);
   const send = useServerFn(submitResponse);
 

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
+import { sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { StatusPill } from "./_authenticated.painel";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id")({
@@ -55,6 +56,8 @@ function Editor() {
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<"pergunta" | "aparencia" | "limites">("pergunta");
   const [saving, setSaving] = useState(false);
+  const [initialSlug, setInitialSlug] = useState<string>("");
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["form", id],
@@ -72,10 +75,13 @@ function Editor() {
   useEffect(() => {
     if (!query.data) return;
     const f = query.data.form as Record<string, unknown>;
+    const loadedSlug = (f["slug"] as string) ?? "";
+    setInitialSlug(loadedSlug);
+    setSlugError(null);
     setForm({
       title: f["title"] as string,
       description: (f["description"] as string) ?? "",
-      slug: f["slug"] as string,
+      slug: loadedSlug,
       status: f["status"] as string,
       theme: (f["theme"] as Theme) ?? { color: "#4f46e5", font: "body", logo_url: null },
       max_responses: (f["max_responses"] as number | null) ?? null,
@@ -96,7 +102,8 @@ function Editor() {
     setSelected((prev) => prev ?? ((query.data.questions[0] as { id?: string } | undefined)?.id ?? null));
   }, [query.data]);
 
-  const publicUrl = form ? `${typeof window !== "undefined" ? window.location.origin : ""}/f/${form.slug}` : "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const publicUrl = form ? `${origin}/${form.slug}` : "";
   const current = questions.find((q) => q.id === selected) ?? null;
 
   function patchQuestion(patch: Partial<Question>) {
@@ -155,6 +162,16 @@ function Editor() {
 
   async function save(nextStatus?: string) {
     if (!form) return;
+    const cleanSlug = trimSlugEdges(form.slug);
+    const validationError = validateSlug(cleanSlug);
+    if (validationError) {
+      setSlugError(validationError);
+      toast.error(validationError);
+      return;
+    }
+    if (cleanSlug !== form.slug) {
+      setForm((prev) => (prev ? { ...prev, slug: cleanSlug } : null));
+    }
     setSaving(true);
     try {
       const { error } = await supabase
@@ -162,6 +179,7 @@ function Editor() {
         .update({
           title: form.title.trim() || "Sem título",
           description: form.description,
+          slug: cleanSlug,
           theme: form.theme,
           max_responses: form.max_responses,
           closes_at: form.closes_at,
@@ -169,7 +187,30 @@ function Editor() {
           status: nextStatus ?? form.status,
         })
         .eq("id", id);
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          const msg = "Esse endereço já está em uso";
+          setSlugError(msg);
+          toast.error(msg);
+          return;
+        }
+        const combined = `${error.message ?? ""} ${error.details ?? ""}`;
+        if (error.code === "23514" || combined.includes("forms_slug_")) {
+          if (combined.includes("forms_slug_reserved")) {
+            const msg = "Esse nome é reservado pelo sistema";
+            setSlugError(msg);
+            toast.error(msg);
+            return;
+          }
+          if (combined.includes("forms_slug_format")) {
+            const msg = "Use apenas letras minúsculas, números e hífens.";
+            setSlugError(msg);
+            toast.error(msg);
+            return;
+          }
+        }
+        throw error;
+      }
 
       for (const q of questions) {
         const { error: qError } = await supabase
@@ -185,7 +226,10 @@ function Editor() {
           .eq("id", q.id);
         if (qError) throw qError;
       }
-      if (nextStatus) setForm({ ...form, status: nextStatus });
+      setInitialSlug(cleanSlug);
+      setSlugError(null);
+      if (nextStatus) setForm({ ...form, slug: cleanSlug, status: nextStatus });
+      else setForm({ ...form, slug: cleanSlug });
       toast.success(
         nextStatus === "published"
           ? "Formulário publicado! O link já pode ser compartilhado."
@@ -245,15 +289,41 @@ function Editor() {
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <p className="text-xs text-muted-foreground">Link de compartilhamento</p>
+        <label className="text-xs font-medium text-muted-foreground">
+          Link de compartilhamento
+        </label>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <code className="flex-1 truncate rounded-lg bg-white/80 px-3 py-2 text-xs ring-1 ring-black/5">
-            {publicUrl}
-          </code>
+          <div className="flex flex-1 min-w-[280px] items-center rounded-lg bg-white/80 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand/40">
+            <span className="select-none rounded-l-lg bg-white/60 px-3 py-2 text-xs text-muted-foreground border-r border-black/5 whitespace-nowrap">
+              {origin}/
+            </span>
+            <input
+              type="text"
+              value={form.slug}
+              onChange={(e) => {
+                const nextSlug = sanitizeSlugInput(e.target.value);
+                setForm((prev) => (prev ? { ...prev, slug: nextSlug } : null));
+                setSlugError(validateSlug(nextSlug));
+              }}
+              onBlur={() => {
+                const clean = trimSlugEdges(form.slug);
+                if (clean !== form.slug) {
+                  setForm((prev) => (prev ? { ...prev, slug: clean } : null));
+                }
+                setSlugError(validateSlug(clean));
+              }}
+              maxLength={60}
+              placeholder="endereco-do-formulario"
+              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs focus:outline-none"
+            />
+          </div>
           <button
+            type="button"
             onClick={() => {
-              navigator.clipboard.writeText(publicUrl);
-              toast.success("Link copiado!");
+              if (publicUrl) {
+                navigator.clipboard.writeText(publicUrl);
+                toast.success("Link copiado!");
+              }
             }}
             className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90"
           >
@@ -268,6 +338,17 @@ function Editor() {
             Abrir
           </a>
         </div>
+
+        {slugError && (
+          <p className="mt-2 text-xs text-destructive">{slugError}</p>
+        )}
+
+        {form.status === "published" && form.slug !== initialSlug && (
+          <div className="mt-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 ring-1 ring-amber-200">
+            Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço.
+          </div>
+        )}
+
         {form.status !== "published" && (
           <p className="mt-2 text-xs text-amber-600">
             Publique o formulário para que o link aceite respostas.

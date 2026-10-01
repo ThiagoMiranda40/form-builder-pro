@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { slug } from "@/lib/slug";
+import { suggestSlug } from "@/lib/slug";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -67,7 +67,7 @@ function Painel() {
         .insert({
           owner_id: user!.id,
           title,
-          slug: `${slug(title)}-${Math.random().toString(36).slice(2, 8)}`,
+          slug: suggestSlug(title, Math.random().toString(36).slice(2, 8)),
         })
         .select("id")
         .single();
