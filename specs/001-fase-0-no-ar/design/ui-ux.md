@@ -242,7 +242,12 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | (o) 10 km                          |
 |                                    |
 | E-mail para confirmação *          |
+| [ maria@gmial.com                ] |
+| (i) Você quis dizer maria@gmail.com? [ Usar este endereço ] | <- sugestão de domínio no blur
+|                                    |
+| Confirme seu e-mail *              |
 | [ maria@gmail.com                ] |
+| (X) Os e-mails não são iguais.     | <- erro quando os campos diferem
 |                                    |
 | [x] Declaro que li e concordo com  | <- caixa de consentimento (se houver)
 |     o regulamento do evento... *   |
@@ -262,6 +267,17 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | na largada com muita energia!      |
 |                                    |
 | +--------------------------------+ |
+| | [✉] Enviamos um resumo e o     | | <- bloco em destaque (verde claro com anel)
+| |     link para o seu e-mail.    | |
+| |                                | |
+| | Enviado para:                  | |
+| | maria@gmail.com                | | <- em negrito e break-all
+| |                                | |
+| | Não chegou? Procure na caixa   | | <- contraste mínimo 4,5:1
+| | de spam ou lixo eletrônico.    | |
+| +--------------------------------+ |
+|                                    |
+| +--------------------------------+ |
 | | Link para editar sua inscrição: | |
 | |                                | |
 | | https://meudominio.com/        | |
@@ -274,9 +290,6 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | | corrigir seus dados caso       | |
 | | precise.                       | |
 | +--------------------------------+ |
-|                                    |
-| Enviamos um resumo e o link para   | <- exibido SOMENTE quando emailSent === true
-| o seu e-mail.                      |
 |                                    |
 +------------------------------------+
 ```
@@ -305,8 +318,14 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | | precise.                       | |
 | +--------------------------------+ |
 |                                    |
-| (Nenhuma menção a envio de e-mail) | <- linha de e-mail OMITIDA
-|                                    |
+| +--------------------------------+ |
+| | [!] Não conseguimos enviar o   | | <- aviso âmbar (se houver campo de e-mail)
+| |     e-mail agora. Guarde o     | |
+| |     link acima: é a sua forma  | |
+| |     de corrigir seus dados.    | |
+| +--------------------------------+ |
+| (Sem campo de e-mail no formulário | <- nenhuma menção a e-mail se não houver pergunta
+| nada sobre e-mail é exibido)       |
 +------------------------------------+
 ```
 
@@ -320,6 +339,12 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |      Inscrição confirmada! Nos vemos na largada com energia!     |
 |                                                                  |
 | +--------------------------------------------------------------+ |
+| | [✉] Enviamos um resumo e o link para o seu e-mail.           | | <- bloco destacado
+| | Enviado para: maria@gmail.com                                | |
+| | Não chegou? Procure na caixa de spam ou lixo eletrônico.     | |
+| +--------------------------------------------------------------+ |
+|                                                                  |
+| +--------------------------------------------------------------+ |
 | | Link para consultar ou alterar sua inscrição:                | |
 | |                                                              | |
 | | +------------------------------------------+ [ Copiar link ] | |
@@ -330,8 +355,6 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | | [!] Guarde este link: ele é a única forma de você corrigir   | |
 | |     seus dados caso precise.                                 | |
 | +--------------------------------------------------------------+ |
-|                                                                  |
-| Enviamos um resumo e o link para o seu e-mail.                   | <- condicional
 +------------------------------------------------------------------+
 ```
 
@@ -340,25 +363,35 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |---|---|
 | **Carregando** | Frame centralizado com texto *"Carregando formulário..."*. |
 | **Formulário Aberto** | Campos do formulário com `fieldClass`, máscara de CPF/telefone/RG, badges de vagas e prazo. Botão com `backgroundColor: accent` e `color: readableTextColor(accent)`. |
+| **Sugestão de E-mail (Blur)** | Ao sair de campo de e-mail com erro de digitação de domínio comum (ex.: gmial.com), exibe abaixo em `aria-live="polite"`: *"Você quis dizer <sugestão>?"* e o botão *"Usar este endereço"*. |
+| **Confirmação de E-mail** | Segundo campo obrigatório de confirmação exibido abaixo de cada e-mail. Se divergirem, bloqueia o envio com foco e erro: *"Os e-mails não são iguais."*. |
 | **Anti-robô (Honeypot)** | Campo com atributo invisível ao humano (`style={{ position: "absolute", left: "-9999px", opacity: 0 }}`, `tabIndex={-1}`, `autoComplete="off"`). |
 | **Erro: Consentimento** | Mensagem vermelha abaixo da caixa: *"É necessário aceitar o termo para continuar."*. |
 | **Erro: CPF Duplicado** | Mensagem no próprio campo CPF com foco automático: *"CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."*. |
 | **Erro Geral (Banco)** | Alertas no topo: *"O limite de inscrições foi atingido."* ou *"O prazo de preenchimento encerrou."*. |
 | **Enviando** | Botão com opacidade reduzida (`disabled={true}`), texto *"Enviando..."*. |
-| **Sucesso (emailSent === true)** | Mensagem do admin + link de edição + botão "Copiar link" + aviso "guarde este link" + frase *"Enviamos um resumo e o link para o seu e-mail."*. |
-| **Sucesso (emailSent === false)** | Mesma tela de sucesso, porém a frase sobre envio de e-mail é **completamente omitida**. |
+| **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição. |
+| **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."*. |
+| **Sucesso (sem pergunta de e-mail)** | Cartão do link de edição sem nenhuma menção a e-mail. |
 | **Vagas Esgotadas / Encerrado** | Telas estáticas em `Frame`: *"Vagas esgotadas"* ou *"Inscrições encerradas"*. |
 
 ### 3.4 Textos Exatos da Interface
 - **Botão de envio:** "Enviar inscrição"
+- **Rótulo confirmação de e-mail:** "Confirme seu e-mail"
+- **Erro divergência de e-mail:** "Os e-mails não são iguais."
+- **Sugestão de e-mail:** "Você quis dizer "
+- **Botão aplicar sugestão:** "Usar este endereço"
 - **Erro consentimento:** "É necessário aceitar o termo para continuar."
 - **Erro CPF duplicado:** "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."
 - **Título de sucesso:** "Tudo certo!"
+- **Aviso e-mail enviado (título do bloco):** "Enviamos um resumo e o link para o seu e-mail."
+- **Aviso e-mail enviado (destinatário):** "Enviado para: "
+- **Aviso e-mail enviado (ajuda spam):** "Não chegou? Procure na caixa de spam ou lixo eletrônico."
+- **Aviso e-mail falhou:** "Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."
 - **Rótulo do link:** "Link para editar sua inscrição:"
 - **Botão copiar link:** "Copiar link"
 - **Feedback após copiar:** "Link copiado!"
 - **Aviso de segurança:** "Guarde este link. Ele é a única forma de você corrigir seus dados caso precise."
-- **Texto de confirmação de e-mail (condicional):** "Enviamos um resumo e o link para o seu e-mail."
 - **Texto de inscrições encerradas:** "Este formulário não está mais recebendo inscrições."
 
 ### 3.5 Markup e Classes Reutilizadas (de `src/routes/f.$slug.tsx`)
@@ -540,33 +573,36 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 +------------------------------------+
 | [← Editor]                         |
 | Corrida SKF Track&Field 2026       |
-| 48 resposta(s) de 50 vagas         |
+| 48 resposta(s) · 3 editada(s)      |
+| de 50 vagas                        |
 | Prazo: 15/10/2026, 23:59           |
 |                                    |
+| [ Mostrar só editadas ]            | <- filtro ativo se houver editadas
 | [ Exportar Excel ] [ Exportar PDF ]|
 +------------------------------------+
 | (Tabela com scroll horizontal)     |
 |                                    |
-| Enviado em | CPF | Nome | Ações    |
-| -----------+-----+------+--------- |
-| 29/09 14:32| 529 | Maria| [Copiar] |
-| 29/09 14:35| 112 | João | [Copiar] |
+| Enviado em | Atualizado em | CPF...|
+| -----------+---------------+------ |
+| 29/09 14:32| 30/09 10:15   | 529...| <- linha com fundo âmbar e selo [Editada]
+| 29/09 14:35| —             | 112...|
 +------------------------------------+
 ```
 
-#### Desktop (≥ 1024 px) — Tabela com a Nova Coluna "Ações"
+#### Desktop (≥ 1024 px) — Tabela com a Nova Coluna "Ações" e "Atualizado em"
 ```text
 +----------------------------------------------------------------------------------------------------+
 | [← Editor]                                                                                         |
 | Corrida SKF Track&Field 2026                                                                       |
-| 48 resposta(s) de 50 vagas  ·  prazo 15/10/2026, 23:59                 [ Exportar Excel ] [ Exportar PDF ]
+| 48 resposta(s) · 3 editada(s) de 50 vagas  ·  prazo 15/10/2026, 23:59                               |
+| [ Mostrar só editadas ]                                                 [ Exportar Excel ] [ Exportar PDF ]
 +----------------------------------------------------------------------------------------------------+
 | +------------------------------------------------------------------------------------------------+ |
-| | Enviado em       | CPF            | Nome               | Distância | Ações                     | |
-| |------------------+----------------+--------------------+-----------+---------------------------| |
-| | 29/09/2026 14:32 | 529.982.247-25 | Maria da Silva     | 10 km     | [ Copiar link de edição ] | |
-| | 29/09/2026 14:35 | 112.443.987-00 | João Paulo Santos  | 5 km      | [ Copiar link de edição ] | |
-| | 29/09/2026 15:10 | 334.887.123-45 | Carla Oliveira     | 10 km     | [ Copiar link de edição ] | |
+| | Enviado em       | Atualizado em            | CPF            | Nome          | Ações           | |
+| |------------------+--------------------------+----------------+---------------+-----------------| |
+| | 29/09/2026 14:32 | 30/09 10:15  [Editada]   | 529.982.247-25 | Maria Silva   | [ Copiar link ] | | <- âmbar
+| | 29/09/2026 14:35 | —                        | 112.443.987-00 | João Paulo    | [ Copiar link ] | |
+| | 29/09/2026 15:10 | 30/09 12:40  [Editada]   | 334.887.123-45 | Carla Lima    | [ Copiar link ] | | <- âmbar
 | +------------------------------------------------------------------------------------------------+ |
 +----------------------------------------------------------------------------------------------------+
 ```
@@ -575,14 +611,23 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | Estado | Elemento Visual / Comportamento |
 |---|---|
 | **Vazio** | Mantém mensagem existente: *"Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber inscrições."*. |
-| **Com Dados** | Tabela existente acrescida da coluna `<th>Ações</th>` e nas linhas `<td><button>Copiar link de edição</button></td>`. |
-| **Ao Clicar** | Copia o link com o domínio de produção (`ALLOWED_ORIGINS[0]`): `${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}` para o clipboard. |
+| **Com Dados** | Tabela acrescida da coluna `<th>Atualizado em</th>` (logo após "Enviado em") e `<th>Ações</th>`. |
+| **Linha Editada** | Linha com fundo âmbar claro sutil, data/hora da última alteração em pt-BR e selo textual *"Editada"* (`bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-xs font-medium`). Linha não editada exibe *"—"*. |
+| **Resumo de Respostas** | Exibe `"{n} resposta(s)"` ou, havendo respostas editadas, `"{n} resposta(s) · {e} editada(s)"`. |
+| **Filtro de Editadas** | Havendo editadas, botão *"Mostrar só editadas"* / *"Mostrar todas"* (`aria-pressed`). Quando ativado, filtra a tabela exibindo apenas as inscrições editadas. |
+| **Filtro Vazio** | Quando o filtro está ativo e não há inscrições correspondentes: *"Nenhuma inscrição editada."*. |
+| **Ao Clicar em Copiar** | Copia o link com o domínio de produção (`ALLOWED_ORIGINS[0]`): `${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}` para o clipboard. |
 | **Feedback** | Toast disparado via Sonner: *"Link de edição copiado!"*. |
 | **Falha ao copiar** | Toast disparado via Sonner: *"Não foi possível copiar o link."*. |
 | **Erro de carga** | *"Não foi possível carregar as respostas."* e o botão *"Tentar de novo"*. |
 
 ### 5.4 Textos Exatos da Interface
-- **Título da coluna:** "Ações"
+- **Coluna de atualização:** "Atualizado em"
+- **Selo de linha editada:** "Editada"
+- **Botão filtro só editadas:** "Mostrar só editadas"
+- **Botão filtro todas:** "Mostrar todas"
+- **Filtro vazio:** "Nenhuma inscrição editada."
+- **Título da coluna de ações:** "Ações"
 - **Texto do botão por linha:** "Copiar link de edição"
 - **Feedback de cópia:** "Link de edição copiado!"
 - **Falha ao copiar:** "Não foi possível copiar o link."
@@ -686,6 +731,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
 6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
 7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
+8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
 
 ---
 

@@ -160,16 +160,22 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 ### 5.1 Tela Pública de Inscrição (`/$slug`)
 - [ ] **No celular (360px):** Abrir no navegador do celular; verificar se nenhum elemento transborda horizontalmente e se os campos ocupam toda a largura útil.
 - [ ] **Máscara dinâmica:** Digitar o CPF e conferir se os pontos e traço surgem sozinhos sem travar a digitação.
+- [ ] **Sugestão de domínio no e-mail:** Ao sair de uma pergunta do tipo e-mail digitada com erro comum de domínio (ex.: `maria@gmial.com`), deve surgir logo abaixo a dica *"Você quis dizer maria@gmail.com?"* e o botão *"Usar este endereço"*, que corrige o campo ao ser clicado (`aria-live="polite"`), sem bloquear o envio se a pessoa optar por manter o digitado.
+- [ ] **Confirmação de e-mail:** Abaixo de cada pergunta do tipo e-mail, deve surgir o campo *"Confirme seu e-mail"*. Se os dois campos forem diferentes (desconsiderando maiúsculas e espaços nas pontas), o envio deve ser bloqueado no navegador com o foco indo para o campo de confirmação e exibindo *"Os e-mails não são iguais."*.
 - [ ] **Contraste:** Criar um formulário com cor de tema amarela (`#ffff00`) e outro com azul escuro (`#4f46e5`); o texto do botão deve ficar **preto puro** no amarelo e **branco puro** no azul, perfeitamente legíveis.
 - [ ] **Validação de obrigatórios:** Clicar em "Enviar inscrição" com tudo vazio; a tela deve marcar os campos em vermelho e focar automaticamente no primeiro erro.
 - [ ] **Anti-robô:** O campo invisível de armadilha não deve ser visível nem acessível com a tecla Tab.
 - [ ] **Consentimento:** Se o formulário tiver termo, desmarcar e tentar enviar; deve surgir o aviso: *"É necessário aceitar o termo para continuar."*.
 
 ### 5.2 Tela de Sucesso da Inscrição
+- [ ] **Ordem dos blocos:** O aviso de e-mail (quando enviado) deve vir posicionado **antes** do cartão do link de edição.
+- [ ] **Bloco em destaque de e-mail enviado (`emailSent === true`):** Exibe caixa destacada verde clara com anel e ícone de envelope (`aria-hidden`), contendo na ordem:
+  1. *"Enviamos um resumo e o link para o seu e-mail."* em `text-base font-semibold`.
+  2. *"Enviado para: <endereço>"* com o e-mail em negrito e `break-all`.
+  3. *"Não chegou? Procure na caixa de spam ou lixo eletrônico."* com contraste mínimo de 4,5:1.
+- [ ] **Aviso de falha no envio de e-mail (`emailSent === false` com pergunta de e-mail):** Exibe aviso âmbar abaixo do link: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."*.
+- [ ] **Formulário sem pergunta de e-mail:** Nenhuma mensagem sobre e-mail deve aparecer (só o link de edição e a mensagem de sucesso).
 - [ ] **Botão Copiar Link:** Clicar em "Copiar link"; deve surgir o aviso "Link copiado!" e colar o endereço correto no bloco de notas.
-- [ ] **Aviso condicional de e-mail:** 
-  - Se o e-mail foi enviado: deve exibir *"Enviamos um resumo e o link para o seu e-mail."*.
-  - Se o envio falhou ou o formulário não tem e-mail: essa frase **não deve aparecer** (só o link na tela).
 
 ### 5.3 Página de Edição do Participante (`/editar/{token}`)
 - [ ] **CPF bloqueado:** O campo do CPF deve exibir o CPF mascarado (`***.***.***-25`) com fundo acinzentado, ícone de cadeado e aviso *"O CPF não pode ser alterado."*, sem permitir digitação.
@@ -184,6 +190,11 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.
+- [ ] **Coluna "Atualizado em":** Posicionada logo após "Enviado em", exibe a data e hora da alteração em pt-BR ou "—" quando a inscrição nunca foi editada.
+- [ ] **Selo de inscrição editada:** Linhas de inscrições retificadas exibem o selo textual *"Editada"* ao lado da data e fundo âmbar claro.
+- [ ] **Resumo de respostas e editadas:** Cabeçalho exibe `"{n} resposta(s)"` ou, havendo editadas, `"{n} resposta(s) · {e} editada(s)"`.
+- [ ] **Filtro de editadas:** Havendo inscrições editadas, exibe o botão alternador *"Mostrar só editadas"* / *"Mostrar todas"* (`aria-pressed`).
+- [ ] **Filtro vazio:** Caso o filtro esteja ativo e não haja inscrições correspondentes, exibe *"Nenhuma inscrição editada."*.
 - [ ] **CPF completo na tabela e nas exportações:** Os números de CPF devem aparecer completos e sem ofuscação na visualização do administrador e nas planilhas/PDFs gerados.
 - [ ] **Copiar link de qualquer inscrito:** Clicar no botão "Copiar link de edição" na nova coluna de Ações; o link copiado deve abrir diretamente a edição daquela pessoa específica.
 - [ ] **Exportação Excel e PDF:** Clicar nos botões de exportar; os arquivos baixados devem conter todas as respostas preenchidas e com acentuação correta em português.
