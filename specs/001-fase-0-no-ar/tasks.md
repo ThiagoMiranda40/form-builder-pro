@@ -249,6 +249,12 @@ Ajuste pós-revisão (SEC-15, UX-01, UX-02, UX-03, QA-GAP-06), arquivo permitido
  11. UX-02: ao concluir a inscrição, o bloco de sucesso leva `role="status"` e o foco vai para o título "Tudo certo!" (`tabIndex={-1}` e foco programático).
  12. UX-03: quando o carregamento do formulário falha (`query.isError`), mostrar o título "Não foi possível carregar o formulário", o texto "Verifique sua conexão e tente novamente." e um botão "Tentar de novo" que refaz a consulta (`refetch`), em vez de "Formulário não encontrado".
  13. QA-GAP-06: o botão "Copiar link" aguarda `navigator.clipboard.writeText` e só mostra "Link copiado!" se a cópia funcionou; se falhar ou a API não existir, mostra "Não foi possível copiar. Selecione o link acima e copie manualmente." (o link continua selecionável).
+
+Ajuste 2 (SEC-16, UX-04, UX-06), arquivos permitidos neste ajuste: `src/routes/$slug.tsx` e `src/styles.css`:
+ 14. SEC-16: em `handleSubmit`, quando o servidor devolver `ok: false` com um `field` que não seja `__consent` nem o ID de nenhuma pergunta carregada (ou sem `field`), a mensagem do servidor vai para o alerta geral (`__form`) e a página chama `query.refetch()` para recarregar o formulário (a pergunta nova passa a aparecer; as respostas já digitadas são mantidas).
+ 15. UX-04: em `src/styles.css`, desligar a animação `rise` para quem pede movimento reduzido: `@media (prefers-reduced-motion: reduce)` com `animation: none` na classe `rise`.
+ 16. UX-06: o alerta de erro geral (`__form`, hoje `bg-destructive/10 text-destructive`, contraste de 3,88:1) passa a ter contraste mínimo de 4,5:1: use texto `text-red-800` (ou equivalente) no mesmo fundo (6,77:1). Mantenha `role="alert"`.
+ Roteiro manual (dono) depois do deploy: repetir os passos 2 e 3 do roteiro da T-10 e conferir que o alerta de erro geral (por exemplo, formulário com vagas esgotadas e tentar enviar com a página já aberta) está legível.
 Verificação:
 Verificação local (agente, comandos desta máquina): `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vitest/vitest.mjs run`; `bun node_modules/vite/bin/vite.js build`; com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s http://localhost:8080/auth | Select-String -CaseSensitive 'lang="pt-BR"'` imprime uma linha. O envio real de inscrição NÃO é testável localmente (não há chaves no computador).
 Parte MANUAL 🧑 (dono, no site publicado, depois do deploy automático da main):
