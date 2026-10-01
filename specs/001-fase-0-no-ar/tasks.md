@@ -135,16 +135,21 @@ Fazer:
 1. Mover a rota pública para `/$slug` (`createFileRoute("/$slug")`, `useParams({ from: "/$slug" })`); nada mais referencia `/f/`. (Nota de segurança: no head de `/editar/$token`, planejado em T-06 e implementado em T-11, incluir meta `referrer=no-referrer` e `robots=noindex, nofollow`).
 2. Editor: no cartão "Link de compartilhamento", campo de endereço com prefixo `origin/` que converte ao digitar (`sanitizeSlugInput`), tira hífens das pontas ao sair do campo (`trimSlugEdges`), validação ao digitar (`validateSlug`), `publicUrl = ${origin}/${slug}`, aviso "links já compartilhados deixarão de funcionar" ao trocar em formulário publicado, e `slug` incluído no `save()`. Mapear erros do banco: `23505` → "Esse endereço já está em uso"; `23514`+`forms_slug_reserved` → "Esse nome é reservado pelo sistema"; `forms_slug_format` → mensagem de formato.
 3. Painel: criação com `suggestSlug(title, sufixoAleatório)`.
-Verificação:
-```bash
-! grep -rn '"/f/\|/f/\${' src --include=*.ts --include=*.tsx | grep -v routeTree.gen   # nenhuma referência sobrando
-bunx tsc --noEmit && bun run test && bun run build
-bun run dev -- --host 127.0.0.1 --port 5173 &  sleep 8
-curl -s -o /dev/null -w "%{http_code}\n" 127.0.0.1:5173/qualquer-endereco   # esperado 200 (hoje: 404, a rota não existe)
-curl -s -o /dev/null -w "%{http_code}\n" 127.0.0.1:5173/f/qualquer          # esperado 404 (rota antiga removida)
-curl -s 127.0.0.1:5173/qualquer-endereco | grep -o "Carregando formulário"  # o servidor entrega a casca; os dados chegam no navegador
-```
-E o roteiro manual (com o banco real): criar formulário, mudar o endereço para `skf-corrida-track-field`, publicar, abrir `/<endereço>`.
+4. Mensagens literais: use exatamente as de `validateSlug` e as do spec.md RF-11, sem ponto final nas mensagens do banco ('Esse endereço já está em uso', 'Esse nome é reservado pelo sistema'). Se houver diferença de pontuação entre o spec.md e o design/ui-ux.md (Tela A), vale o spec.md.
+Verificação local (agente, comandos desta máquina):
+- `Get-ChildItem src -Recurse -Include *.ts,*.tsx | Where-Object { $_.Name -ne 'routeTree.gen.ts' } | Select-String -Pattern '"/f/|/f/\$\{'` -> sem saída.
+- `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vitest/vitest.mjs run` (todos passando, 62 hoje); `bun node_modules/vite/bin/vite.js build`.
+- Com `bun node_modules/vite/bin/vite.js dev` (porta 8080, em processo separado): `curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8080/qualquer-endereco` -> 200 (hoje 404); `curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8080/f/qualquer` -> 404; `curl.exe -s http://localhost:8080/qualquer-endereco | Select-String -Pattern "Carregando formulário"` imprime uma linha.
+- O arquivo `src/routeTree.gen.ts` é regenerado pelo build e pode aparecer no `git status`; é permitido.
+
+Parte MANUAL 🧑 (dono, no site publicado, depois do deploy automático da main; complementa o qa-plan.md 5.4):
+1. Painel -> "Novo formulário": ele nasce com endereço do tipo `novo-formulario-` mais 6 caracteres.
+2. No editor, digitar "SKF Corrida Track&Field" no campo de endereço: converte sozinho para `skf-corrida-track-field`. Digitar `painel` -> "Esse nome é reservado pelo sistema". Digitar `ab` -> erro de tamanho. Deixar um hífen no fim e sair do campo remove o hífen.
+3. Criar um 2º formulário e salvar com o mesmo endereço do 1º -> "Esse endereço já está em uso".
+4. Publicar o 1º; abrir `https://inscricoes.triadetecnologiaesolucoes.com.br/skf-corrida-track-field` -> abre o formulário; `.../f/skf-corrida-track-field` -> página não encontrada; `.../endereco-que-nao-existe` -> "não encontrado".
+5. Com o formulário publicado, mudar o endereço: aparece o aviso âmbar de que links já compartilhados deixarão de funcionar.
+6. Ao fim, apagar os formulários de teste.
+
 **O que isso prova:** o formulário abre em `.../skf-corrida-track-field`, o endereço antigo `/f/...` deixa de existir, endereços inexistentes mostram "não encontrado", e o editor recusa endereço repetido, reservado ou mal formado com mensagem clara.
 
 ## T-07 — Só o administrador entra + página inicial
