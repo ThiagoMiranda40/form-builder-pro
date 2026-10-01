@@ -6,7 +6,11 @@ import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
 import { findEmailQuestion } from "@/lib/inscricao";
-import { suggestEmail } from "@/lib/email-hints";
+import {
+  suggestEmail,
+  checkEmailConfirmation,
+  shouldSyncConfirmation,
+} from "@/lib/email-hints";
 
 export const Route = createFileRoute("/$slug")({
   head: () => ({
@@ -258,8 +262,9 @@ function PublicForm() {
         if (q.field_type === "email") {
           const emailVal = ((answers[q.id] as string) || "").trim();
           const confirmVal = (emailConfirmations[q.id] || "").trim();
-          if (emailVal && emailVal.toLowerCase() !== confirmVal.toLowerCase()) {
-            nextErrors[`confirm-${q.id}`] = "Os e-mails não são iguais.";
+          const mismatch = checkEmailConfirmation(emailVal, confirmVal);
+          if (mismatch) {
+            nextErrors[`confirm-${q.id}`] = mismatch;
           }
         }
       }
@@ -272,6 +277,8 @@ function PublicForm() {
         const firstFieldId = Object.keys(nextErrors)[0];
         if (firstFieldId === "__consent") {
           document.getElementById("consent-checkbox")?.focus();
+        } else if (firstFieldId?.startsWith("confirm-")) {
+          document.getElementById(`field-${firstFieldId}`)?.focus();
         } else if (firstFieldId) {
           document.getElementById(`field-${firstFieldId}`)?.focus();
         }
@@ -512,7 +519,12 @@ function PublicForm() {
                       onClick={() => {
                         const suggested = emailSuggestions[q.id];
                         if (suggested) {
+                          const prevMain = (answers[q.id] as string) || "";
+                          const prevConfirm = emailConfirmations[q.id] || "";
                           setValue(q.id, type, suggested);
+                          if (shouldSyncConfirmation(prevMain, prevConfirm)) {
+                            setEmailConfirmations((prev) => ({ ...prev, [q.id]: suggested }));
+                          }
                           setEmailSuggestions((prev) => ({ ...prev, [q.id]: null }));
                         }
                       }}
@@ -574,11 +586,34 @@ function PublicForm() {
             );
           })}
 
-          {/* Caixa de consentimento (RF-08, T-10) */}
+          {/* Caixa de consentimento (RF-08, T-10, T-17) */}
           {form.consent_text && (
             <div className="rounded-xl bg-white/70 p-4 ring-1 ring-black/5">
-              <p className="mb-3 text-xs text-muted-foreground whitespace-pre-line">
+              <p className="mb-2 text-xs text-muted-foreground whitespace-pre-line">
                 {form.consent_text}
+              </p>
+              <p className="mb-3 text-xs text-slate-700">
+                Leia os{" "}
+                <a
+                  href="/legal/termos-de-uso"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-slate-900 underline hover:text-foreground"
+                >
+                  Termos de Uso
+                  <span className="sr-only"> (abre em outra aba)</span>
+                </a>{" "}
+                e a{" "}
+                <a
+                  href="/legal/politica-de-privacidade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-slate-900 underline hover:text-foreground"
+                >
+                  Política de Privacidade
+                  <span className="sr-only"> (abre em outra aba)</span>
+                </a>
+                .
               </p>
               <label htmlFor="consent-checkbox" className="flex cursor-pointer items-start gap-2.5 text-sm">
                 <input
@@ -595,7 +630,7 @@ function PublicForm() {
                   aria-describedby={errors["__consent"] ? "error-consent" : undefined}
                 />
                 <span>
-                  Declaro que li e concordo com os termos acima.
+                  Declaro que li e concordo com os termos acima, com os Termos de Uso e com a Política de Privacidade.
                   <span className="ml-1" style={{ color: accent }}>*</span>
                 </span>
               </label>
@@ -639,8 +674,29 @@ const placeholders: Partial<Record<FieldType, string>> = {
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-start justify-center px-5 py-10 sm:py-16">
+    <div className="flex min-h-screen flex-col items-center justify-start px-5 py-10 sm:py-16">
       <div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">{children}</div>
+      <nav aria-label="Documentos legais" className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <a
+          href="/legal/termos-de-uso"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-foreground"
+        >
+          Termos de Uso
+          <span className="sr-only"> (abre em outra aba)</span>
+        </a>
+        <span>·</span>
+        <a
+          href="/legal/politica-de-privacidade"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-foreground"
+        >
+          Política de Privacidade
+          <span className="sr-only"> (abre em outra aba)</span>
+        </a>
+      </nav>
     </div>
   );
 }

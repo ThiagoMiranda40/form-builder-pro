@@ -44,4 +44,52 @@ describe("suggestEmail", () => {
     expect(suggestEmail("  carlos@GMAIL.COM.BR ")).toBe("carlos@gmail.com");
     expect(suggestEmail("  X@GMAIL.COM  ")).toBeNull();
   });
+
+  it("nunca sugere para lista de domínios reais legítimos (T-17 item 7)", () => {
+    const realDomains = [
+      "mail.com",
+      "ymail.com",
+      "rocketmail.com",
+      "gmx.com",
+      "gmx.net",
+      "googlemail.com",
+      "me.com",
+      "mac.com",
+      "pm.me",
+      "proton.me",
+      "protonmail.com",
+      "aol.com",
+      "zoho.com",
+      "yandex.com",
+      "fastmail.com",
+      "hey.com",
+      "tutanota.com",
+    ];
+
+    for (const domain of realDomains) {
+      expect(suggestEmail(`usuario@${domain}`)).toBeNull();
+      expect(suggestEmail(`  USUARIO@${domain.toUpperCase()}  `)).toBeNull();
+    }
+  });
+
+  describe("ajuste de confirmação de e-mail (T-17 item 6)", () => {
+    it("bloqueia envio se confirmação estiver preenchida e campo principal estiver vazio", async () => {
+      // Importaremos checkEmailConfirmation e shouldSyncConfirmation de email-hints
+      const { checkEmailConfirmation, shouldSyncConfirmation } = await import("./email-hints") as any;
+
+      expect(checkEmailConfirmation("", "maria@gmail.com")).toBe("Os e-mails não são iguais.");
+      expect(checkEmailConfirmation("   ", "maria@gmail.com")).toBe("Os e-mails não são iguais.");
+      expect(checkEmailConfirmation("maria@gmail.com", "joao@gmail.com")).toBe("Os e-mails não são iguais.");
+      expect(checkEmailConfirmation("maria@gmail.com", "MARIA@GMAIL.COM")).toBeNull();
+      expect(checkEmailConfirmation("maria@gmail.com", "maria@gmail.com")).toBeNull();
+      expect(checkEmailConfirmation("", "")).toBeNull();
+
+      // Sincronização ao clicar em Usar este endereço
+      expect(shouldSyncConfirmation("maria@gmial.com", "maria@gmial.com")).toBe(true);
+      expect(shouldSyncConfirmation("maria@gmial.com", "  MARIA@GMIAL.COM ")).toBe(true);
+      expect(shouldSyncConfirmation("maria@gmial.com", "outro@gmail.com")).toBe(false);
+      expect(shouldSyncConfirmation("maria@gmial.com", "")).toBe(false);
+    });
+  });
 });
+

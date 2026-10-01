@@ -197,8 +197,8 @@ function Respostas() {
           <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
           <p className="text-sm text-muted-foreground">
             {responses.length} resposta(s)
-            {editedCount > 0 ? ` · ${editedCount} editada(s)` : ""}
             {form.max_responses ? ` de ${form.max_responses} vagas` : ""}
+            {editedCount > 0 ? ` · ${editedCount} editada(s)` : ""}
             {form.closes_at
               ? ` · prazo ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
               : ""}

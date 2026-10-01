@@ -16,6 +16,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SaudeRouteImport } from './routes/saude'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated.painel'
 import { Route as EditarTokenRouteImport } from './routes/editar.$token'
+import { Route as LegalPoliticaDePrivacidadeRouteImport } from './routes/legal.politica-de-privacidade'
+import { Route as LegalTermosDeUsoRouteImport } from './routes/legal.termos-de-uso'
 import { Route as AuthenticatedFormulariosIdRouteImport } from './routes/_authenticated.formularios.$id'
 import { Route as AuthenticatedFormulariosIdRespostasRouteImport } from './routes/_authenticated.formularios.$id_.respostas'
 
@@ -53,6 +55,17 @@ const EditarTokenRoute = EditarTokenRouteImport.update({
   path: '/editar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalPoliticaDePrivacidadeRoute =
+  LegalPoliticaDePrivacidadeRouteImport.update({
+    id: '/legal/politica-de-privacidade',
+    path: '/legal/politica-de-privacidade',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LegalTermosDeUsoRoute = LegalTermosDeUsoRouteImport.update({
+  id: '/legal/termos-de-uso',
+  path: '/legal/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedFormulariosIdRoute =
   AuthenticatedFormulariosIdRouteImport.update({
     id: '/formularios/$id',
@@ -73,6 +86,8 @@ export interface FileRoutesByFullPath {
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/editar/$token': typeof EditarTokenRoute
+  '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
+  '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRoute
   '/formularios/$id/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -83,6 +98,8 @@ export interface FileRoutesByTo {
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/editar/$token': typeof EditarTokenRoute
+  '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
+  '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRoute
   '/formularios/$id/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -95,6 +112,8 @@ export interface FileRoutesById {
   '/saude': typeof SaudeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/editar/$token': typeof EditarTokenRoute
+  '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
+  '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
   '/_authenticated/formularios/$id': typeof AuthenticatedFormulariosIdRoute
   '/_authenticated/formularios/$id_/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -107,6 +126,8 @@ export interface FileRouteTypes {
     | '/saude'
     | '/painel'
     | '/editar/$token'
+    | '/legal/politica-de-privacidade'
+    | '/legal/termos-de-uso'
     | '/formularios/$id'
     | '/formularios/$id/respostas'
   fileRoutesByTo: FileRoutesByTo
@@ -117,6 +138,8 @@ export interface FileRouteTypes {
     | '/saude'
     | '/painel'
     | '/editar/$token'
+    | '/legal/politica-de-privacidade'
+    | '/legal/termos-de-uso'
     | '/formularios/$id'
     | '/formularios/$id/respostas'
   id:
@@ -128,6 +151,8 @@ export interface FileRouteTypes {
     | '/saude'
     | '/_authenticated/painel'
     | '/editar/$token'
+    | '/legal/politica-de-privacidade'
+    | '/legal/termos-de-uso'
     | '/_authenticated/formularios/$id'
     | '/_authenticated/formularios/$id_/respostas'
   fileRoutesById: FileRoutesById
@@ -139,6 +164,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   SaudeRoute: typeof SaudeRoute
   EditarTokenRoute: typeof EditarTokenRoute
+  LegalPoliticaDePrivacidadeRoute: typeof LegalPoliticaDePrivacidadeRoute
+  LegalTermosDeUsoRoute: typeof LegalTermosDeUsoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +219,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/politica-de-privacidade': {
+      id: '/legal/politica-de-privacidade'
+      path: '/legal/politica-de-privacidade'
+      fullPath: '/legal/politica-de-privacidade'
+      preLoaderRoute: typeof LegalPoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/termos-de-uso': {
+      id: '/legal/termos-de-uso'
+      path: '/legal/termos-de-uso'
+      fullPath: '/legal/termos-de-uso'
+      preLoaderRoute: typeof LegalTermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/formularios/$id': {
       id: '/_authenticated/formularios/$id'
       path: '/formularios/$id'
@@ -233,6 +274,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   SaudeRoute: SaudeRoute,
   EditarTokenRoute: EditarTokenRoute,
+  LegalPoliticaDePrivacidadeRoute: LegalPoliticaDePrivacidadeRoute,
+  LegalTermosDeUsoRoute: LegalTermosDeUsoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

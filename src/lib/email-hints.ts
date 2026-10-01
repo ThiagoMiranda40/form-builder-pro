@@ -16,6 +16,29 @@ const KNOWN_DOMAINS = [
   "ig.com.br",
 ] as const;
 
+/**
+ * Domínios reais legítimos que NUNCA devem receber sugestão (T-17 item 7).
+ */
+const EXCLUDED_REAL_DOMAINS = [
+  "mail.com",
+  "ymail.com",
+  "rocketmail.com",
+  "gmx.com",
+  "gmx.net",
+  "googlemail.com",
+  "me.com",
+  "mac.com",
+  "pm.me",
+  "proton.me",
+  "protonmail.com",
+  "aol.com",
+  "zoho.com",
+  "yandex.com",
+  "fastmail.com",
+  "hey.com",
+  "tutanota.com",
+] as const;
+
 function damerauLevenshtein(a: string, b: string): number {
   const la = a.length;
   const lb = b.length;
@@ -77,6 +100,11 @@ export function suggestEmail(email: string): string | null {
     return null;
   }
 
+  // Se o domínio é um domínio real legítimo excluído, nunca sugere (T-17 item 7)
+  if ((EXCLUDED_REAL_DOMAINS as readonly string[]).includes(domain)) {
+    return null;
+  }
+
   // 1. Trocas de terminação (.con, .cm, .com.br colocado em domínio que só existe como .com)
   if (domain.endsWith(".com.br")) {
     const candidate = domain.slice(0, -3); // remove .br -> .com
@@ -108,3 +136,31 @@ export function suggestEmail(email: string): string | null {
 
   return null;
 }
+
+/**
+ * Verifica se a confirmação de e-mail deve ser sincronizada ao aplicar sugestão (T-17 item 6).
+ * Se o campo de confirmação continha o mesmo valor (aparado, sem diferenciar maiúsculas) que o principal, retorna true.
+ */
+export function shouldSyncConfirmation(mainBefore: string, confirmBefore: string): boolean {
+  const m = (mainBefore || "").trim().toLowerCase();
+  const c = (confirmBefore || "").trim().toLowerCase();
+  return Boolean(m && c && m === c);
+}
+
+/**
+ * Valida se os campos de e-mail e confirmação conferem (T-17 item 6).
+ * Se a confirmação estiver preenchida e o campo principal vazio, ou se divergirem, bloqueia o envio.
+ */
+export function checkEmailConfirmation(mainEmail: string, confirmEmail: string): string | null {
+  const m = (mainEmail || "").trim().toLowerCase();
+  const c = (confirmEmail || "").trim().toLowerCase();
+
+  if (m !== c) {
+    if (m || c) {
+      return "Os e-mails não são iguais.";
+    }
+  }
+
+  return null;
+}
+
