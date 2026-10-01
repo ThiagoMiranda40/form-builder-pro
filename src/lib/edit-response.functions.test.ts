@@ -33,7 +33,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 }));
 
 vi.mock("@tanstack/react-start/server", () => ({
-  getRequest: () => new Request("https://inscricoes.triadetecnologiaesolucoes.com.br/api"),
+  getRequest: () => new Request("https://inscricoes.corretime.com.br/api"),
 }));
 
 import {

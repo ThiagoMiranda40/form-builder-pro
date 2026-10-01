@@ -225,10 +225,10 @@ describe("T-11: Edição pelo link", () => {
         status: 200,
         json: async () => ({ id: "email-1" }),
       } as Response),
-      getOrigin: () => "https://inscricoes.triadetecnologiaesolucoes.com.br",
+      getOrigin: () => "https://inscricoes.corretime.com.br",
       readEnv: (key: string) => {
         if (key === "RESEND_API_KEY") return "re_test_key";
-        if (key === "EMAIL_FROM") return "inscricoes@triadetecnologiaesolucoes.com.br";
+        if (key === "EMAIL_FROM") return "inscricoes@envio.corretime.com.br";
         return undefined;
       },
       now: () => 1700000000000,
@@ -573,7 +573,7 @@ describe("T-11: Edição pelo link", () => {
       }
       expect(fetchMock).toHaveBeenCalled();
       const fetchBody = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
-      expect(fetchBody.html).toContain("https://inscricoes.triadetecnologiaesolucoes.com.br/editar/");
+      expect(fetchBody.html).toContain("https://inscricoes.corretime.com.br/editar/");
       expect(fetchBody.html).not.toContain("evil-attacker.com");
     });
   });

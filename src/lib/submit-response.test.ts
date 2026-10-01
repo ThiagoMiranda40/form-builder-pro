@@ -114,26 +114,39 @@ describe("T-09: Servidor de inscrição via banco", () => {
   describe("getOrigin e origens permitidas (SEC-04, SEC-10)", () => {
     it("contém somente a origem oficial de produção (SEC-10)", () => {
       expect(ALLOWED_ORIGINS).toEqual([
-        "https://inscricoes.triadetecnologiaesolucoes.com.br",
+        "https://inscricoes.corretime.com.br",
       ]);
       expect(ALLOWED_ORIGINS).not.toContain("http://localhost:8080");
+      expect(ALLOWED_ORIGINS).not.toContain("https://inscricoes.triadetecnologiaesolucoes.com.br");
     });
 
     it("troca origem estranha pela primeira origem permitida", () => {
-      expect(getOrigin("https://evil-site.workers.dev")).toBe(ALLOWED_ORIGINS[0]);
-      expect(getOrigin("http://malicious.com")).toBe(ALLOWED_ORIGINS[0]);
-      expect(getOrigin(undefined)).toBe(ALLOWED_ORIGINS[0]);
+      expect(getOrigin("https://evil-site.workers.dev")).toBe("https://inscricoes.corretime.com.br");
+      expect(getOrigin("http://malicious.com")).toBe("https://inscricoes.corretime.com.br");
+      expect(getOrigin(undefined)).toBe("https://inscricoes.corretime.com.br");
     });
 
-    it("origem localhost vira a origem de produção (SEC-10)", () => {
+    it("getOrigin com o domínio antigo, com http://localhost:8080, com uma origem forjada e sem origem devolve SEMPRE https://inscricoes.corretime.com.br", () => {
+      expect(getOrigin("https://inscricoes.triadetecnologiaesolucoes.com.br")).toBe(
+        "https://inscricoes.corretime.com.br",
+      );
       expect(getOrigin("http://localhost:8080")).toBe(
-        "https://inscricoes.triadetecnologiaesolucoes.com.br",
+        "https://inscricoes.corretime.com.br",
+      );
+      expect(getOrigin("https://forjada.com")).toBe(
+        "https://inscricoes.corretime.com.br",
+      );
+      expect(getOrigin("")).toBe(
+        "https://inscricoes.corretime.com.br",
+      );
+      expect(getOrigin(undefined)).toBe(
+        "https://inscricoes.corretime.com.br",
       );
     });
 
     it("mantém a origem de produção", () => {
-      expect(getOrigin("https://inscricoes.triadetecnologiaesolucoes.com.br")).toBe(
-        "https://inscricoes.triadetecnologiaesolucoes.com.br",
+      expect(getOrigin("https://inscricoes.corretime.com.br")).toBe(
+        "https://inscricoes.corretime.com.br",
       );
     });
   });
@@ -390,10 +403,10 @@ describe("T-09: Servidor de inscrição via banco", () => {
           error: null,
         }),
         fetchFn: vi.fn().mockResolvedValue(new Response("ok", { status: 200 })),
-        getOrigin: vi.fn().mockReturnValue("https://inscricoes.triadetecnologiaesolucoes.com.br"),
+        getOrigin: vi.fn().mockReturnValue("https://inscricoes.corretime.com.br"),
         readEnv: vi.fn((key: string) => {
           if (key === "RESEND_API_KEY") return "re_12345678901234567890";
-          if (key === "EMAIL_FROM") return "inscricoes@triadetecnologiaesolucoes.com.br";
+          if (key === "EMAIL_FROM") return "inscricoes@envio.corretime.com.br";
           return undefined;
         }),
         logError: vi.fn(),
@@ -739,7 +752,7 @@ describe("T-09: Servidor de inscrição via banco", () => {
       expect(res.ok).toBe(true);
       if (res.ok) {
         expect(res.editUrl).toBe(
-          `https://inscricoes.triadetecnologiaesolucoes.com.br/editar/${token}`,
+          `https://inscricoes.corretime.com.br/editar/${token}`,
         );
         const withoutEditUrl = { ...res, editUrl: undefined };
         expect(JSON.stringify(withoutEditUrl)).not.toContain(token);

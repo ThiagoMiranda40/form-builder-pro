@@ -14,7 +14,7 @@ import {
 } from "./confirmation-email";
 
 export const ALLOWED_ORIGINS = [
-  "https://inscricoes.triadetecnologiaesolucoes.com.br",
+  "https://inscricoes.corretime.com.br",
 ] as const;
 
 /**
