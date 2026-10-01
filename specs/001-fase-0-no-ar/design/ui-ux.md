@@ -359,6 +359,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Feedback após copiar:** "Link copiado!"
 - **Aviso de segurança:** "Guarde este link. Ele é a única forma de você corrigir seus dados caso precise."
 - **Texto de confirmação de e-mail (condicional):** "Enviamos um resumo e o link para o seu e-mail."
+- **Texto de inscrições encerradas:** "Este formulário não está mais recebendo inscrições."
 
 ### 3.5 Markup e Classes Reutilizadas (de `src/routes/f.$slug.tsx`)
 - Container: `<div className="flex min-h-screen items-start justify-center px-5 py-10 sm:py-16"><div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">{children}</div></div>`.
@@ -676,6 +677,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 3. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`, devolvendo `#ffffff` ou `#000000` para garantir contraste >= 4,5:1.
 4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
 5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
+6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
 
 ---
 
