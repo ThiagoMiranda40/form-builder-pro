@@ -121,9 +121,9 @@ Ler: spec.md RF-11; plan.md (Regras puras, slug); qa-plan.md 4.1
 Arquivos: `src/lib/slug.ts` (novo), `src/lib/slug.test.ts` (novo), `src/lib/exports.ts` (remover `slug`), `src/routes/_authenticated.painel.tsx` (trocar import)
 Fazer:
 1. Testes que falham primeiro: `validateSlug("skf-corrida-track-field")` → `null`; `"ab"` → mensagem de tamanho; `"Maiuscula"`, `"-abc"`, `"a--b"`, `"com_underline"`, `"com espaco"` → mensagem de formato; `"painel"`, `"editar"`, `"saude"`, `"auth"`, `"formularios"`, `"api"`, `"admin"`, `"assets"`, `"login"` → "Esse nome é reservado pelo sistema"; `suggestSlug("SKF Corrida Track & Field")` → `"skf-corrida-track-field"`; `suggestSlug("Novo formulário", "abc123")` → `"novo-formulario-abc123"`; `suggestSlug("!!!")` → um valor válido (ex.: `formulario`); `sanitizeSlugInput("SKF Corrida Track&Field")` → `"skf-corrida-track-field"`; `sanitizeSlugInput("skf-")` → `"skf-"` (mantém o hífen final enquanto digita); `sanitizeSlugInput("  Corrida  Ação  ")` → `"corrida-acao-"`; `sanitizeSlugInput("-abc")` → `"abc"`; `sanitizeSlugInput("a--b")` → `"a-b"`; entrada com 70 caracteres → corta em 60; `trimSlugEdges("corrida-acao-")` → `"corrida-acao"`.
-2. Teste que **lê o arquivo da migração Fase 0** e confirma que a lista de reservados do SQL é idêntica a `RESERVED_SLUGS`.
+2. Teste que **lê o arquivo da migração Fase 0** (`supabase/migrations/*_fase0_inscricao.sql`, hoje `20260930204500_fase0_inscricao.sql`; localize por padrão de nome, não por timestamp fixo), extrai os nomes entre aspas simples do `CHECK (slug NOT IN (...))` da constraint `forms_slug_reserved` e confirma que o conjunto é IGUAL ao `RESERVED_SLUGS` do código (os mesmos 9 nomes, em qualquer ordem).
 3. Implementar `slug.ts` (mover a função `slug()` que hoje está em `exports.ts`; ela normaliza acentos) e atualizar os imports.
-Verificação: `bun run test -- slug && bunx tsc --noEmit && bun run build`.
+Verificação: `bun node_modules/vitest/vitest.mjs run slug` (os testes do slug passam); `bun node_modules/vitest/vitest.mjs run` (suíte completa sem falhas: os 42 testes anteriores mais os novos); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`.
 **O que isso prova:** "SKF Corrida Track & Field" vira `skf-corrida-track-field`, tanto sugerido pelo título quanto digitado no campo; nomes inválidos ou reservados são recusados com a mensagem certa; e a regra do código nunca diverge da regra do banco.
 
 ## T-06 — Endereço direto na raiz + editor de endereço
@@ -208,13 +208,14 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`; suíte do T
 ## T-10 — Tela de inscrição: consentimento, anti-robô, sucesso com link, mensagens
 Depende de: T-06, T-09 · RF-05, RF-08, RF-09, RF-12, RF-13
 Ler: spec.md RF-05, RF-08, RF-09, RF-12, RF-13; design/ui-ux.md (Tela B); qa-plan.md 5.1 e 5.2
-Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento na aba "Limites e Termos"; incluir `consent_text` no `save()`)
+Arquivos: `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx` (campo de texto de consentimento na aba "Limites e Termos"; incluir `consent_text` no `save()`), `src/routes/__root.tsx`
 Fazer:
 1. Caixa de consentimento (texto do formulário) quando existir; `hp` invisível (`tabIndex={-1}`, `autoComplete="off"`, fora da tela); envio com `{ slug, answers, consent, hp }`.
 2. Editor: renomear apenas o rótulo da aba existente "Limites" para "Limites e Termos" (a chave interna `limites` não muda) e posicionar o campo de texto de consentimento dentro dela.
 3. Usar `readableTextColor` no botão principal de envio.
 4. Erros por campo usam `result.field`; erro do consentimento aparece junto da caixa; duplicidade aparece no campo CPF ("CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.").
 5. Tela de sucesso: mostra `result.message`, o `editUrl` com botão "Copiar link", o aviso "guarde este link", e mostra a linha "Enviamos um resumo e o link para o seu e-mail" SOMENTE se `result.emailSent === true`.
+6. No layout raiz (`__root.tsx`), trocar `<html lang="en">` por `<html lang="pt-BR">` (a interface é em português; ajuda leitores de tela e buscadores). NÃO alterar `src/lib/error-page.ts` (a página de erro é em inglês). Verificação local: `curl.exe -s http://localhost:8080/auth | Select-String -CaseSensitive 'lang="pt-BR"'` imprime uma linha.
 Verificação: `bunx tsc --noEmit && bun run test && bun run build`; roteiro manual no formulário publicado: inscrever com CPF novo (sucesso + link), repetir o CPF com máscara (recusa no campo CPF), formulário com termo sem marcar (bloqueia), mensagem de sucesso personalizada aparece, botão legível com cor customizada.
 **O que isso prova:** RF-03, RF-08, RF-12 e RF-13 funcionando como o usuário final vê.
 
