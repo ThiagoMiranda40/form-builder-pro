@@ -183,8 +183,11 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Aba Limites e Termos:** O rótulo da aba deve ser exatamente "Limites e Termos", contendo o campo de vagas, a data de encerramento e a caixa do texto de consentimento LGPD.
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
+- [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.
+- [ ] **CPF completo na tabela e nas exportações:** Os números de CPF devem aparecer completos e sem ofuscação na visualização do administrador e nas planilhas/PDFs gerados.
 - [ ] **Copiar link de qualquer inscrito:** Clicar no botão "Copiar link de edição" na nova coluna de Ações; o link copiado deve abrir diretamente a edição daquela pessoa específica.
 - [ ] **Exportação Excel e PDF:** Clicar nos botões de exportar; os arquivos baixados devem conter todas as respostas preenchidas e com acentuação correta em português.
+- [ ] **Proteção de rota:** Sem login, o endereço de respostas leva a /auth e não mostra dados.
 
 ### 5.6 Tela de Entrada (`/auth`)
 - [ ] **Apenas e-mail e senha:** Não pode existir botão de "Criar conta", nem link alternativo, nem botão de login com o Google.

@@ -314,12 +314,17 @@ Revisão: obrigatória por segunda sessão e auditoria independente (camada 2).
 
 ## T-12 — Administração: copiar link de edição e exportações leves
 Depende de: T-09 · RF-07
-Ler: spec.md RF-07; plan.md (Interface, Respostas); design/ui-ux.md (Tela D); qa-plan.md 5.5
-Arquivos: `src/routes/_authenticated.formularios.$id.respostas.tsx`, `src/lib/exports.ts`
-Fazer:
-1. A consulta de respostas inclui `edit_token`; o formulário inclui `slug` se necessário; botão "Copiar link de edição" por linha (`${origin}/editar/${token}`).
-2. Importar `xlsx` e `jspdf` **dinamicamente** dentro dos botões de exportar.
-Verificação: `bunx tsc --noEmit && bun run test && bun run build`; conferir que `.output/server` deixou de conter `xlsx`/`jspdf` no caminho da tela inicial (`grep -l "xlsx" .output/server/*.mjs` sem a rota de entrada) e o tamanho compactado do Worker (`tar czf - .output/server | wc -c`) permanece **abaixo de 3 MB**; exportar Excel e PDF continuam funcionando no navegador.
+Ler: spec.md RF-07; plan.md (Interface, Respostas); design/ui-ux.md (Tela D); qa-plan.md 5.5; seguranca.md SEC-19
+Arquivos: `src/routes/_authenticated.formularios.$id_.respostas.tsx` (o arquivo atual `_authenticated.formularios.$id.respostas.tsx` é RENOMEADO com `git mv`), `src/lib/exports.ts`, `src/lib/exports.test.ts` (novo), `src/lib/routes.test.ts` (novo) e `src/routeTree.gen.ts` (regenerado pelo build).
+Fazer (testes primeiro onde houver lógica, vistos falhando):
+1. BUG-03 (o botão "Ver respostas" não abre nada: a rota de respostas é filha do editor, que não tem `<Outlet />`): renomear o arquivo para `_authenticated.formularios.$id_.respostas.tsx` (o `_` depois de `$id` a torna irmã do editor) e trocar `$id/respostas` por `$id_/respostas` nas strings de `createFileRoute` e `useParams`. Os `Link` existentes não mudam.
+2. Teste de contrato `src/lib/routes.test.ts`: o arquivo novo existe, o antigo não existe, e em `routeTree.gen.ts` a rota de respostas tem `AuthenticatedRoute` (e NÃO a rota do editor) como pai.
+3. SEC-19 (admin): o `queryFn` lança erro quando QUALQUER das três consultas (formulário, perguntas, respostas) devolve `error`; a tela mostra "Não foi possível carregar as respostas." com o botão "Tentar de novo" (em vez de "Nenhuma resposta ainda").
+4. A consulta de respostas inclui `edit_token`. Nova coluna "Ações" com o botão "Copiar link de edição" por linha. O link é `${ALLOWED_ORIGINS[0]}/editar/${token}` (sempre o domínio de produção, porque o link vai para o inscrito). A cópia aguarda `navigator.clipboard.writeText`; sucesso: toast "Link de edição copiado!"; falha ou API ausente: toast "Não foi possível copiar o link.". O token nunca aparece na tela nem em log.
+5. `exportToExcel` e `exportToPDF` passam a importar `xlsx`, `jspdf` e `jspdf-autotable` DINAMICAMENTE dentro da função (assíncronas); os botões aguardam, ficam desabilitados enquanto exportam e, em falha, mostram o toast "Não foi possível exportar. Tente novamente.".
+6. Exportar `buildRows` (função pura) e testar em `exports.test.ts`: o CPF sai COMPLETO e sem máscara (ex.: "529.982.247-25"); listas viram texto separado por ", "; resposta ausente vira vazio; o cabeçalho é "Enviado em" mais os rótulos; acentos preservados.
+Verificação (agente, comandos desta máquina): `bun node_modules/vitest/vitest.mjs run exports`; `bun node_modules/vitest/vitest.mjs run routes`; `bun node_modules/vitest/vitest.mjs run` (os 178 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`; depois do build, `Select-String -Path .output/server/*.mjs -Pattern "xlsx" -List` NÃO deve listar o arquivo de entrada (`index.mjs`) e o tamanho compactado do Worker deve ficar abaixo de 3 MB.
+Parte MANUAL 🧑 (dono, no site publicado, depois do deploy): (1) no editor de um formulário com inscrições, clicar "Ver respostas": a tabela abre, com contagem, vagas e prazo; (2) o CPF aparece COMPLETO na tabela; (3) "Copiar link de edição" mostra o aviso; colar numa janela anônima abre a edição daquela pessoa (CPF mascarado); (4) "Exportar Excel" e "Exportar PDF": acentos corretos, CPF completo e todas as respostas; (5) sair da conta e abrir `/formularios/<id>/respostas` direto: vai para `/auth`, sem dados; (6) "← Editor" volta ao editor; (7) no celular (360 px) a tabela rola para o lado e os botões são tocáveis.
 **O que isso prova:** você recupera o link de qualquer inscrito com um clique e as exportações continuam funcionando com o sistema mais leve.
 
 ## T-13 — Revisão de segredos

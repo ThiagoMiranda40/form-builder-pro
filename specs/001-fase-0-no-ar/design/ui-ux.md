@@ -520,6 +520,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 
 ### 5.1 Objetivo e Fluxo
 - **Objetivo:** Permitir ao administrador consultar as inscrições e copiar o link de edição de qualquer inscrito com um clique (RF-07), mantendo a exportação para Excel e PDF leve e sob demanda (RF-10).
+- **Nota sobre a rota:** A rota de respostas é irmã do editor (não filha), para abrir pelo botão 'Ver respostas'.
 - **Fluxo do Administrador:**
   ```mermaid
   flowchart TD
@@ -575,18 +576,24 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 |---|---|
 | **Vazio** | Mantém mensagem existente: *"Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber inscrições."*. |
 | **Com Dados** | Tabela existente acrescida da coluna `<th>Ações</th>` e nas linhas `<td><button>Copiar link de edição</button></td>`. |
-| **Ao Clicar** | Copia `${window.location.origin}/editar/${r.edit_token}` para o clipboard. |
+| **Ao Clicar** | Copia o link com o domínio de produção (`ALLOWED_ORIGINS[0]`): `${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}` para o clipboard. |
 | **Feedback** | Toast disparado via Sonner: *"Link de edição copiado!"*. |
+| **Falha ao copiar** | Toast disparado via Sonner: *"Não foi possível copiar o link."*. |
+| **Erro de carga** | *"Não foi possível carregar as respostas."* e o botão *"Tentar de novo"*. |
 
 ### 5.4 Textos Exatos da Interface
 - **Título da coluna:** "Ações"
 - **Texto do botão por linha:** "Copiar link de edição"
 - **Feedback de cópia:** "Link de edição copiado!"
+- **Falha ao copiar:** "Não foi possível copiar o link."
+- **Erro de carga:** "Não foi possível carregar as respostas."
+- **Botão de retry:** "Tentar de novo"
+- **Erro de exportação:** "Não foi possível exportar. Tente novamente."
 
 ### 5.5 Markup e Classes Reutilizadas (de `_authenticated.formularios.$id.respostas.tsx`)
 - Container da tabela: `<div className="glass overflow-hidden rounded-2xl"><div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm">...</table></div></div>`.
 - Cabeçalho: `<thead className="bg-white/70 text-xs uppercase tracking-wide text-muted-foreground"><tr>...<th className="px-4 py-3 font-medium">Ações</th></tr></thead>`.
-- Célula de ação: `<td className="px-4 py-3 whitespace-nowrap"><button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/editar/${r.edit_token}`); toast.success("Link de edição copiado!"); }} className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white">Copiar link de edição</button></td>`.
+- Célula de ação: `<td className="px-4 py-3 whitespace-nowrap"><button onClick={() => { navigator.clipboard.writeText(`${ALLOWED_ORIGINS[0]}/editar/${r.edit_token}`).then(() => toast.success("Link de edição copiado!")).catch(() => toast.error("Não foi possível copiar o link.")); }} className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white">Copiar link de edição</button></td>`.
 
 ---
 
@@ -678,6 +685,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
 5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
 6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
+7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
 
 ---
 
