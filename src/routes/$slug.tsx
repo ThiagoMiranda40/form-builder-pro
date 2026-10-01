@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
+import { findEmailQuestion } from "@/lib/inscricao";
+import { suggestEmail } from "@/lib/email-hints";
 
 export const Route = createFileRoute("/$slug")({
   head: () => ({
@@ -36,6 +38,8 @@ function PublicForm() {
 
   const [answers, setAnswers] = useState<Answers>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailSuggestions, setEmailSuggestions] = useState<Record<string, string | null>>({});
+  const [emailConfirmations, setEmailConfirmations] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
   const [hp, setHp] = useState("");
   const [sending, setSending] = useState(false);
@@ -131,6 +135,11 @@ function PublicForm() {
   }
 
   if (done) {
+    const emailQuestion = findEmailQuestion(questions);
+    const emailAddress = emailQuestion
+      ? String(answers[emailQuestion.id] ?? "").trim()
+      : "";
+
     return (
       <Frame>
         <div role="status" className={`text-center ${fontClass}`}>
@@ -148,6 +157,38 @@ function PublicForm() {
             Tudo certo!
           </h1>
           <p className="mt-2 text-sm text-muted-foreground whitespace-pre-line">{done.message}</p>
+
+          {done.emailSent && emailQuestion && (
+            <div className="mt-6 rounded-xl bg-emerald-50 p-5 text-left ring-1 ring-emerald-200">
+              <div className="flex items-start gap-3">
+                <svg
+                  className="mt-0.5 size-5 shrink-0 text-emerald-800"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                  />
+                </svg>
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-emerald-950">
+                    Enviamos um resumo e o link para o seu e-mail.
+                  </p>
+                  <p className="text-sm text-emerald-900">
+                    Enviado para: <strong className="font-bold break-all">{emailAddress}</strong>
+                  </p>
+                  <p className="text-xs text-emerald-800">
+                    Não chegou? Procure na caixa de spam ou lixo eletrônico.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {done.editUrl && (
             <div className="mt-6 rounded-xl bg-white/70 p-5 text-left ring-1 ring-black/5">
@@ -177,10 +218,10 @@ function PublicForm() {
             </div>
           )}
 
-          {done.emailSent && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Enviamos um resumo e o link para o seu e-mail.
-            </p>
+          {!done.emailSent && emailQuestion && (
+            <div className="mt-4 rounded-lg bg-amber-50/80 p-3 text-left text-xs text-amber-900 ring-1 ring-amber-200/60">
+              Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados.
+            </div>
           )}
         </div>
       </Frame>
@@ -189,7 +230,7 @@ function PublicForm() {
 
   function setValue(id: string, type: FieldType, raw: string) {
     setAnswers((prev) => ({ ...prev, [id]: applyMask(type, raw) }));
-    setErrors((prev) => ({ ...prev, [id]: "" }));
+    setErrors((prev) => ({ ...prev, [id]: "", [`confirm-${id}`]: "" }));
   }
 
   function toggleMulti(id: string, option: string) {
@@ -213,6 +254,14 @@ function PublicForm() {
       for (const q of questions) {
         const message = validateAnswer(q.field_type as FieldType, q.required, answers[q.id]);
         if (message) nextErrors[q.id] = message;
+
+        if (q.field_type === "email") {
+          const emailVal = ((answers[q.id] as string) || "").trim();
+          const confirmVal = (emailConfirmations[q.id] || "").trim();
+          if (emailVal && emailVal.toLowerCase() !== confirmVal.toLowerCase()) {
+            nextErrors[`confirm-${q.id}`] = "Os e-mails não são iguais.";
+          }
+        }
       }
       if (form.consent_text && !consent) {
         nextErrors["__consent"] = "É necessário aceitar o termo para continuar.";
@@ -413,12 +462,31 @@ function PublicForm() {
                 ) : (
                   <input
                     id={fieldId}
-                    type={type === "date" ? "date" : type === "number" ? "number" : "text"}
+                    type={
+                      type === "date"
+                        ? "date"
+                        : type === "number"
+                          ? "number"
+                          : type === "email"
+                            ? "email"
+                            : "text"
+                    }
                     inputMode={
                       type === "number" || type === "phone" || type === "cpf" ? "numeric" : undefined
                     }
                     value={(value as string) ?? ""}
-                    onChange={(e) => setValue(q.id, type, e.target.value)}
+                    onChange={(e) => {
+                      setValue(q.id, type, e.target.value);
+                      if (type === "email") {
+                        setEmailSuggestions((prev) => ({ ...prev, [q.id]: null }));
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (type === "email") {
+                        const hint = suggestEmail(e.target.value);
+                        setEmailSuggestions((prev) => ({ ...prev, [q.id]: hint }));
+                      }
+                    }}
                     maxLength={255}
                     placeholder={placeholders[type]}
                     className={fieldClass}
@@ -427,10 +495,80 @@ function PublicForm() {
                   />
                 )}
 
+                {type === "email" && emailSuggestions[q.id] && (
+                  <div
+                    aria-live="polite"
+                    className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+                  >
+                    <span>
+                      Você quis dizer{" "}
+                      <strong className="font-semibold text-foreground">
+                        {emailSuggestions[q.id]}
+                      </strong>
+                      ?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const suggested = emailSuggestions[q.id];
+                        if (suggested) {
+                          setValue(q.id, type, suggested);
+                          setEmailSuggestions((prev) => ({ ...prev, [q.id]: null }));
+                        }
+                      }}
+                      className="font-medium underline hover:text-foreground"
+                      style={{ color: accent }}
+                    >
+                      Usar este endereço
+                    </button>
+                  </div>
+                )}
+
                 {error && (
                   <p id={errorId} role="alert" className="mt-1.5 text-xs text-destructive">
                     {error}
                   </p>
+                )}
+
+                {type === "email" && (
+                  <div className="mt-3">
+                    <label
+                      htmlFor={`field-confirm-${q.id}`}
+                      className="mb-1.5 block text-sm font-medium"
+                    >
+                      Confirme seu e-mail
+                      {q.required && (
+                        <span className="ml-1" style={{ color: accent }}>
+                          *
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      id={`field-confirm-${q.id}`}
+                      type="email"
+                      value={emailConfirmations[q.id] ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEmailConfirmations((prev) => ({ ...prev, [q.id]: val }));
+                        setErrors((prev) => ({ ...prev, [`confirm-${q.id}`]: "" }));
+                      }}
+                      placeholder={placeholders[type]}
+                      className={fieldClass}
+                      aria-invalid={Boolean(errors[`confirm-${q.id}`])}
+                      aria-describedby={
+                        errors[`confirm-${q.id}`] ? `error-confirm-${q.id}` : undefined
+                      }
+                    />
+                    {errors[`confirm-${q.id}`] && (
+                      <p
+                        id={`error-confirm-${q.id}`}
+                        role="alert"
+                        className="mt-1.5 text-xs text-destructive"
+                      >
+                        {errors[`confirm-${q.id}`]}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             );

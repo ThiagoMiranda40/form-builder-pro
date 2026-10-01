@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
+import { isEdited } from "@/lib/responses-view";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id_/respostas")({
   head: () => ({
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/formularios/$id_/respostas
 function Respostas() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id_/respostas" });
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [onlyEdited, setOnlyEdited] = useState(false);
 
   const query = useQuery({
     queryKey: ["respostas", id],
@@ -32,7 +34,7 @@ function Respostas() {
         supabase.from("questions").select("id,label").eq("form_id", id).order("position"),
         supabase
           .from("responses")
-          .select("id,answers,submitted_at,edit_token")
+          .select("id,answers,submitted_at,updated_at,edit_token")
           .eq("form_id", id)
           .order("submitted_at", { ascending: false }),
       ]);
@@ -47,6 +49,7 @@ function Respostas() {
           id: string;
           answers: Record<string, string | string[]>;
           submitted_at: string;
+          updated_at: string | null;
           edit_token: string;
         }[],
       };
@@ -130,6 +133,11 @@ function Respostas() {
   }
 
   const { form, questions, responses } = query.data;
+  const editedCount = responses.filter((r) => isEdited(r.submitted_at, r.updated_at)).length;
+  const displayedResponses = onlyEdited
+    ? responses.filter((r) => isEdited(r.submitted_at, r.updated_at))
+    : responses;
+
   const cell = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value.join(", ") : (value ?? "—");
 
@@ -147,13 +155,28 @@ function Respostas() {
           <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
           <p className="text-sm text-muted-foreground">
             {responses.length} resposta(s)
+            {editedCount > 0 ? ` · ${editedCount} editada(s)` : ""}
             {form.max_responses ? ` de ${form.max_responses} vagas` : ""}
             {form.closes_at
               ? ` · prazo ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
               : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {editedCount > 0 && (
+            <button
+              type="button"
+              aria-pressed={onlyEdited}
+              onClick={() => setOnlyEdited((prev) => !prev)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors ${
+                onlyEdited
+                  ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
+                  : "bg-white/70 text-foreground hover:bg-white"
+              }`}
+            >
+              {onlyEdited ? "Mostrar todas" : "Mostrar só editadas"}
+            </button>
+          )}
           <button
             onClick={() => handleExportExcel(form.title, questions, responses)}
             disabled={responses.length === 0 || exporting !== null}
@@ -177,12 +200,17 @@ function Respostas() {
             Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber
             inscrições.
           </p>
+        ) : displayedResponses.length === 0 ? (
+          <p className="p-6 text-sm text-muted-foreground">
+            Nenhuma inscrição editada.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-white/70 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Enviado em</th>
+                  <th className="px-4 py-3 font-medium">Atualizado em</th>
                   {questions.map((q) => (
                     <th key={q.id} className="px-4 py-3 font-medium">
                       {q.label}
@@ -192,29 +220,56 @@ function Respostas() {
                 </tr>
               </thead>
               <tbody>
-                {responses.map((r) => (
-                  <tr key={r.id} className="border-t border-black/5 odd:bg-white/40">
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                      {new Date(r.submitted_at).toLocaleString("pt-BR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </td>
-                    {questions.map((q) => (
-                      <td key={q.id} className="px-4 py-3">
-                        {cell(r.answers?.[q.id])}
+                {displayedResponses.map((r) => {
+                  const edited = isEdited(r.submitted_at, r.updated_at);
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`border-t border-black/5 ${
+                        edited
+                          ? "bg-amber-50/70 hover:bg-amber-50"
+                          : "odd:bg-white/40"
+                      }`}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {new Date(r.submitted_at).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
                       </td>
-                    ))}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        onClick={() => handleCopyEditLink(r.edit_token)}
-                        className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
-                      >
-                        Copiar link de edição
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {edited && r.updated_at ? (
+                          <span className="inline-flex items-center gap-1.5 text-foreground">
+                            <span>
+                              {new Date(r.updated_at).toLocaleString("pt-BR", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </span>
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+                              Editada
+                            </span>
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      {questions.map((q) => (
+                        <td key={q.id} className="px-4 py-3">
+                          {cell(r.answers?.[q.id])}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button
+                          onClick={() => handleCopyEditLink(r.edit_token)}
+                          className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
+                        >
+                          Copiar link de edição
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -223,3 +278,4 @@ function Respostas() {
     </section>
   );
 }
+
