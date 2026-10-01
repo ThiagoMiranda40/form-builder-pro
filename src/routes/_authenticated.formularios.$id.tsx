@@ -43,6 +43,7 @@ type FormState = {
   theme: Theme;
   max_responses: number | null;
   closes_at: string | null;
+  consent_text: string | null;
   success_message: string;
 };
 
@@ -86,6 +87,7 @@ function Editor() {
       theme: (f["theme"] as Theme) ?? { color: "#4f46e5", font: "body", logo_url: null },
       max_responses: (f["max_responses"] as number | null) ?? null,
       closes_at: (f["closes_at"] as string | null) ?? null,
+      consent_text: (f["consent_text"] as string | null) ?? null,
       success_message: (f["success_message"] as string) ?? "",
     });
     setQuestions(
@@ -183,6 +185,7 @@ function Editor() {
           theme: form.theme,
           max_responses: form.max_responses,
           closes_at: form.closes_at,
+          consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
           success_message: form.success_message,
           status: nextStatus ?? form.status,
         })
@@ -442,7 +445,7 @@ function Editor() {
                   tab === key ? "bg-brand text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                {key === "aparencia" ? "Aparência" : key === "limites" ? "Limites" : "Pergunta"}
+                {key === "aparencia" ? "Aparência" : key === "limites" ? "Limites e Termos" : "Pergunta"}
               </button>
             ))}
           </div>
@@ -589,6 +592,20 @@ function Editor() {
                   className={inputClass}
                 />
               </Field>
+              <Field label="Texto de consentimento (LGPD)">
+                <textarea
+                  rows={4}
+                  value={form.consent_text ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, consent_text: e.target.value || null })
+                  }
+                  className={inputClass}
+                  placeholder="Declaro que li e concordo com o regulamento do evento..."
+                />
+              </Field>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Se preenchido, o participante só poderá concluir a inscrição após marcar a caixa de aceite.
+              </p>
               <p className="text-xs text-muted-foreground">
                 Ao atingir o limite de respostas ou o prazo, o formulário deixa de aceitar novas
                 inscrições automaticamente.
