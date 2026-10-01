@@ -123,6 +123,7 @@ Fazer:
 1. Testes que falham primeiro: `validateSlug("skf-corrida-track-field")` → `null`; `"ab"` → mensagem de tamanho; `"Maiuscula"`, `"-abc"`, `"a--b"`, `"com_underline"`, `"com espaco"` → mensagem de formato; `"painel"`, `"editar"`, `"saude"`, `"auth"`, `"formularios"`, `"api"`, `"admin"`, `"assets"`, `"login"` → "Esse nome é reservado pelo sistema"; `suggestSlug("SKF Corrida Track & Field")` → `"skf-corrida-track-field"`; `suggestSlug("Novo formulário", "abc123")` → `"novo-formulario-abc123"`; `suggestSlug("!!!")` → um valor válido (ex.: `formulario`); `sanitizeSlugInput("SKF Corrida Track&Field")` → `"skf-corrida-track-field"`; `sanitizeSlugInput("skf-")` → `"skf-"` (mantém o hífen final enquanto digita); `sanitizeSlugInput("  Corrida  Ação  ")` → `"corrida-acao-"`; `sanitizeSlugInput("-abc")` → `"abc"`; `sanitizeSlugInput("a--b")` → `"a-b"`; entrada com 70 caracteres → corta em 60; `trimSlugEdges("corrida-acao-")` → `"corrida-acao"`.
 2. Teste que **lê o arquivo da migração Fase 0** (`supabase/migrations/*_fase0_inscricao.sql`, hoje `20260930204500_fase0_inscricao.sql`; localize por padrão de nome, não por timestamp fixo), extrai os nomes entre aspas simples do `CHECK (slug NOT IN (...))` da constraint `forms_slug_reserved` e confirma que o conjunto é IGUAL ao `RESERVED_SLUGS` do código (os mesmos 9 nomes, em qualquer ordem).
 3. Implementar `slug.ts` (mover a função `slug()` que hoje está em `exports.ts`; ela normaliza acentos) e atualizar os imports.
+4. `suggestSlug` nas bordas: (a) com sufixo, o sufixo NUNCA é cortado: a base é reduzida para caber em 60 - (tamanho do sufixo + 1) caracteres e hífens das pontas são removidos antes de juntar; (b) o resultado nunca começa nem termina com hífen e tem no máximo 60 caracteres; (c) se o resultado tiver menos de 3 caracteres, acrescenta `-formulario` (ex.: `suggestSlug("5K")` -> `"5k-formulario"`, `suggestSlug("A")` -> `"a-formulario"`). Testes novos, escritos primeiro e vistos falhando: título longo com sufixo mantém o sufixo e passa em `validateSlug`; base de 59 letras com sufixo passa em `validateSlug`; `5K` e `A` geram valores que passam em `validateSlug`; os casos antigos continuam iguais.
 Verificação: `bun node_modules/vitest/vitest.mjs run slug` (os testes do slug passam); `bun node_modules/vitest/vitest.mjs run` (suíte completa sem falhas: os 42 testes anteriores mais os novos); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`.
 **O que isso prova:** "SKF Corrida Track & Field" vira `skf-corrida-track-field`, tanto sugerido pelo título quanto digitado no campo; nomes inválidos ou reservados são recusados com a mensagem certa; e a regra do código nunca diverge da regra do banco.
 
@@ -194,7 +195,7 @@ Verificação: `bun run test && bunx tsc --noEmit && bun run build`.
 
 ## T-09 — Servidor de inscrição via banco
 Depende de: T-04, T-08 · RF-03, RF-04, RF-05, RF-08, RF-09, RF-12
-Ler: plan.md (função de servidor de inscrição); data-model.md (contrato das funções); seguranca.md SEC-02, SEC-03, SEC-04; qa-plan.md 4.3 a 4.6
+Ler: plan.md (função de servidor de inscrição); data-model.md (contrato das funções); seguranca.md SEC-02, SEC-03, SEC-04, SEC-09; qa-plan.md 4.3 a 4.6
 Arquivos: `src/lib/public-forms.functions.ts`
 Fazer:
 1. `getPublicForm` passa a devolver `consent_text` (no `form`).
