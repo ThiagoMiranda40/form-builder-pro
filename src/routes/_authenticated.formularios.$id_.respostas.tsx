@@ -4,7 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
-import { isEdited } from "@/lib/responses-view";
+import { isEdited, describeResponse } from "@/lib/responses-view";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id_/respostas")({
   head: () => ({
@@ -25,6 +35,12 @@ function Respostas() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id_/respostas" });
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
   const [onlyEdited, setOnlyEdited] = useState(false);
+  const [responseToDelete, setResponseToDelete] = useState<{
+    id: string;
+    answers: Record<string, string | string[]>;
+    submitted_at: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const query = useQuery({
     queryKey: ["respostas", id],
@@ -98,6 +114,32 @@ function Respostas() {
       toast.success("Link de edição copiado!");
     } catch {
       toast.error("Não foi possível copiar o link.");
+    }
+  };
+
+  const handleDeleteResponse = async () => {
+    if (!responseToDelete || isDeleting) return;
+    try {
+      setIsDeleting(true);
+      const { data, error } = await supabase
+        .from("responses")
+        .delete()
+        .eq("id", responseToDelete.id)
+        .eq("form_id", id)
+        .select("id");
+
+      if (error || !data || data.length !== 1) {
+        toast.error("Não foi possível excluir. Tente novamente.");
+        return;
+      }
+
+      toast.success("Inscrição excluída.");
+      setResponseToDelete(null);
+      await query.refetch();
+    } catch {
+      toast.error("Não foi possível excluir. Tente novamente.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -260,12 +302,23 @@ function Respostas() {
                         </td>
                       ))}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() => handleCopyEditLink(r.edit_token)}
-                          className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
-                        >
-                          Copiar link de edição
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyEditLink(r.edit_token)}
+                            className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
+                          >
+                            Copiar link de edição
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResponseToDelete(r)}
+                            disabled={isDeleting}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -275,6 +328,51 @@ function Respostas() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={responseToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setResponseToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta inscrição?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isto apaga de vez as respostas de{" "}
+              {responseToDelete
+                ? describeResponse(questions, responseToDelete.answers)
+                : "esta pessoa"}{" "}
+              (enviada em{" "}
+              {responseToDelete
+                ? new Date(responseToDelete.submitted_at).toLocaleString("pt-BR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })
+                : ""}
+              ). O CPF e a vaga voltam a ficar livres e o link de edição deixa de funcionar.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel autoFocus disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteResponse();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {isDeleting ? "Excluindo..." : "Excluir inscrição"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
