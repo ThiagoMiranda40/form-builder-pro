@@ -399,6 +399,18 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) a aba do navegador
 
 ---
 
+## T-19 — Prévia do link com o nome e a descrição do formulário
+Depende de: T-18
+Problema: o formulário público carrega os dados no navegador (useQuery), então o HTML entregue pelo servidor (o que o WhatsApp lê) tem sempre o título genérico.
+Arquivos: `src/routes/$slug.tsx`, `src/lib/site-meta.ts`, `src/lib/site-meta.test.ts`.
+Fazer (testes primeiro, vistos falhando):
+ 1. Em `site-meta.ts`, função pura `buildFormMeta(payload: { state?: string; form?: { title?: string; description?: string } } | null | undefined)` que devolve `{ title, description, ogTitle, ogDescription }`. Regras: (a) só usa os dados do formulário quando `state` for "open", "closed" ou "full" E `form.title` aparado não for vazio; em qualquer outro caso (nulo, indefinido, "draft", "not_found", título vazio) devolve os textos genéricos atuais do `$slug.tsx` ("Formulário de inscrição" e as duas descrições atuais, sem mudar uma vírgula); (b) `ogTitle` = título do formulário aparado, com espaços repetidos e quebras de linha reduzidos a um espaço, cortado em 70 caracteres com "…" ao fim se passar disso; (c) `title` (aba) = `${ogTitle} | Corre Time`; (d) `description` e `ogDescription` = descrição do formulário normalizada do mesmo jeito e cortada em 160 caracteres, no último espaço antes do limite, com "…" ao fim se foi cortada; se a descrição estiver vazia, usar o texto genérico atual de cada um. Testes: nulo; undefined; state "draft" com título; state "not_found"; título só com espaços; open com título e descrição curtos ("SKF Running Team" e "CORRIDA TRACK & FIELD - SHOPPING IGUATEMI"); descrição de 300 caracteres (resultado com no máximo 161 caracteres e terminando em "…", sem cortar palavra no meio); descrição com quebras de linha e espaços duplos; título de 100 caracteres; closed e full usam os dados do formulário.
+ 2. Em `$slug.tsx`: acrescente um `loader` que chama `getPublicForm({ data: { slug: params.slug } })` (confira a assinatura real em `public-forms.functions.ts`) dentro de try/catch e devolve o resultado, ou `null` se der erro; NUNCA deixe o erro do loader derrubar a página. O `head` passa a receber `loaderData` e usar `buildFormMeta(loaderData)` para `title`, `description`, `og:title` e `og:description`, mantendo `twitter:title` e `twitter:description` iguais aos de og se já existirem. NÃO mude o componente `PublicForm`, o `useQuery` nem nenhum outro comportamento da tela. `og:image`, `robots` e demais tags continuam vindo da raiz (T-18): confira que o `head` do `$slug` NÃO as sobrescreve.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run site-meta`; `bun node_modules/vitest/vitest.mjs run` (os 223 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. Se o ambiente local tiver acesso ao banco, suba o dev (porta 8080) e rode `curl.exe -s http://localhost:8080/<slug-de-um-formulario-aberto> | Select-String -Pattern "og:title"`; se NÃO tiver, diga isso explicitamente no relatório e deixe essa checagem para a parte manual.
+Parte MANUAL (dono, no site publicado, depois do deploy): (1) no PowerShell, `[Console]::OutputEncoding = [Text.Encoding]::UTF8` e depois `curl.exe -s https://inscricoes.corretime.com.br/skf-trackfield-jkiguatemi | Select-String -Pattern "og:title","og:description"` mostra o nome e a descrição do formulário; (2) enviar para si mesmo no WhatsApp o link com `?v=3` no fim: a prévia mostra "SKF Running Team" e a descrição, com a imagem da logo; (3) um link de formulário que não existe continua mostrando a prévia genérica.
+
+---
+
 
 ## Fluxo de execução recomendado
 

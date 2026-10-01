@@ -219,6 +219,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Ícone e título na aba:** A aba do navegador mostra o ícone da Corre Time e o título "Inscrições | Corre Time".
 - [ ] **Prévia no WhatsApp:** Ao enviar para si mesmo, no WhatsApp, o link de um formulário: a prévia mostra a imagem com a logo (se aparecer a prévia antiga, o WhatsApp guardou cache: acrescente `?v=2` ao fim do link e envie de novo).
 - [ ] **Robots noindex:** `curl.exe -s https://inscricoes.corretime.com.br/legal/termos-de-uso | findstr robots` mostra "noindex".
+- [ ] **Nome e descrição no HTML:** No PowerShell, `[Console]::OutputEncoding = [Text.Encoding]::UTF8` e depois `curl.exe -s https://inscricoes.corretime.com.br/skf-trackfield-jkiguatemi | Select-String -Pattern "og:title","og:description"` mostra o nome e a descrição do formulário.
+- [ ] **Prévia com dados do evento no WhatsApp:** Enviar para si mesmo no WhatsApp o link com `?v=3` no fim: a prévia mostra "SKF Running Team" e a descrição, com a imagem da logo.
+- [ ] **Prévia genérica para formulário inexistente:** Um link de formulário que não existe continua mostrando a prévia genérica.
 
 ---
 
