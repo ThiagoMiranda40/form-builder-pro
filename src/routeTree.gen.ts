@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SaudeRouteImport } from './routes/saude'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated.painel'
+import { Route as EditarTokenRouteImport } from './routes/editar.$token'
 import { Route as AuthenticatedFormulariosIdRouteImport } from './routes/_authenticated.formularios.$id'
 import { Route as AuthenticatedFormulariosIdRespostasRouteImport } from './routes/_authenticated.formularios.$id.respostas'
 
@@ -47,6 +48,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const EditarTokenRoute = EditarTokenRouteImport.update({
+  id: '/editar/$token',
+  path: '/editar/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedFormulariosIdRoute =
   AuthenticatedFormulariosIdRouteImport.update({
     id: '/formularios/$id',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/editar/$token': typeof EditarTokenRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
   '/formularios/$id/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/editar/$token': typeof EditarTokenRoute
   '/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
   '/formularios/$id/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/editar/$token': typeof EditarTokenRoute
   '/_authenticated/formularios/$id': typeof AuthenticatedFormulariosIdRouteWithChildren
   '/_authenticated/formularios/$id/respostas': typeof AuthenticatedFormulariosIdRespostasRoute
 }
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/painel'
+    | '/editar/$token'
     | '/formularios/$id'
     | '/formularios/$id/respostas'
   fileRoutesByTo: FileRoutesByTo
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/painel'
+    | '/editar/$token'
     | '/formularios/$id'
     | '/formularios/$id/respostas'
   id:
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/_authenticated/painel'
+    | '/editar/$token'
     | '/_authenticated/formularios/$id'
     | '/_authenticated/formularios/$id/respostas'
   fileRoutesById: FileRoutesById
@@ -126,6 +138,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SaudeRoute: typeof SaudeRoute
+  EditarTokenRoute: typeof EditarTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/editar/$token': {
+      id: '/editar/$token'
+      path: '/editar/$token'
+      fullPath: '/editar/$token'
+      preLoaderRoute: typeof EditarTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/formularios/$id': {
       id: '/_authenticated/formularios/$id'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SaudeRoute: SaudeRoute,
+  EditarTokenRoute: EditarTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

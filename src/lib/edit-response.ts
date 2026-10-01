@@ -1,0 +1,352 @@
+import { z } from "zod";
+import { answersSchema, createTimedFetch, getOrigin, validateAndCleanAnswers } from "./submit-response";
+import { findEmailQuestion, findIdentifierQuestion, hideDocument } from "./inscricao";
+import { applyMask } from "./validators";
+import {
+  buildConfirmationEmail,
+  isSafeRecipient,
+  sendConfirmationEmail,
+} from "./confirmation-email";
+
+export const editTokenSchema = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/);
+
+export const updateSchema = z.object({
+  token: editTokenSchema,
+  answers: answersSchema,
+});
+
+export type UpdateInput = z.infer<typeof updateSchema>;
+
+export type EditAnswerValue = string | string[];
+export type EditAnswers = Record<string, EditAnswerValue>;
+
+export type GetForEditResult =
+  | {
+      state: "open";
+      form: EditForm;
+      questions: EditQuestion[];
+      answers: EditAnswers;
+    }
+  | {
+      state: "closed" | "not_found";
+      form?: EditForm;
+      questions?: EditQuestion[];
+      answers?: EditAnswers;
+    };
+
+export type UpdateResult =
+  | { ok: true; emailSent: boolean }
+  | { ok: false; error: string; field?: string };
+
+export interface EditForm {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  closes_at: string | null;
+  max_responses: number | null;
+  theme?: {
+    color?: string;
+    font?: string;
+    logo_url?: string | null;
+  };
+  success_message?: string;
+  consent_text?: string | null;
+}
+
+export interface EditQuestion {
+  id: string;
+  label: string;
+  help_text?: string;
+  field_type: string;
+  required: boolean;
+  options: string[];
+  position: number;
+}
+
+export interface EditResponseRecord {
+  id: string;
+  answers: Record<string, unknown>;
+  identifier: string | null;
+  updated_at: string;
+}
+
+export interface EditGetDeps {
+  loadByToken: (token: string) => Promise<{
+    response: EditResponseRecord | null;
+    form: EditForm | null;
+    questions: EditQuestion[];
+  }>;
+  now?: () => number;
+}
+
+export interface EditUpdateDeps {
+  loadByToken: (token: string) => Promise<{
+    response: EditResponseRecord | null;
+    form: EditForm | null;
+    questions: EditQuestion[];
+  }>;
+  rpcUpdateResponse: (args: {
+    token: string;
+    answers: Record<string, unknown>;
+    identifier: string | null;
+  }) => Promise<{
+    data: { status: string; success_message?: string; response_id?: string } | null;
+    error: { code?: string; message?: string } | null;
+  }>;
+  fetchFn: typeof fetch;
+  getOrigin: () => string;
+  readEnv: (key: string) => string | undefined;
+  now?: () => number;
+  logError: (code: string | undefined, responseId?: string) => void;
+}
+
+/**
+ * Avalia se o e-mail de atualização pode ser enviado (SEC-04).
+ * Retorna true somente se decorreram 10 minutos (600.000 ms) ou mais desde a última alteração/inscrição.
+ * Se a data for inválida ou estiver no futuro, retorna false.
+ */
+export function shouldSendUpdateEmail(
+  prevUpdatedAt: string | Date | number | null | undefined,
+  now: number | Date,
+  windowMs = 600000,
+): boolean {
+  if (!prevUpdatedAt) return false;
+  if (typeof prevUpdatedAt === "string" && prevUpdatedAt.trim() === "") return false;
+
+  const prevTime =
+    typeof prevUpdatedAt === "number"
+      ? prevUpdatedAt
+      : new Date(prevUpdatedAt).getTime();
+  const nowTime = typeof now === "number" ? now : new Date(now).getTime();
+
+  if (isNaN(prevTime) || isNaN(nowTime)) return false;
+  if (prevTime > nowTime) return false;
+
+  return nowTime - prevTime >= windowMs;
+}
+
+/**
+ * Carrega formulário, perguntas e respostas para a página de edição (RF-06, SEC-17, SEC-18).
+ * PRIVACIDADE (SEC-17): A resposta do CPF é mascarada (ex.: ***.***.***-25) e o CPF completo
+ * ou o edit_token nunca saem do servidor.
+ */
+export async function handleGetForEdit(
+  deps: EditGetDeps,
+  input: { token: string },
+): Promise<GetForEditResult> {
+  const parsed = editTokenSchema.safeParse(input.token);
+  if (!parsed.success) {
+    return { state: "not_found" };
+  }
+
+  const { response, form, questions } = await deps.loadByToken(parsed.data);
+  if (!response || !form) {
+    return { state: "not_found" };
+  }
+
+  const currentTime = deps.now ? deps.now() : Date.now();
+  const isClosed =
+    form.status !== "published" ||
+    (form.closes_at !== null && new Date(form.closes_at).getTime() < currentTime);
+
+  if (isClosed) {
+    return { state: "closed" };
+  }
+
+  // Prepara as respostas mascarando campos de CPF (SEC-17)
+  const maskedAnswers: EditAnswers = {};
+  for (const [k, v] of Object.entries(response.answers)) {
+    if (typeof v === "string" || (Array.isArray(v) && v.every((i) => typeof i === "string"))) {
+      maskedAnswers[k] = v as EditAnswerValue;
+    }
+  }
+  for (const q of questions) {
+    if (q.field_type === "cpf") {
+      const rawVal = maskedAnswers[q.id];
+      if (rawVal !== undefined && rawVal !== null) {
+        maskedAnswers[q.id] = hideDocument(applyMask("cpf", String(rawVal)));
+      }
+    }
+  }
+
+  return {
+    state: "open",
+    form,
+    questions,
+    answers: maskedAnswers,
+  };
+}
+
+/**
+ * Atualiza as respostas do inscrito via RPC segura (RF-06, SEC-04, SEC-11, SEC-12, SEC-13, SEC-17, SEC-18).
+ */
+export async function handleUpdate(
+  deps: EditUpdateDeps,
+  input: { token: string; answers: Record<string, unknown> },
+): Promise<UpdateResult> {
+  const parsed = editTokenSchema.safeParse(input.token);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Inscrição não encontrada. Verifique se o link está correto.",
+    };
+  }
+
+  let responseIdForLog = "UNKNOWN";
+
+  try {
+    const { response, form, questions } = await deps.loadByToken(parsed.data);
+    if (!response || !form) {
+      return {
+        ok: false,
+        error: "Inscrição não encontrada. Verifique se o link está correto.",
+      };
+    }
+
+    responseIdForLog = response.id;
+    const prevUpdatedAt = response.updated_at;
+
+    const currentTime = deps.now ? deps.now() : Date.now();
+    const isClosed =
+      form.status !== "published" ||
+      (form.closes_at !== null && new Date(form.closes_at).getTime() < currentTime);
+
+    if (isClosed) {
+      return {
+        ok: false,
+        error: "Este formulário não aceita mais alterações.",
+      };
+    }
+
+    // CPF handling (SEC-17): o valor do CPF enviado pelo navegador é ignorado.
+    // O valor original guardado na inscrição prevalece.
+    const finalAnswers: Record<string, unknown> = { ...input.answers };
+    for (const q of questions) {
+      if (q.field_type === "cpf") {
+        if (response.answers && response.answers[q.id] !== undefined) {
+          finalAnswers[q.id] = response.answers[q.id];
+        } else {
+          delete finalAnswers[q.id];
+        }
+      }
+    }
+
+    // Na edição, a pergunta de CPF não é obrigatória para que perguntas adicionadas
+    // posteriormente não travem a edição de quem se inscreveu antes.
+    const questionsForValidation = questions.map((q) =>
+      q.field_type === "cpf" ? { ...q, required: false } : q,
+    );
+
+    const validationResult = validateAndCleanAnswers(questionsForValidation, finalAnswers);
+    if (!validationResult.ok) {
+      return {
+        ok: false,
+        error: validationResult.error,
+        field: validationResult.field,
+      };
+    }
+
+    const cleanAnswers = validationResult.cleanAnswers;
+    // Garante que o CPF guardado original é mantido intacto em cleanAnswers
+    for (const q of questions) {
+      if (q.field_type === "cpf" && response.answers && response.answers[q.id] !== undefined) {
+        cleanAnswers[q.id] = response.answers[q.id];
+      }
+    }
+
+    const rpcResult = await deps.rpcUpdateResponse({
+      token: parsed.data,
+      answers: cleanAnswers,
+      identifier: response.identifier,
+    });
+
+    if (rpcResult.error) {
+      deps.logError(rpcResult.error.code ?? "RPC_ERROR", response.id);
+      return {
+        ok: false,
+        error: "Não foi possível salvar. Tente novamente.",
+      };
+    }
+
+    const status = rpcResult.data?.status;
+    if (status === "not_found") {
+      return {
+        ok: false,
+        error: "Inscrição não encontrada. Verifique se o link está correto.",
+      };
+    }
+    if (status === "closed") {
+      return {
+        ok: false,
+        error: "Este formulário não aceita mais alterações.",
+      };
+    }
+    if (status === "identifier_locked") {
+      const cpfQ = findIdentifierQuestion(questions);
+      return {
+        ok: false,
+        error: "O CPF não pode ser alterado.",
+        ...(cpfQ ? { field: cpfQ.id } : {}),
+      };
+    }
+    if (status !== "ok") {
+      deps.logError(status ?? "UNKNOWN_STATUS", response.id);
+      return {
+        ok: false,
+        error: "Não foi possível salvar. Tente novamente.",
+      };
+    }
+
+    // Envio condicional de e-mail de atualização (SEC-04)
+    let emailSent = false;
+    const now = deps.now ? deps.now() : Date.now();
+    if (shouldSendUpdateEmail(prevUpdatedAt, now)) {
+      const emailQ = findEmailQuestion(questions);
+      const recipientEmail = emailQ ? (cleanAnswers[emailQ.id] as string | undefined) : undefined;
+      const apiKey = deps.readEnv("RESEND_API_KEY");
+      const from = deps.readEnv("EMAIL_FROM");
+      const rawOrigin = deps.getOrigin();
+      const safeOrigin = getOrigin(rawOrigin);
+      const editUrl = `${safeOrigin}/editar/${parsed.data}`;
+
+      if (recipientEmail && isSafeRecipient(recipientEmail) && apiKey && from && editUrl) {
+        const emailContent = buildConfirmationEmail({
+          form: { title: form.title },
+          questions,
+          answers: cleanAnswers,
+          editUrl,
+          kind: "atualizada",
+        });
+
+        const timedFetch = createTimedFetch(deps.fetchFn, 5000);
+        try {
+          emailSent = await sendConfirmationEmail({
+            fetchFn: timedFetch,
+            apiKey,
+            from,
+            to: recipientEmail,
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text,
+          });
+        } catch {
+          emailSent = false;
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      emailSent,
+    };
+  } catch {
+    deps.logError("EXCEPTION", responseIdForLog);
+    return {
+      ok: false,
+      error: "Não foi possível salvar. Tente novamente.",
+    };
+  }
+}

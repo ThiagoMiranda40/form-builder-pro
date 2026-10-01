@@ -37,20 +37,14 @@ const answerValueSchema = z.union([
   z.array(z.string().max(10000, GENERIC_SUBMIT_ERROR)),
 ]);
 
-export const submitSchema = z
-  .object({
-    slug: z.string().min(1).max(120),
-    answers: z.record(answerValueSchema),
-    consent: z.boolean().optional().default(false),
-    hp: z.string().optional().default(""),
-  })
-  .superRefine((data, ctx) => {
-    const keys = Object.keys(data.answers);
+export const answersSchema = z
+  .record(answerValueSchema)
+  .superRefine((answers, ctx) => {
+    const keys = Object.keys(answers);
     if (keys.length > 200) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: GENERIC_SUBMIT_ERROR,
-        path: ["answers"],
       });
       return;
     }
@@ -59,21 +53,27 @@ export const submitSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: GENERIC_SUBMIT_ERROR,
-          path: ["answers", key],
+          path: [key],
         });
         return;
       }
     }
-    const serialized = JSON.stringify(data.answers);
+    const serialized = JSON.stringify(answers);
     if (serialized.length > 100 * 1024) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: GENERIC_SUBMIT_ERROR,
-        path: ["answers"],
       });
       return;
     }
   });
+
+export const submitSchema = z.object({
+  slug: z.string().min(1).max(120),
+  answers: answersSchema,
+  consent: z.boolean().optional().default(false),
+  hp: z.string().optional().default(""),
+});
 
 export type SubmitInput = z.infer<typeof submitSchema>;
 
