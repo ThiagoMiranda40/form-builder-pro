@@ -199,9 +199,13 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Descrição do formulário (crescimento automático, borda e contador):** No editor do formulário, digitar uma descrição com várias linhas: o campo cresce sozinho conforme o conteúdo (mínimo de 4 linhas, máximo de 24rem com rolagem), possui borda visível, anel de foco e exibe o contador "N/1000" abaixo à direita ligado por `aria-describedby`.
 - [ ] **Alerta de caracteres e limite máximo:** Digitar mais de 900 caracteres na descrição: o contador muda de cor para tom âmbar escuro (com contraste >= 4,5:1) e o campo impede ultrapassar 1000 caracteres (`maxLength={1000}`).
 - [ ] **Aba Limites e Termos:** O rótulo da aba deve ser exatamente "Limites e Termos" (classe `capitalize` removida, sem produzir "Limites E Termos"), contendo o campo de vagas, a data de encerramento e a caixa do texto de consentimento LGPD.
+- [ ] **Gráfico de respostas por dia no painel:** O gráfico exibe os últimos 7 dias; a barra de hoje mostra o número de respostas acima da barra (quando > 0), e os dias anteriores com 0 sem barra alta; o conjunto possui `role="img"` e `aria-label` com o resumo dos 7 dias.
+- [ ] **Atualização automática no painel:** As consultas do painel atualizam a cada 30 segundos sem recarregar a página inteira; perto do título é exibido "Atualizado às HH:mm" (fuso de São Paulo); o painel segue carregando normalmente.
+- [ ] **Atualização em tempo real (teste prático do painel):** Num formulário de teste, enviar uma inscrição pelo celular: em até cerca de 30 segundos o painel reflete a nova inscrição e o "Atualizado às HH:mm" avança sem recarregar.
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.
+- [ ] **Datas de respostas em dd/mm/aaaa:** Na tabela de respostas, perguntas com resposta de data (ex.: data de nascimento no formulário da SKF) são exibidas no formato dd/mm/aaaa por manipulação de texto.
 - [ ] **Coluna "Atualizado em":** Posicionada logo após "Enviado em", exibe a data e hora da alteração em pt-BR ou "—" quando a inscrição nunca foi editada.
 - [ ] **Selo de inscrição editada:** Linhas de inscrições retificadas exibem o selo textual *"Editada"* ao lado da data e fundo âmbar claro.
 - [ ] **Resumo de respostas, vagas, editadas e prazo:** Cabeçalho exibe `"{n} resposta(s)"` + (se houver limite) `" de {v} vagas"` + (se houver editadas) `" · {e} editada(s)"` + (se houver prazo) `" · prazo {data}"`.
@@ -212,7 +216,8 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Botão Excluir por linha:** Na coluna de Ações, ao lado de "Copiar link de edição", botão discreto "Excluir" em tom destrutivo (`text-destructive`).
 - [ ] **Diálogo de confirmação:** Ao clicar em "Excluir", abre o `AlertDialog` com título "Excluir esta inscrição?", corpo explicativo contendo nome e data de envio, foco inicial no botão "Cancelar" e tecla Esc para cancelar.
 - [ ] **Exclusão com sucesso:** Ao confirmar em "Excluir inscrição", a linha é removida da tabela, surge o toast "Inscrição excluída.", o resumo de vagas/respostas atualiza e o link de edição daquela inscrição passa a exibir "Inscrição não encontrada".
-- [ ] **Exportação Excel e PDF:** Clicar nos botões de exportar; os arquivos baixados devem conter todas as respostas preenchidas e com acentuação correta em português.
+- [ ] **Exportação Excel e PDF com datas formatadas:** Baixar o PDF e o Excel (ex.: formulário da SKF); a data de nascimento e outras perguntas de data saem formatadas em dd/mm/aaaa, com todas as respostas preenchidas e com acentuação correta em português.
+- [ ] **Atualização automática na tela de respostas:** A tela exibe "Atualizado às HH:mm" perto do título; ao enviar uma inscrição pelo celular num formulário de teste, em até cerca de 30 segundos a nova linha aparece na tabela sem recarregar a tela e o horário de atualização avança; o botão manual "Atualizar" continua operacional.
 - [ ] **Proteção de rota:** Sem login, o endereço de respostas leva a /auth e não mostra dados.
 
 ### 5.6 Tela de Entrada (`/auth`)

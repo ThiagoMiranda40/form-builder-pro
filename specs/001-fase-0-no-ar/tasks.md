@@ -435,6 +435,20 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) no formulário da 
 
 ---
 
+## T-22 — Datas em dd/mm/aaaa nos relatórios, gráfico por dia e atualização automática (M-17 e M-18)
+Depende de: T-21
+Arquivos: `src/lib/answer-format.ts`, `src/lib/answer-format.test.ts`, `src/lib/daily-counts.ts`, `src/lib/daily-counts.test.ts` (novos), `src/lib/exports.ts`, `src/lib/exports.test.ts`, `src/routes/_authenticated.painel.tsx`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`.
+Fazer (testes primeiro, vistos falhando):
+ 1. `answer-format.ts` exporta `formatAnswer(fieldType: string | undefined, value: string | string[] | undefined | null): string`: lista -> itens unidos por ", "; nulo/indefinido -> ""; quando `fieldType` for o tipo de data do projeto (confira o valor exato em `validators.ts`, provavelmente "date") e o valor casar com /^\d{4}-\d{2}-\d{2}$/ -> "dd/mm/aaaa" por MANIPULAÇÃO DE TEXTO (nunca `new Date`, para não mudar o dia por fuso); qualquer outro valor volta como veio. Testes: "1981-12-20" -> "20/12/1981"; "2026-10-02" -> "02/10/2026"; data inválida ("2026-13-45" pode passar como veio, "abc" volta igual); tipo de texto com valor parecido com data NÃO é convertido; lista; nulo; vazio.
+ 2. `exports.ts`: `ExportQuestion` ganha `field_type?: string`; `buildRows` usa `formatAnswer` (PDF e Excel herdam). Atualize os testes existentes e acrescente um com pergunta de data. A tela de respostas passa `field_type` das perguntas e também usa `formatAnswer` na tabela da tela. Nenhuma outra coluna muda.
+ 3. `daily-counts.ts` exporta `countByDay(dates: string[], days: number, now: Date): Array<{ label: string; total: number; dateText: string }>`, no fuso FIXO "America/Sao_Paulo" (use `Intl.DateTimeFormat` com `timeZone`, como em `availability.ts`; nunca o fuso do aparelho). Devolve `days` itens, do mais antigo ao de hoje; `label` = inicial do dia da semana ("D","S","T","Q","Q","S","S"); `dateText` = "dd/mm". Testes com `now` fixo: resposta às 23:30 de São Paulo (já é o dia seguinte em UTC) cai no dia certo; 7 itens; o último é hoje; datas fora da janela são ignoradas; lista vazia; soma dos totais.
+ 4. Painel (`_authenticated.painel.tsx`): o gráfico usa `countByDay(responses.map(r => r.submitted_at), 7, new Date())`. CONSERTE as barras: a coluna passa a `flex h-full flex-1 flex-col items-center justify-end gap-1` e a barra usa altura em pixels (`Math.max(4, Math.round((total / peak) * 80))` px, mantendo a opacidade atual); o total aparece acima de cada barra com `total > 0` (`text-[10px] font-medium text-slate-700`); o conjunto tem `role="img"` e `aria-label` com o resumo ("Respostas por dia nos últimos 7 dias: 26/09 0, ... 02/10 35"). Os quatro cards e o restante do painel NÃO mudam.
+ 5. Atualização automática: as duas consultas do painel (formulários e estatísticas) e a consulta da tela de respostas ganham `refetchInterval: 30_000` e `refetchIntervalInBackground: false`. Perto do título de cada uma dessas duas telas, mostre "Atualizado às HH:mm" (`text-xs text-slate-600`, fuso de São Paulo, a partir de `dataUpdatedAt`; sem `aria-live`). O botão "Atualizar" da tela de respostas continua.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run answer-format`; `... run daily-counts`; `... run exports`; `bun node_modules/vitest/vitest.mjs run` (os 255 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. As telas dependem do banco: diga no relatório que a conferência visual fica para a parte manual.
+Parte MANUAL (dono, no site publicado): (1) baixar o PDF e o Excel do formulário da SKF: a data de nascimento sai em dd/mm/aaaa; (2) a tela de respostas mostra a data no mesmo formato; (3) no painel, o gráfico mostra a barra de hoje com o número de respostas, e os dias anteriores com 0 sem barra alta; (4) num formulário de TESTE (apague depois), enviar uma inscrição pelo celular: em até cerca de 30 segundos o painel e a tela de respostas mudam SEM recarregar, e o "Atualizado às" avança; (5) o painel segue carregando normalmente.
+
+---
+
 
 ## Fluxo de execução recomendado
 

@@ -15,9 +15,10 @@
 5. [Tela D — Página de Respostas (Copiar Link de Edição)](#5-tela-d--página-de-respostas)
 6. [Tela E — Páginas legais (`/legal/termos-de-uso` e `/legal/politica-de-privacidade`)](#6-tela-e--páginas-legais)
 7. [Tela F — Tela de Entrada /auth (Acesso Único do Administrador)](#7-tela-f--tela-de-entrada-auth)
-8. [Padrões de Markup e Classes Reutilizadas](#8-padrões-de-markup-e-classes-reutilizadas)
-9. [Propostas de Mudança no spec / plan / tasks](#9-propostas-de-mudança-no-spec--plan--tasks)
-10. [Ideias para a Fase 1](#10-ideias-para-a-fase-1)
+8. [Tela G — Painel Principal /painel (Gráfico por Dia e Atualização Automática)](#8-tela-g--painel-principal-painel)
+9. [Padrões de Markup e Classes Reutilizadas](#9-padrões-de-markup-e-classes-reutilizadas)
+10. [Propostas de Mudança no spec / plan / tasks](#10-propostas-de-mudança-no-spec--plan--tasks)
+11. [Ideias para a Fase 1](#11-ideias-para-a-fase-1)
 
 ---
 
@@ -657,6 +658,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Ao Clicar em Excluir** | Abre o diálogo `AlertDialog` com título *"Excluir esta inscrição?"*, texto *"Isto apaga de vez as respostas de {nome} (enviada em {data}). O CPF e a vaga voltam a ficar livres e o link de edição deixa de funcionar. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* (Esc também cancela) e botão destrutivo *"Excluir inscrição"*. |
 | **Exclusão com Sucesso** | Toast disparado via Sonner: *"Inscrição excluída."* e recarrega a consulta. Se a última linha for excluída, a tabela passa a exibir o estado vazio. |
 | **Falha na Exclusão** | Caso a exclusão falhe ou o banco retorne 0 linhas: toast *"Não foi possível excluir. Tente novamente."*. O botão fica desabilitado durante o envio. |
+| **Formato de Datas nas Respostas** | Perguntas do tipo data (`field_type === "date"`) são exibidas na tabela no formato `dd/mm/aaaa` por manipulação direta de texto (evitando desvios de fuso horário). O mesmo formato é preservado nas exportações em Excel e PDF via `buildRows`. Nenhuma outra coluna é alterada. |
+| **Atualização Automática** | A consulta de respostas atualiza periodicamente a cada 30 segundos (`refetchInterval: 30_000`, `refetchIntervalInBackground: false`). Perto do título da tela, é exibido o texto *"Atualizado às HH:mm"* (`text-xs text-slate-600`, fuso de São Paulo, a partir de `dataUpdatedAt`, sem `aria-live`). O botão manual *"Atualizar"* continua disponível. |
 | **Erro de carga** | *"Não foi possível carregar as respostas."* e o botão *"Tentar de novo"*. |
 
 ### 5.4 Textos Exatos da Interface
@@ -676,6 +679,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Falha da exclusão:** "Não foi possível excluir. Tente novamente."
 - **Feedback de cópia:** "Link de edição copiado!"
 - **Falha ao copiar:** "Não foi possível copiar o link."
+- **Indicador de atualização periódica:** "Atualizado às " (seguido de HH:mm)
 - **Erro de carga:** "Não foi possível carregar as respostas."
 - **Botão de retry:** "Tentar de novo"
 - **Erro de exportação:** "Não foi possível exportar. Tente novamente."
@@ -797,7 +801,29 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 
 ---
 
-## 8. Padrões de Markup e Classes Reutilizadas
+## 8. Tela G — Painel Principal (`/painel`)
+
+### 8.1 Objetivo e Fluxo
+- **Objetivo:** Oferecer ao administrador uma visão consolidada de todos os formulários, métricas gerais de respostas e gráfico visual com as inscrições realizadas nos últimos 7 dias, mantendo as informações sempre frescas por meio de atualização periódica em segundo plano.
+- **Estrutura:** Mantém os quatro cards de métricas (Formulários, Inscrições totais, Publicados e Última resposta) e a lista de formulários sem alterações estruturais.
+- **Gráfico de Respostas por Dia (Últimos 7 Dias):**
+  - Alimenta-se da função pura `countByDay(responses.map(r => r.submitted_at), 7, new Date())` com datas agrupadas no fuso fixo "America/Sao_Paulo" (`timeZone: "America/Sao_Paulo"`), devolvendo 7 itens do mais antigo ao dia atual.
+  - Cada coluna é estruturada como `flex h-full flex-1 flex-col items-center justify-end gap-1`.
+  - Altura da barra calculada proporcionalmente ao pico dos últimos 7 dias: `Math.max(4, Math.round((total / peak) * 80))` px, preservando a opacidade visual existente.
+  - Exibição de valor numérico: acima de cada barra com `total > 0`, é exibido o número de inscrições (`text-[10px] font-medium text-slate-700`).
+  - Rótulos inferiores: inicial do dia da semana (`label`: "D", "S", "T", "Q", "Q", "S", "S") e data abreviada (`dateText`: "dd/mm") para identificação inequívoca.
+  - Acessibilidade: o bloco do gráfico possui `role="img"` e atributo `aria-label` textual detalhado descrevendo o resumo da série temporal (ex.: *"Respostas por dia nos últimos 7 dias: 26/09 0, 27/09 2, ... 02/10 35"*).
+- **Atualização Automática:**
+  - Ambas as consultas do painel (lista de formulários e estatísticas) possuem `refetchInterval: 30_000` (30 segundos) e `refetchIntervalInBackground: false`.
+  - Próximo ao título "Painel", é exibido o horário da última atualização: *"Atualizado às HH:mm"* (`text-xs text-slate-600`, fuso de Brasília/São Paulo, calculado a partir de `dataUpdatedAt`, sem `aria-live`).
+
+### 8.2 Textos Exatos da Interface
+- **Indicador de atualização periódica:** "Atualizado às " (seguido de HH:mm)
+- **Aria-label do gráfico:** "Respostas por dia nos últimos 7 dias: {resumo}"
+
+---
+
+## 9. Padrões de Markup e Classes Reutilizadas
 
 Não há dependência de novos componentes pesados de UI; o projeto reaproveita estritamente o vocabulário HTML e as classes utilitárias já existentes no repositório:
 
@@ -814,7 +840,7 @@ Não há dependência de novos componentes pesados de UI; o projeto reaproveita 
 
 ---
 
-## 9. Propostas de Mudança no spec / plan / tasks
+## 10. Propostas de Mudança no spec / plan / tasks
 
 As propostas discutidas e incorporadas na documentação oficial:
 1. **Rótulo da Aba no Editor:** Renomear o rótulo da aba existente de "Limites" para **"Limites e Termos"** (mantendo a chave interna `limites`), posicionando o campo de consentimento LGPD junto às configurações de encerramento e capacidade do formulário.
@@ -829,12 +855,13 @@ As propostas discutidas e incorporadas na documentação oficial:
 10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
 11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
 12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
+13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 
 ---
 
-## 10. Ideias para a Fase 1
+## 11. Ideias para a Fase 1
 
 Melhorias registradas para consideração futura:
 1. **Reenvio do link de edição pelo próprio inscrito:** Campo "Esqueci meu link de edição" onde o participante informa o CPF e o sistema reenvia o token ao e-mail cadastrado.
