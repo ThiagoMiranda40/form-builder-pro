@@ -1,6 +1,7 @@
+import { formatAnswer } from "./answer-format";
 import { slug } from "./slug";
 
-export type ExportQuestion = { id: string; label: string };
+export type ExportQuestion = { id: string; label: string; field_type?: string };
 export type ExportResponse = {
   submitted_at: string;
   answers: Record<string, string | string[]>;
@@ -15,7 +16,7 @@ export function buildRows(questions: ExportQuestion[], responses: ExportResponse
     fmtDate(r.submitted_at),
     ...questions.map((q) => {
       const v = r.answers?.[q.id];
-      return Array.isArray(v) ? v.join(", ") : (v ?? "");
+      return formatAnswer(q.field_type, v);
     }),
   ]);
   return { header, rows };

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
 import { isEdited, describeResponse } from "@/lib/responses-view";
+import { formatAnswer } from "@/lib/answer-format";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +16,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+function formatUpdatedAt(timestamp: number): string {
+  if (!timestamp) return "";
+  const d = new Date(timestamp);
+  const timeStr = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+  return `Atualizado às ${timeStr}`;
+}
 
 export const Route = createFileRoute("/_authenticated/formularios/$id_/respostas")({
   head: () => ({
@@ -44,10 +57,12 @@ function Respostas() {
 
   const query = useQuery({
     queryKey: ["respostas", id],
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const [formRes, questionsRes, responsesRes] = await Promise.all([
         supabase.from("forms").select("title,max_responses,closes_at").eq("id", id).single(),
-        supabase.from("questions").select("id,label").eq("form_id", id).order("position"),
+        supabase.from("questions").select("id,label,field_type").eq("form_id", id).order("position"),
         supabase
           .from("responses")
           .select("id,answers,submitted_at,updated_at,edit_token")
@@ -60,7 +75,7 @@ function Respostas() {
 
       return {
         form: formRes.data as { title: string; max_responses: number | null; closes_at: string | null },
-        questions: (questionsRes.data ?? []) as { id: string; label: string }[],
+        questions: (questionsRes.data ?? []) as { id: string; label: string; field_type?: string }[],
         responses: (responsesRes.data ?? []) as {
           id: string;
           answers: Record<string, string | string[]>;
@@ -74,7 +89,7 @@ function Respostas() {
 
   const handleExportExcel = async (
     title: string,
-    questions: { id: string; label: string }[],
+    questions: { id: string; label: string; field_type?: string }[],
     responses: { answers: Record<string, string | string[]>; submitted_at: string }[],
   ) => {
     try {
@@ -90,7 +105,7 @@ function Respostas() {
 
   const handleExportPDF = async (
     title: string,
-    questions: { id: string; label: string }[],
+    questions: { id: string; label: string; field_type?: string }[],
     responses: { answers: Record<string, string | string[]>; submitted_at: string }[],
   ) => {
     try {
@@ -180,8 +195,12 @@ function Respostas() {
     ? responses.filter((r) => isEdited(r.submitted_at, r.updated_at))
     : responses;
 
-  const cell = (value: string | string[] | undefined) =>
-    Array.isArray(value) ? value.join(", ") : (value ?? "—");
+  const updatedAtText = formatUpdatedAt(query.dataUpdatedAt);
+
+  const cell = (fieldType: string | undefined, value: string | string[] | undefined) => {
+    const formatted = formatAnswer(fieldType, value);
+    return formatted === "" ? "—" : formatted;
+  };
 
   return (
     <section className="rise space-y-4">
@@ -194,7 +213,12 @@ function Respostas() {
           >
             ← Editor
           </Link>
-          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
+          <div className="mt-1 flex flex-wrap items-baseline gap-3">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
+            {updatedAtText && (
+              <span className="text-xs text-slate-600">{updatedAtText}</span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             {responses.length} resposta(s)
             {form.max_responses ? ` de ${form.max_responses} vagas` : ""}
@@ -205,6 +229,13 @@ function Respostas() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => query.refetch()}
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white"
+          >
+            Atualizar
+          </button>
           {editedCount > 0 && (
             <button
               type="button"
@@ -298,7 +329,7 @@ function Respostas() {
                       </td>
                       {questions.map((q) => (
                         <td key={q.id} className="px-4 py-3">
-                          {cell(r.answers?.[q.id])}
+                          {cell(q.field_type, r.answers?.[q.id])}
                         </td>
                       ))}
                       <td className="px-4 py-3 whitespace-nowrap">

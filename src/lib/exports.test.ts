@@ -95,4 +95,25 @@ describe("buildRows (T-12 / Item 6)", () => {
     expect(row[3]).toBe("Caminhada de 3 km & Corrida");
     expect(row[4]).toBe("Atenção: alérgico a crustáceos / inscrição de São Paulo - SP");
   });
+
+  it("pergunta do tipo data (date) tem a resposta convertida para dd/mm/aaaa", () => {
+    const questionsWithDate: ExportQuestion[] = [
+      { id: "q-nome", label: "Nome", field_type: "short_text" },
+      { id: "q-nasc", label: "Data de Nascimento", field_type: "date" },
+    ];
+    const responses: ExportResponse[] = [
+      {
+        submitted_at: "2026-10-01T10:00:00.000Z",
+        answers: {
+          "q-nome": "Ana Paula",
+          "q-nasc": "1981-12-20",
+        },
+      },
+    ];
+
+    const { rows } = buildRows(questionsWithDate, responses);
+    const row = rows[0]!;
+    expect(row[1]).toBe("Ana Paula");
+    expect(row[2]).toBe("20/12/1981");
+  });
 });

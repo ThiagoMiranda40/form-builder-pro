@@ -4,6 +4,19 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { suggestSlug } from "@/lib/slug";
+import { countByDay } from "@/lib/daily-counts";
+
+function formatUpdatedAt(timestamp: number): string {
+  if (!timestamp) return "";
+  const d = new Date(timestamp);
+  const timeStr = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+  return `Atualizado às ${timeStr}`;
+}
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -38,6 +51,8 @@ function Painel() {
 
   const formsQuery = useQuery({
     queryKey: ["forms"],
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("forms")
@@ -50,6 +65,8 @@ function Painel() {
 
   const statsQuery = useQuery({
     queryKey: ["form-stats"],
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("responses")
@@ -109,20 +126,15 @@ function Painel() {
       new Date(f.closes_at).getTime() < Date.now() + 3 * 864e5,
   ).length;
 
-  const perDay = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date();
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - i));
-    const next = new Date(day.getTime() + 864e5);
-    return {
-      label: ["D", "S", "T", "Q", "Q", "S", "S"][day.getDay()]!,
-      total: responses.filter((r) => {
-        const t = new Date(r.submitted_at).getTime();
-        return t >= day.getTime() && t < next.getTime();
-      }).length,
-    };
-  });
+  const perDay = countByDay(
+    responses.map((r) => r.submitted_at),
+    7,
+    new Date(),
+  );
   const peak = Math.max(1, ...perDay.map((d) => d.total));
+  const chartSummary = `Respostas por dia nos últimos 7 dias: ${perDay.map((d) => `${d.dateText} ${d.total}`).join(", ")}`;
+  const latestUpdatedAt = Math.max(formsQuery.dataUpdatedAt || 0, statsQuery.dataUpdatedAt || 0);
+  const updatedAtText = formatUpdatedAt(latestUpdatedAt);
 
   return (
     <section className="rise">
@@ -131,9 +143,14 @@ function Painel() {
           <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
             Painel do administrador
           </p>
-          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-            Formulários de inscrição
-          </h1>
+          <div className="mt-1 flex flex-wrap items-baseline gap-3">
+            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+              Formulários de inscrição
+            </h1>
+            {updatedAtText && (
+              <span className="text-xs text-slate-600">{updatedAtText}</span>
+            )}
+          </div>
         </div>
         <button
           onClick={() => createForm.mutate()}
@@ -225,12 +242,22 @@ function Painel() {
 
         <div className="glass rounded-2xl p-5">
           <h2 className="mb-4 font-display text-base font-semibold">Respostas por dia</h2>
-          <div className="flex h-32 items-end gap-2">
+          <div
+            role="img"
+            aria-label={chartSummary}
+            className="flex h-32 items-end gap-2"
+          >
             {perDay.map((d, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                {d.total > 0 && (
+                  <span className="text-[10px] font-medium text-slate-700">{d.total}</span>
+                )}
                 <div
                   className="w-full rounded-t-md bg-brand"
-                  style={{ height: `${Math.max(6, (d.total / peak) * 100)}%`, opacity: 0.35 + (d.total / peak) * 0.65 }}
+                  style={{
+                    height: `${Math.max(4, Math.round((d.total / peak) * 80))}px`,
+                    opacity: 0.35 + (d.total / peak) * 0.65,
+                  }}
                 />
                 <span className="text-[10px] text-muted-foreground">{d.label}</span>
               </div>
