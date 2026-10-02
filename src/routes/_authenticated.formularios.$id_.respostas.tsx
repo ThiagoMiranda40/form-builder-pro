@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AdminEditResponseDialog } from "@/components/AdminEditResponseDialog";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -48,6 +49,11 @@ function Respostas() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id_/respostas" });
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
   const [onlyEdited, setOnlyEdited] = useState(false);
+  const [responseToEdit, setResponseToEdit] = useState<{
+    id: string;
+    answers: Record<string, string | string[]>;
+    identifier?: string | null;
+  } | null>(null);
   const [responseToDelete, setResponseToDelete] = useState<{
     id: string;
     answers: Record<string, string | string[]>;
@@ -62,10 +68,14 @@ function Respostas() {
     queryFn: async () => {
       const [formRes, questionsRes, responsesRes] = await Promise.all([
         supabase.from("forms").select("title,max_responses,closes_at").eq("id", id).single(),
-        supabase.from("questions").select("id,label,field_type").eq("form_id", id).order("position"),
+        supabase
+          .from("questions")
+          .select("id,label,field_type,required,options,help_text")
+          .eq("form_id", id)
+          .order("position"),
         supabase
           .from("responses")
-          .select("id,answers,submitted_at,updated_at,edit_token")
+          .select("id,answers,submitted_at,updated_at,edit_token,identifier")
           .eq("form_id", id)
           .order("submitted_at", { ascending: false }),
       ]);
@@ -75,13 +85,21 @@ function Respostas() {
 
       return {
         form: formRes.data as { title: string; max_responses: number | null; closes_at: string | null },
-        questions: (questionsRes.data ?? []) as { id: string; label: string; field_type?: string }[],
+        questions: (questionsRes.data ?? []) as {
+          id: string;
+          label: string;
+          field_type?: string;
+          required?: boolean;
+          options?: string[];
+          help_text?: string | null;
+        }[],
         responses: (responsesRes.data ?? []) as {
           id: string;
           answers: Record<string, string | string[]>;
           submitted_at: string;
           updated_at: string | null;
           edit_token: string;
+          identifier?: string | null;
         }[],
       };
     },
@@ -334,6 +352,27 @@ function Respostas() {
                       ))}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
+                          {(() => {
+                            const nameQ = questions.find(
+                              (q) => q.field_type === "name" || /nome/i.test(q.label),
+                            );
+                            const nome =
+                              nameQ &&
+                              typeof r.answers?.[nameQ.id] === "string" &&
+                              (r.answers[nameQ.id] as string).trim()
+                                ? (r.answers[nameQ.id] as string).trim()
+                                : describeResponse(questions, r.answers);
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setResponseToEdit(r)}
+                                aria-label={`Editar inscrição de ${nome}`}
+                                className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
+                              >
+                                Editar
+                              </button>
+                            );
+                          })()}
                           <button
                             type="button"
                             onClick={() => handleCopyEditLink(r.edit_token)}
@@ -404,6 +443,20 @@ function Respostas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminEditResponseDialog
+        open={responseToEdit !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResponseToEdit(null);
+          }
+        }}
+        response={responseToEdit}
+        questions={questions}
+        onSuccess={() => {
+          query.refetch();
+        }}
+      />
     </section>
   );
 }
