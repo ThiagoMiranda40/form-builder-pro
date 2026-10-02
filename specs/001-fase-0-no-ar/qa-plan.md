@@ -218,6 +218,13 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Exclusão com sucesso:** Ao confirmar em "Excluir inscrição", a linha é removida da tabela, surge o toast "Inscrição excluída.", o resumo de vagas/respostas atualiza e o link de edição daquela inscrição passa a exibir "Inscrição não encontrada".
 - [ ] **Exportação Excel e PDF com datas formatadas:** Baixar o PDF e o Excel (ex.: formulário da SKF); a data de nascimento e outras perguntas de data saem formatadas em dd/mm/aaaa, com todas as respostas preenchidas e com acentuação correta em português.
 - [ ] **Atualização automática na tela de respostas:** A tela exibe "Atualizado às HH:mm" perto do título; ao enviar uma inscrição pelo celular num formulário de teste, em até cerca de 30 segundos a nova linha aparece na tabela sem recarregar a tela e o horário de atualização avança; o botão manual "Atualizar" continua operacional.
+- [ ] **Edição de inscrição pelo painel:** Na tabela de respostas, clicar em "Editar" abre o diálogo com os campos preenchidos; trocar um dado (ex.: a distância) e salvar: a tabela mostra o novo valor imediatamente e o selo "Editada".
+- [ ] **CPF bloqueado na edição pelo admin:** No diálogo de edição, o CPF aparece bloqueado (`readOnly`) com a nota "O CPF não pode ser alterado.".
+- [ ] **Alerta de e-mail alterado e envio de confirmação:** No diálogo, trocar o e-mail da inscrição: ao salvar, surge a pergunta "O e-mail foi alterado. Enviar o e-mail de confirmação com o link de edição para {novo e-mail}?" com "Enviar agora" e "Agora não"; clicando em "Enviar agora", o e-mail chega na caixa de entrada, o link abre a página de edição e ela funciona.
+- [ ] **Reenviar e-mail com o link de edição:** No diálogo, o botão secundário "Reenviar e-mail com o link de edição" pede confirmação exibindo o endereço de destino completo; ao confirmar, o e-mail é enviado pelo Resend e o botão é desativado por 60 segundos.
+- [ ] **Edição em formulário encerrado:** Encerrar o formulário de teste e editar uma inscrição novamente pelo painel: a edição salva normalmente (o dono pode retificar mesmo após encerramento).
+- [ ] **Reflexo nas exportações:** Após editar a inscrição pelo painel, exportar a planilha Excel: o arquivo baixado reflete os novos valores atualizados.
+- [ ] **Segurança de autorização (dono):** Usuário autenticado que não é dono do formulário não consegue editar respostas nem disparar o reenvio de e-mail (retorna erro genérico de não encontrado sem revelar a existência).
 - [ ] **Proteção de rota:** Sem login, o endereço de respostas leva a /auth e não mostra dados.
 
 ### 5.6 Tela de Entrada (`/auth`)

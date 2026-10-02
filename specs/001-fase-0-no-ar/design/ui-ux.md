@@ -656,6 +656,11 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Feedback** | Toast disparado via Sonner: *"Link de edição copiado!"*. |
 | **Falha ao copiar** | Toast disparado via Sonner: *"Não foi possível copiar o link."*. |
 | **Ao Clicar em Excluir** | Abre o diálogo `AlertDialog` com título *"Excluir esta inscrição?"*, texto *"Isto apaga de vez as respostas de {nome} (enviada em {data}). O CPF e a vaga voltam a ficar livres e o link de edição deixa de funcionar. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* (Esc também cancela) e botão destrutivo *"Excluir inscrição"*. |
+| **Ao Clicar em Editar** | Na coluna de Ações, o botão *"Editar"* possui nome acessível `aria-label="Editar inscrição de {nome}"` (usando a resposta da pergunta de nome, se houver). Ao clicar, abre o diálogo `AdminEditResponseDialog` (`Dialog` de `src/components/ui/dialog.tsx`) com título *"Editar inscrição"* e descrição *"Altere as respostas da inscrição. O CPF não pode ser modificado."*. Os campos são renderizados com `QuestionField` preenchidos com os valores atuais. O campo de CPF é bloqueado como `readOnly` com ícone de cadeado e a nota *"O CPF não pode ser alterado."* (mesmo padrão da página de edição). |
+| **Ações do Diálogo de Edição** | Botões *"Salvar alterações"* e *"Cancelar"*. Durante o salvamento, todos os campos e botões ficam desabilitados e o botão exibe *"Salvando..."*. Foco e tecla Esc funcionam normalmente. Erros de validação (campos obrigatórios, e-mail inválido, etc.) aparecem junto ao campo. |
+| **Sucesso da Edição** | Toast *"Inscrição atualizada."*, a tabela de respostas é recarregada e a linha correspondente passa a exibir o selo *"Editada"*. |
+| **Aviso de E-mail Alterado** | Se a resposta da pergunta de e-mail foi alterada, o diálogo apresenta o alerta: *"O e-mail foi alterado. Enviar o e-mail de confirmação com o link de edição para {novo e-mail}?"* com os botões *"Enviar agora"* e *"Agora não"*. |
+| **Reenviar E-mail com Link de Edição** | Dentro do diálogo, há sempre o botão secundário *"Reenviar e-mail com o link de edição"*. Ao clicar, exibe confirmação com o endereço completo: *"Deseja reenviar o e-mail com o link de edição para {e-mail}?"* com os botões *"Reenviar e-mail"* e *"Cancelar"*. Ao confirmar, envia o e-mail pelo Resend, exibe toast *"E-mail com o link de edição enviado."* e desativa o botão por 60 segundos após cada clique. |
 | **Exclusão com Sucesso** | Toast disparado via Sonner: *"Inscrição excluída."* e recarrega a consulta. Se a última linha for excluída, a tabela passa a exibir o estado vazio. |
 | **Falha na Exclusão** | Caso a exclusão falhe ou o banco retorne 0 linhas: toast *"Não foi possível excluir. Tente novamente."*. O botão fica desabilitado durante o envio. |
 | **Formato de Datas nas Respostas** | Perguntas do tipo data (`field_type === "date"`) são exibidas na tabela no formato `dd/mm/aaaa` por manipulação direta de texto (evitando desvios de fuso horário). O mesmo formato é preservado nas exportações em Excel e PDF via `buildRows`. Nenhuma outra coluna é alterada. |
@@ -677,6 +682,22 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Botão confirmar exclusão:** "Excluir inscrição"
 - **Sucesso da exclusão:** "Inscrição excluída."
 - **Falha da exclusão:** "Não foi possível excluir. Tente novamente."
+- **Texto do botão editar:** "Editar"
+- **Aria-label do botão editar:** "Editar inscrição de " (seguido do nome)
+- **Título do diálogo de edição:** "Editar inscrição"
+- **Descrição do diálogo de edição:** "Altere as respostas da inscrição. O CPF não pode ser modificado."
+- **Aviso de CPF bloqueado na edição:** "O CPF não pode ser alterado."
+- **Botão salvar alterações:** "Salvar alterações"
+- **Botão salvando alterações:** "Salvando..."
+- **Sucesso da edição pelo admin:** "Inscrição atualizada."
+- **Aviso de e-mail alterado:** "O e-mail foi alterado. Enviar o e-mail de confirmação com o link de edição para {novo e-mail}?"
+- **Botão enviar agora:** "Enviar agora"
+- **Botão agora não:** "Agora não"
+- **Botão reenviar e-mail:** "Reenviar e-mail com o link de edição"
+- **Confirmação de reenvio:** "Deseja reenviar o e-mail com o link de edição para {e-mail}?"
+- **Botão confirmar reenvio:** "Reenviar e-mail"
+- **Sucesso do reenvio:** "E-mail com o link de edição enviado."
+- **Falha no reenvio:** "Não foi possível enviar o e-mail. Tente novamente."
 - **Feedback de cópia:** "Link de edição copiado!"
 - **Falha ao copiar:** "Não foi possível copiar o link."
 - **Indicador de atualização periódica:** "Atualizado às " (seguido de HH:mm)
@@ -856,6 +877,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
 12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
 13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
+14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 
