@@ -480,10 +480,23 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) no editor do formu
 
 ---
 
+## T-24b — Campo Data de nascimento no formulário público (correção da T-24)
+Depende de: T-24
+Problema: o formulário público (`src/routes/$slug.tsx`) NÃO usa `QuestionField`; ele desenha os campos por conta própria (o último ramo `<input>` escolhe `type` com `type === "date" ? "date" : ... : "text"`). Por isso o tipo "birthdate" aparece lá como caixa de texto simples, sem seletor de data, sem `min`/`max` e sem `autoComplete`, e quem digitar dd/mm/aaaa é recusado pelo servidor.
+Arquivos: `src/lib/birthdate.ts`, `src/lib/birthdate.test.ts`, `src/routes/$slug.tsx` (SOMENTE o ramo `<input>` genérico e, se necessário, a chamada de validação do campo).
+Fazer (testes primeiro, vistos falhando):
+ 1. `birthdate.ts` exporta `dateInputAttrs(fieldType: string, now: Date): { type: "date"; min?: string; max?: string; autoComplete?: string } | null`: devolve null para qualquer tipo diferente de "date" e "birthdate"; para "date" devolve `{ type: "date" }`; para "birthdate" devolve `{ type: "date", min, max, autoComplete: "bday" }` com `min`/`max` de `birthdateBounds(now)`. Testes: tipos "text", "email", "cpf" -> null; "date" -> só `type`; "birthdate" nos dois horários de teste já usados em `birthdate.test.ts` (max = ontem em São Paulo, min = "1900-01-01", `autoComplete` = "bday").
+ 2. `$slug.tsx`: no ramo `<input>` genérico, quando `dateInputAttrs(type, new Date())` não for null, use esses atributos (`type`, `min`, `max`, `autoComplete`); todo o restante do campo (id, valor, `onChange`, `aria-*`, classes, máscaras de CPF e telefone, sugestão de e-mail, confirmação de e-mail) fica IGUAL. Confirme, lendo o código, que a validação do campo antes do envio chama `validateAnswer` com o `field_type` da pergunta (e portanto aplica a regra do "birthdate" no navegador); se NÃO chamar, corrija somente isso. Rode `git grep -n '"date"\|"birthdate"' -- src` (fora de testes) e cole no relatório a lista COMPLETA, dizendo para cada ponto se trata os dois tipos.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run birthdate`; suíte completa (os 307 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. A tela depende do banco: diga no relatório que a conferência visual fica para a parte manual.
+Parte MANUAL (dono, no site publicado, depois do deploy, PRIMEIRO num formulário de TESTE): (1) criar um formulário de teste com uma pergunta do tipo "Data de nascimento"; (2) abrir o link público: o campo mostra o seletor de data, e o seletor não deixa escolher hoje nem datas futuras; (3) enviar uma inscrição de teste com data válida: funciona; (4) só depois, no formulário da SKF, trocar o tipo da pergunta "Data de Nascimento" para "Data de nascimento" e conferir o seletor no link público; (5) apagar o formulário de teste.
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.
 2. Executar **uma task por vez**, rodando a verificação antes de seguir. Não misturar tasks.
 3. **Padrão Writer/Reviewer** nas tasks sensíveis (T-04, T-08, T-09, T-11): uma segunda sessão, em contexto limpo, revisa só o diff contra `plan.md` e `spec.md`, reportando apenas lacunas de corretude ou de requisito (não estilo).
 4. Ao final, rodar os cenários-chave do `spec.md`.
+
 

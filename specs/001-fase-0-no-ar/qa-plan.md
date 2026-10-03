@@ -160,8 +160,10 @@ Esta seção identifica exatamente **o que ainda não estava coberto** nos teste
 | **TC-DATE-04** | Data de nascimento anterior a 1900-01-01 (ex.: 1899-12-31) | Recusada: "Data de nascimento inválida." | Impede anos irreais ou erros de digitação grosseiros. |
 | **TC-DATE-05** | Data inexistente no calendário (ex.: 2026-02-30 ou 2026-13-01) | Recusada: "Data de nascimento inválida." (ou "Data inválida." no tipo date) | Valida calendário real por ida e volta em UTC. |
 | **TC-DATE-06** | Data de nascimento de hoje ou futura enviada diretamente ao servidor | Recusada no navegador e no servidor com a mesma mensagem | Regra de negócio "data de nascimento de hoje ou futura é recusada no navegador e no servidor" aplicada estritamente. |
+| **TC-DATE-07** | Pergunta do tipo Data de nascimento no formulário público | O formulário público desenha o tipo Data de nascimento com seletor e limites (`type="date"`, `min="1900-01-01"`, `max` no dia anterior a hoje em São Paulo e `autoComplete="bday"`) | Garante que o formulário público desenha o tipo Data de nascimento com seletor e limites no navegador. |
 
 ---
+
 
 ## 5. Roteiro de Teste Exploratório por Tela
 
@@ -188,7 +190,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Data de nascimento no formulário público:** O seletor não deixa escolher hoje nem datas futuras (`max` fixado no dia anterior a hoje em São Paulo).
 - [ ] **Tentativa de envio de data de nascimento de hoje ou futura:** Recusada no navegador e no servidor com *"Informe uma data de nascimento válida: não pode ser hoje nem uma data futura."*.
 - [ ] **Envio com data de nascimento válida:** Enviar uma inscrição de teste com data válida: concluída com sucesso, e o e-mail de confirmação recebido mostra a data em dd/mm/aaaa.
+- [ ] **Procedimento manual de teste em formulário de teste (T-24b):** (1) criar um formulário de teste com uma pergunta do tipo "Data de nascimento"; (2) abrir o link público: o campo mostra o seletor de data, e o seletor não deixa escolher hoje nem datas futuras; (3) enviar uma inscrição de teste com data válida: funciona; (4) só depois, no formulário da SKF, trocar o tipo da pergunta "Data de Nascimento" para "Data de nascimento" e conferir o seletor no link público; (5) apagar o formulário de teste.
 - [ ] **Rodapé de documentos legais:** Abaixo do cartão do formulário (em todos os estados: aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"*, ambos abrindo em nova aba com texto para leitor de tela.
+
 
 
 ### 5.2 Tela de Sucesso da Inscrição
