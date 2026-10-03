@@ -93,6 +93,15 @@ Ordem:
 
 Regra: cadastrar como **Segredo**, não como variável de build (variáveis de build somem a cada deploy). Deploy: Workers Builds (Git) com build `bun run build` e deploy `npx wrangler deploy` (deve usar o `.wrangler/deploy/config.json` gerado; **validar em T-03**; alternativa: `npx nitro deploy --prebuilt`). Domínio: "Domínio Personalizado" do Worker no painel (o DNS do domínio precisa estar na Cloudflare).
 
+#### Prévias da Cloudflare (Worker Previews)
+
+Nas branches que não são de produção, a Cloudflare executa `bun run build` seguido de `npx wrangler preview`. Detalhes e requisitos da arquitetura:
+- **Segredos e variáveis:** O ambiente de prévia do Worker Previews **NÃO herda segredos nem variáveis da produção**. Os 5 segredos necessários (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`) devem ser cadastrados na aba Base de Prévias da Cloudflare.
+- **Pré-requisitos técnicos:**
+  1. Wrangler versão `4.135.0` ou mais recente instalado como dependência do projeto (`devDependencies`), garantindo que comandos executem a versão do projeto e não dependam de instalação global da máquina de build.
+  2. O arquivo de configuração do Worker (`.output/server/wrangler.json`, gerado pelo Nitro durante o build) deve conter obrigatoriamente a chave `"previews": {}`. Caso o Nitro/TanStack Start não suporte inserção direta via configuração, a chave é injetada via script de pós-build (`scripts/add-previews-block.mjs`), acionado transparentemente por `bun run build`.
+- **Formato do endereço da prévia:** `<nome-da-branch>-form-builder-pro.triadetecnologiaesolucoes.workers.dev` (ex.: `spec-001-fase-0-no-ar-form-builder-pro.triadetecnologiaesolucoes.workers.dev`).
+
 ### Decisões de segurança
 
 - **Proteção do link de edição:** A rota `/editar/$token` inclui as meta tags `referrer: "no-referrer"` e `robots: "noindex, nofollow"`, impedindo que o token na URL vaze em requisições a imagens/links externos (ex.: logotipo do tema configurado pelo organizador) ou seja indexado por motores de busca.

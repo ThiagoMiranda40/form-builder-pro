@@ -538,6 +538,18 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) no celular em pé,
 
 ---
 
+## T-36 — Preparar o projeto para as Prévias da Cloudflare (Worker Previews)
+Contexto: nas branches que não são de produção, a Cloudflare passou a rodar `bun run build` seguido de `npx wrangler preview`. Requisitos oficiais: (1) Wrangler 4.135.0 ou mais novo como DEPENDÊNCIA DO PROJETO (comandos do projeto não usam instalação global); (2) o arquivo de configuração do Wrangler precisa de um bloco `previews`, que pode ser vazio. A nossa configuração é GERADA pelo Nitro em `.output/server/wrangler.json` durante `bun run build` (apontada por `.wrangler/deploy/config.json`) e hoje não tem esse bloco; `package.json` não lista o `wrangler`.
+Arquivos: `package.json`, `bun.lock` (gerado), `vite.config.ts`, e, SOMENTE se a opção por script abaixo for necessária, `scripts/add-previews-block.mjs` e `scripts/add-previews-block.test.ts` (novos). NÃO altere código do aplicativo (`src/`).
+Fazer:
+ 1. Acrescente o Wrangler como dependência de desenvolvimento: `bun add -d wrangler@^4.135.0`. Registre no relatório a versão instalada.
+ 2. Faça `bun run build` produzir `"previews": {}` em `.output/server/wrangler.json`. PRIMEIRO investigue, só lendo `node_modules/@lovable.dev/vite-tanstack-config` e a documentação do Nitro instalada, se existe uma opção suportada para acrescentar chaves à configuração do Wrangler gerada (por exemplo `nitro.cloudflare.wrangler`). Se existir, use-a em `vite.config.ts` (o arquivo avisa para não duplicar plugins: passe só a opção). Se NÃO existir, crie `scripts/add-previews-block.mjs`, que lê `.output/server/wrangler.json`, acrescenta `"previews": {}` SE ainda não existir, preserva todo o resto e grava de volta, com a lógica numa função pura exportada `addPreviewsBlock(config)`; mude o script `build` do `package.json` para `vite build && node scripts/add-previews-block.mjs`. Testes (testes primeiro, vistos falhando) de `addPreviewsBlock`: acrescenta o bloco; não duplica nem altera um bloco existente; preserva `name`, `main`, `assets`, `compatibility_flags`, `no_bundle` e `rules`; não altera o objeto original. Nos dois casos, o comando `bun run build` (o mesmo que a Cloudflare usa) precisa produzir o bloco.
+ 3. Validação local, SEM credenciais e SEM acesso à Cloudflare: `bun run build`; `cat .output/server/wrangler.json` mostra `"previews": {}` e as chaves anteriores intactas; `npx wrangler --version` mostra 4.135.0 ou maior; `npx wrangler deploy --dry-run --outdir <pasta temporária fora do repositório>` termina sem erro e sem aviso sobre o bloco `previews` (cole a saída). NÃO rode deploy nem preview de verdade.
+Verificação (agente): suíte completa (os 338 testes anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun run build`.
+Parte MANUAL (dono, na Cloudflare, depois que os builds voltarem): (1) na aba Base de Prévias, comando da build `bun run build` e os 5 segredos cadastrados; (2) o push desta branch gera a primeira prévia: abrir o endereço da prévia, conferir `/saude` (deve responder `{"ok":true,"db":true}`) e o login; (3) se o build de prévia falhar, baixar o log e enviar para análise.
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.
