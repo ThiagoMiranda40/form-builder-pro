@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/add-previews-block.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "test": "vitest run",
@@ -92,6 +92,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "8.1.5",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.2",
+    "wrangler": "^4.135.0"
   }
 }
