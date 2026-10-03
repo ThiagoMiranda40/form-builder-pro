@@ -20,13 +20,14 @@ export function formatAnswer(
 
   const strValue = String(value);
 
-  if (fieldType === "date") {
+  if (fieldType === "date" || fieldType === "birthdate") {
     const match = strValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (match) {
       const [, year, month, day] = match;
       return `${day}/${month}/${year}`;
     }
   }
+
 
   return strValue;
 }

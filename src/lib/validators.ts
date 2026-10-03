@@ -1,3 +1,5 @@
+import { isValidIsoDate, validateBirthdate } from "./birthdate";
+
 export type FieldType =
   | "short_text"
   | "long_text"
@@ -7,6 +9,7 @@ export type FieldType =
   | "cpf"
   | "rg"
   | "date"
+  | "birthdate"
   | "single_choice"
   | "multi_choice";
 
@@ -19,9 +22,11 @@ export const FIELD_TYPES: { value: FieldType; label: string; hint: string }[] = 
   { value: "cpf", label: "CPF", hint: "Com validação de dígitos" },
   { value: "rg", label: "RG", hint: "Documento de identidade" },
   { value: "date", label: "Data", hint: "Seleção de data" },
+  { value: "birthdate", label: "Data de nascimento", hint: "Não aceita hoje nem datas futuras" },
   { value: "single_choice", label: "Escolha única", hint: "Uma opção da lista" },
   { value: "multi_choice", label: "Múltipla escolha", hint: "Várias opções" },
 ];
+
 
 export function fieldTypeLabel(type: string) {
   return FIELD_TYPES.find((f) => f.value === type)?.label ?? "Texto curto";
@@ -96,6 +101,7 @@ export function validateAnswer(
   type: string,
   required: boolean,
   raw: unknown,
+  now: Date = new Date(),
 ): string | null {
   const isEmpty =
     raw === undefined ||
@@ -108,6 +114,10 @@ export function validateAnswer(
   const value = Array.isArray(raw) ? raw.join(", ") : String(raw);
 
   switch (type) {
+    case "birthdate":
+      return validateBirthdate(value, now);
+    case "date":
+      return isValidIsoDate(value) ? null : "Data inválida.";
     case "cpf":
       return isValidCPF(value) ? null : "CPF inválido — confira os números.";
     case "rg":
@@ -122,3 +132,4 @@ export function validateAnswer(
       return value.length > 5000 ? "Resposta muito longa." : null;
   }
 }
+

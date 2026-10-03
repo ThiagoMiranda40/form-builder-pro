@@ -101,7 +101,41 @@ describe("confirmation-email (T-08)", () => {
       expect(email.html).toContain("Suas respostas foram atualizadas.");
       expect(email.text).toContain("Suas respostas foram atualizadas.");
     });
+
+    it("deve formatar perguntas do tipo date e birthdate em dd/mm/aaaa no texto e HTML com CPF mascarado (T-24)", () => {
+      const email = buildConfirmationEmail({
+        form: { title: "Corrida SKF" },
+        questions: [
+          { id: "q_cpf", label: "CPF", field_type: "cpf", position: 1 },
+          { id: "q_nasc", label: "Data de Nascimento", field_type: "birthdate", position: 2 },
+          { id: "q_data", label: "Data da Prova", type: "date", position: 3 },
+        ],
+        answers: {
+          q_cpf: "529.982.247-25",
+          q_nasc: "1981-12-20",
+          q_data: "2026-10-02",
+        },
+        editUrl: "https://triade.app.br/editar/token123",
+      });
+
+      // CPF segue mascarado
+      expect(email.html).toContain("***.***.***-25");
+      expect(email.text).toContain("***.***.***-25");
+      expect(email.html).not.toContain("529.982.247-25");
+
+      // Datas formatadas em dd/mm/aaaa
+      expect(email.html).toContain("20/12/1981");
+      expect(email.text).toContain("20/12/1981");
+      expect(email.html).not.toContain("1981-12-20");
+      expect(email.text).not.toContain("1981-12-20");
+
+      expect(email.html).toContain("02/10/2026");
+      expect(email.text).toContain("02/10/2026");
+      expect(email.html).not.toContain("2026-10-02");
+      expect(email.text).not.toContain("2026-10-02");
+    });
   });
+
 
   describe("sendConfirmationEmail", () => {
     it("deve retornar false sem chamar a rede se faltar apiKey, from ou se to for inseguro", async () => {

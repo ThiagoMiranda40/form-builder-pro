@@ -7,6 +7,14 @@ describe("formatAnswer (T-22 / Item 1)", () => {
     expect(formatAnswer("date", "2026-10-02")).toBe("02/10/2026");
   });
 
+  it("converte data válida YYYY-MM-DD para dd/mm/aaaa quando fieldType for birthdate (T-24)", () => {
+    expect(formatAnswer("birthdate", "1981-12-20")).toBe("20/12/1981");
+    expect(formatAnswer("birthdate", "2026-10-02")).toBe("02/10/2026");
+    expect(formatAnswer("birthdate", null)).toBe("");
+    expect(formatAnswer("birthdate", undefined)).toBe("");
+  });
+
+
   it("data inválida que não seja YYYY-MM-DD volta igual (ex.: 'abc')", () => {
     expect(formatAnswer("date", "abc")).toBe("abc");
   });

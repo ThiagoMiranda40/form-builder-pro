@@ -1,5 +1,6 @@
 import React from "react";
 import { applyMask } from "@/lib/validators";
+import { birthdateBounds } from "@/lib/birthdate";
 
 export const fieldClass =
   "w-full rounded-lg bg-white/80 px-3 py-2.5 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none";
@@ -179,6 +180,20 @@ export function QuestionField({
             </label>
           ))}
         </div>
+      ) : type === "birthdate" ? (
+        <input
+          id={fieldId}
+          type="date"
+          min={birthdateBounds(new Date()).min}
+          max={birthdateBounds(new Date()).max}
+          autoComplete="bday"
+          value={(value as string) ?? ""}
+          onChange={(e) => handleChange(e.target.value)}
+          maxLength={255}
+          className={fieldClass}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
+        />
       ) : (
         <input
           id={fieldId}
@@ -195,6 +210,7 @@ export function QuestionField({
           aria-describedby={error ? errorId : undefined}
         />
       )}
+
 
       {error && (
         <p id={errorId} role="alert" className="mt-1.5 text-xs text-destructive">

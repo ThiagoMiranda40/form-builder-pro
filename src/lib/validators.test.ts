@@ -65,4 +65,52 @@ describe("validators (caracterização T-01)", () => {
       expect(validateAnswer("rg", true, "123")).not.toBeNull();
     });
   });
+
+  describe("FIELD_TYPES", () => {
+    it("FIELD_TYPES contém birthdate logo depois de date", async () => {
+      const { FIELD_TYPES } = await import("./validators");
+      const dateIndex = FIELD_TYPES.findIndex((f) => f.value === "date");
+      expect(dateIndex).toBeGreaterThanOrEqual(0);
+      expect(FIELD_TYPES[dateIndex + 1]).toEqual({
+        value: "birthdate",
+        label: "Data de nascimento",
+        hint: "Não aceita hoje nem datas futuras",
+      });
+    });
+  });
+
+  describe("Date e Birthdate", () => {
+    const fixedNow = new Date("2026-10-02T15:00:00-03:00");
+
+    it("date valida calendário real sem limite de ano e rejeita data inexistente", () => {
+      expect(validateAnswer("date", true, "2026-10-02")).toBeNull();
+      expect(validateAnswer("date", true, "1850-01-01")).toBeNull();
+      expect(validateAnswer("date", true, "2050-01-01")).toBeNull();
+      expect(validateAnswer("date", false, "")).toBeNull();
+      expect(validateAnswer("date", false, null)).toBeNull();
+      expect(validateAnswer("date", true, "")).toBe("Este campo é obrigatório.");
+      expect(validateAnswer("date", true, "2026-02-30")).toBe("Data inválida.");
+      expect(validateAnswer("date", true, "abc")).toBe("Data inválida.");
+    });
+
+    it("birthdate valida nascimento com regra de hoje/futura e calendário", () => {
+      expect(validateAnswer("birthdate", true, "2026-10-01", fixedNow)).toBeNull();
+      expect(validateAnswer("birthdate", false, "", fixedNow)).toBeNull();
+      expect(validateAnswer("birthdate", false, null, fixedNow)).toBeNull();
+      expect(validateAnswer("birthdate", true, "", fixedNow)).toBe("Este campo é obrigatório.");
+      expect(validateAnswer("birthdate", true, "2026-10-02", fixedNow)).toBe(
+        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+      );
+      expect(validateAnswer("birthdate", true, "2026-10-03", fixedNow)).toBe(
+        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+      );
+      expect(validateAnswer("birthdate", true, "1899-12-31", fixedNow)).toBe(
+        "Data de nascimento inválida.",
+      );
+      expect(validateAnswer("birthdate", true, "2026-02-30", fixedNow)).toBe(
+        "Data de nascimento inválida.",
+      );
+    });
+  });
 });
+

@@ -1,5 +1,6 @@
 import { isValidEmail } from "./validators";
 import { hideDocument } from "./inscricao";
+import { formatAnswer } from "./answer-format";
 
 /**
  * Escapa caracteres especiais HTML para prevenir XSS em e-mails (SEC-09).
@@ -86,10 +87,13 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
       const strVal = String(rawVal);
       if (fieldType === "cpf" || fieldType === "rg") {
         formattedVal = hideDocument(strVal);
+      } else if (fieldType === "date" || fieldType === "birthdate") {
+        formattedVal = formatAnswer(fieldType, strVal);
       } else {
         formattedVal = strVal;
       }
     }
+
 
     responseItems.push({
       label: q.label || "Pergunta",
