@@ -41,9 +41,12 @@ Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/0
 - Não excluir perguntas de formulário que já tem inscritos: as respostas apontam para o ID da pergunta e os dados sumiriam da tabela e das exportações.
 
 ## Fluxo de git e prova
-- **Política de versões**: `main` e `spec-001-fase-0-no-ar` são mantidas iguais até existir versão em produção (decisão do dono). Depois do primeiro formulário real (T-14), passar a trabalhar só em branch e mesclar na `main` após validar.
-- **Cada tarefa termina com um commit na branch**, mensagem `feat(spec-001): implementa T-NN - <título curto>` (documentação: `docs: <resumo>`), push da branch e fast-forward da `main`: `git checkout main && git merge --ff-only spec-001-fase-0-no-ar && git push origin main && git checkout spec-001-fase-0-no-ar`. Sem `--force` e sem rebase.
-- **Prova**: `git ls-remote origin refs/heads/main refs/heads/spec-001-fase-0-no-ar` com os dois hashes iguais.
+- **Política de versões (desde 03/10/2026)**: a `main` é a PRODUÇÃO e só recebe código que o dono validou na prévia. Todo trabalho vai SOMENTE para a branch de prévia `spec-001-fase-0-no-ar`. O agente NUNCA faz push, merge, fast-forward, rebase ou checkout da `main`, a menos que o dono envie um prompt de "PROMOÇÃO".
+- **Cada tarefa termina com um commit na branch** (mensagem `feat(spec-001): implementa T-NN - <título curto>`; documentação: `docs: <resumo>`), push SOMENTE da branch: `git push origin spec-001-fase-0-no-ar`. Sem `--force` e sem rebase.
+- **Prova**: `git ls-remote origin refs/heads/main refs/heads/spec-001-fase-0-no-ar`: a branch no commit novo e a `main` no commit da última promoção (informado no prompt).
+- **Promoção** (só a pedido do dono): `git fetch origin`; confirmar `git merge-base --is-ancestor origin/main origin/spec-001-fase-0-no-ar`; `git push origin origin/spec-001-fase-0-no-ar:refs/heads/main` (fast-forward, sem `--force`); prova com os dois hashes iguais.
+- **Prévia**: cada push da branch gera uma versão de prévia na Cloudflare, que usa o MESMO banco e os mesmos segredos da produção; testes manuais só com formulários de teste. Os links gerados pelo sistema (edição, cliente) usam o domínio de produção: para testar na prévia, troque o domínio pelo endereço da prévia.
+- **Migrações de banco**: aplicadas pelo dono ANTES da prévia e sempre compatíveis com a versão que está na `main` (só acrescentam; colunas novas anuláveis ou com valor padrão).
 - **Antes de commitar**: `git status --short` só pode listar os arquivos permitidos da tarefa (mais gerados: `routeTree.gen.ts` e `bun.lock`). Qualquer outro: PARE.
 - **Tarefas com regra de negócio**: mostrar os testes falhando antes de implementar.
 - **Relatório**: hash, saídas literais dos comandos, arquivos alterados e a "tradução em linguagem simples". Depois PARE.

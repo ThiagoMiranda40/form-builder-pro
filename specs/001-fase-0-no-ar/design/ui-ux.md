@@ -890,6 +890,51 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 
 ---
 
+## 8b. Tela F — Link do cliente (`/c/$token`) e Cartão no Editor
+
+### 8b.1 Cartão no Editor (`ShareLinkCard`)
+- **Localização:** Logo abaixo do cartão "Link de compartilhamento" no editor de formulário (`_authenticated.formularios.$id.tsx`).
+- **Título:** "Link do cliente (somente leitura)"
+- **Descrição:** "Quem tiver este link vê todas as inscrições, inclusive CPF, e-mail e telefone, mas não consegue alterar nada. Compartilhe só com quem precisa."
+- **Estado sem token:**
+  - Botão principal: "Gerar link do cliente".
+- **Estado com token:**
+  - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`.
+  - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
+  - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
+  - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
+  - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
+  - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
+  - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
+
+### 8b.2 Tela Pública do Cliente (`/c/$token`)
+- **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem, baixem relatórios em Excel/PDF e imprimam a lista de inscritos em tempo quase real, sem permissão para editar ou excluir dados.
+- **Metadados (Head):**
+  - Título: "Inscrições recebidas | Corre Time"
+  - `robots`: "noindex, nofollow"
+  - `referrer`: "no-referrer"
+- **Cabeçalho:**
+  - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
+  - Contadores em destaque: "{N} inscrições", "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
+  - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
+  - Ações globais:
+    - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
+    - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições.
+    - Botão "Imprimir": invoca `window.print()` com regras de mídia de impressão (`@media print`) que ocultam botões de controle e ajustam a tabela para orientação paisagem completa.
+- **Tabela e Detalhes:**
+  - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`.
+  - CPF completo como gravado no banco de dados (sem truncamento, em uma única linha).
+  - Sem botões de editar, excluir ou copiar link de edição em nenhuma parte da tela.
+  - Clique na linha (`onRowClick`) abre o `ResponseDetailDialog` sem o slot `actions` (exibição puramente em modo de leitura).
+  - Busca rápida e ordenação pelas 4 modalidades mantidas e sincronizadas com as exportações.
+- **Estados da Tela:**
+  - **Carregando:** feedback com mensagem "Carregando inscrições...".
+  - **Não encontrado (`not_found`):** "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou." (sem expor nenhum dado nem detalhe técnico).
+  - **Erro de rede / servidor:** mensagem clara de falha com botão "Tentar de novo".
+  - **Responsividade:** em 360 px a página não possui rolagem horizontal; apenas a área interna da tabela rola lateralmente.
+
+---
+
 ## 9. Padrões de Markup e Classes Reutilizadas
 
 Não há dependência de novos componentes pesados de UI; o projeto reaproveita estritamente o vocabulário HTML e as classes utilitárias já existentes no repositório:
@@ -928,6 +973,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 16. P-NN [Painel, Formulário público e geral] cursor de mãozinha global e dicas nos cards e gráficos, aprovadas pelo dono.
 17. P-NN [Respostas] busca, ordenação, rolagem da tabela e card de detalhes, aprovadas pelo dono.
 18. P-NN [Respostas] coluna do nome sem congelar no celular e dica de toque, aprovada pelo dono.
+19. P-NN [Editor e Tela F] link do cliente somente leitura, aprovado pelo dono.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.

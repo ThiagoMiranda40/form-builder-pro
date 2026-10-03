@@ -286,6 +286,18 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Prévia com dados do evento no WhatsApp:** Enviar para si mesmo no WhatsApp o link com `?v=3` no fim: a prévia mostra "SKF Running Team" e a descrição, com a imagem da logo.
 - [ ] **Prévia genérica para formulário inexistente:** Um link de formulário que não existe continua mostrando a prévia genérica.
 
+### 5.9 Link do Cliente Somente Leitura (`/c/$token` e Editor) (T-25 / M-20)
+- [ ] **Gerar link no editor:** No editor de um formulário de teste, clicar em "Gerar link do cliente": o cartão exibe o link gerado; o botão "Copiar" funciona com feedback visual/sonoro.
+- [ ] **Visualização anônima somente leitura:** Abrir o link gerado numa janela anônima (sem login): exibe título do evento, selo "Somente leitura", contadores de inscrições, vagas restantes (se houver), prazo (se houver), indicador "Atualizado às HH:mm" e a tabela com TODAS as inscrições e CPF completo, sem nenhum botão de editar ou excluir.
+- [ ] **Interação na tabela e card de detalhes:** Busca rápida por texto, 4 modos de ordenação, cabeçalho fixo e coluna do nome fixa funcionam; clicar numa linha abre o card de detalhes sem botões de ação (somente leitura).
+- [ ] **Exportações e impressão:** "Baixar Excel" e "Baixar PDF" baixam os arquivos corretos com as datas em dd/mm/aaaa e ordenação ativa; "Imprimir" abre a prévia de impressão com a tabela inteira e botões de ação ocultos.
+- [ ] **Atualização periódica quase em tempo real:** Enviar uma nova inscrição no formulário de teste pelo celular: em até cerca de 30 segundos ela surge na tela do cliente sem recarregar a página.
+- [ ] **Regenerar link do cliente:** No editor, acionar "Gerar novo link" e confirmar: o link anterior passa a exibir na hora "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou.".
+- [ ] **Desativar link do cliente:** No editor, acionar "Desativar link" e confirmar: o novo link também deixa de funcionar imediatamente.
+- [ ] **Token inexistente ou inválido via cURL:** Requisição cURL contra `/c/0000000000000000000000000000000000000000000000000000000000000000` não retorna dados de inscrições e a página possui tag `noindex`.
+- [ ] **Responsividade em 360 px:** No celular, a página não possui rolagem lateral (apenas a tabela rola internamente) e os botões de ação permanecem acessíveis.
+- [ ] **Segurança estrita de dados (O link do cliente nunca expõe links de edição):** O link do cliente nunca expõe tokens de edição (`edit_token`) ou URLs de edição em nenhuma parte da tela, no HTML gerado, nos diálogos de detalhes, nos relatórios baixados (Excel/PDF) ou nos payloads das funções de servidor.
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)

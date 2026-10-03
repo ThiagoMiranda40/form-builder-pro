@@ -8,6 +8,8 @@
 |---|---|---|
 | **forms** | `consent_text` (texto, opcional) | Se preenchido, o aceite é obrigatório |
 | **forms** | regras no `slug` | Formato `^[a-z0-9]+(-[a-z0-9]+)*$`, 3–60 caracteres, não reservado (o `UNIQUE` já existe) |
+| **forms** | `share_token` (texto, opcional) | Token de 64 hex minúsculos para visualização do cliente (T-25 / M-20); índice único parcial onde não nulo |
+| **forms** | `edit_window_hours` (inteiro, opcional) | Janela limite em horas (1 a 720) para edição da resposta (T-25, uso futuro) |
 | **responses** | `identifier` (CPF só dígitos, opcional) | **Único por formulário** quando preenchido |
 | **responses** | `edit_token` (64 caracteres, único, gerado no banco) | Identifica a inscrição para edição; independe do slug |
 | **responses** | `consented_at`, `updated_at` | Prova do aceite; data da última edição |
@@ -150,5 +152,22 @@ Cole o arquivo `verificacao-banco.sql` no SQL Editor do Supabase e execute (espe
 
 O arquivo é gerado pelo Lovable (vem de um projeto que não usaremos mais). Ele **não** será regenerado, então acrescente à mão:
 - `forms`: `consent_text: string | null` (Row) e opcional em Insert/Update.
+- `forms` (T-25): `share_token: string | null`, `edit_window_hours: number | null` (Row) e opcionais em Insert/Update.
 - `responses`: `identifier: string | null`, `consented_at: string | null`, `edit_token: string`, `updated_at: string` (opcionais em Insert/Update, exceto onde já são gerados pelo banco).
 - `Functions`: `submit_response` (Args: `p_slug`, `p_answers: Json`, `p_identifier: string | null`, `p_consented?: boolean`; Returns: `Json`) e `update_response` (Args: `p_token`, `p_answers: Json`, `p_identifier: string | null`; Returns: `Json`).
+
+## Migração T-25: Compartilhamento e prazo de edição (`20261002190000_compartilhamento_e_prazo_de_edicao.sql`)
+
+Aplicada no banco em 02/10/2026 pelo dono:
+```sql
+-- T-25 (M-20) link do cliente e prazo de edição (uso futuro)
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS share_token TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS forms_share_token_key
+  ON public.forms (share_token) WHERE share_token IS NOT NULL;
+
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS edit_window_hours INTEGER;
+ALTER TABLE public.forms DROP CONSTRAINT IF EXISTS forms_edit_window_hours_check;
+ALTER TABLE public.forms ADD CONSTRAINT forms_edit_window_hours_check
+  CHECK (edit_window_hours IS NULL OR edit_window_hours BETWEEN 1 AND 720);
+```
+
