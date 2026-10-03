@@ -66,7 +66,7 @@ function SharedResponsesPage() {
 
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [detailRow, setDetailRow] = useState<TableRow | null>(null);
-  const [exporting, setExporting] = useState<"excel" | "pdf" | "print" | null>(null);
+  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
 
   if (query.isLoading) {
     return (
@@ -142,23 +142,6 @@ function SharedResponsesPage() {
       const { exportToPDF } = await import("@/lib/exports");
       const sortedAll = sortRows(rList, qList, sortMode);
       await exportToPDF(title, qList, sortedAll);
-    } catch {
-      toast.error("Não foi possível exportar. Tente novamente.");
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  const handlePrint = async (
-    title: string,
-    qList: TableQuestion[],
-    rList: TableRow[],
-  ) => {
-    try {
-      setExporting("print");
-      const { printPdf } = await import("@/lib/exports");
-      const sortedAll = sortRows(rList, qList, sortMode);
-      await printPdf(title, qList, sortedAll);
     } catch {
       toast.error("Não foi possível exportar. Tente novamente.");
     } finally {
@@ -244,14 +227,6 @@ function SharedResponsesPage() {
               className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
               {exporting === "pdf" ? "Gerando…" : "Baixar PDF"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePrint(form.title, questions, responses)}
-              disabled={responses.length === 0 || exporting !== null}
-              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting === "print" ? "Gerando…" : "Imprimir"}
             </button>
           </div>
         </div>
