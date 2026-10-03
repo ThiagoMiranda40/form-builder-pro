@@ -574,6 +574,13 @@ Contexto: na conferência da T-25 na prévia, o botão "Imprimir" (`window.print
 Verificação (agente): `bun node_modules/vitest/vitest.mjs run exports`; suíte completa (os 364 testes seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. A conferência visual fica para a parte manual.
 Parte MANUAL (dono, na PRÉVIA, depois que o build da branch passar; domínio da prévia nos links): (1) na tela do cliente, "Baixar PDF" gera o arquivo igual ao da produção (paisagem, cabeçalho roxo, TODAS as colunas, sem barra de rolagem); (2) "Imprimir" abre uma nova aba com o MESMO PDF, pronto para imprimir; (3) com o bloqueio de pop-ups ativo, "Imprimir" cai para o download do arquivo; (4) com 1 inscrição, o contador diz "1 inscrição"; (5) Ctrl+P na tela do cliente, sem usar o botão, não mostra barra de rolagem nem corta a tabela; (6) no celular, "Imprimir" abre o PDF.
 
+## T-38 — Remover o botão Imprimir do link do cliente
+Contexto: depois da T-37, o "Imprimir" abre o mesmo PDF do "Baixar PDF". Decisão do dono: manter só "Baixar Excel" e "Baixar PDF" (um PDF já tem botão de imprimir no leitor). O layout do PDF (`buildPdfDocument`) é o padrão aprovado e NÃO muda.
+Arquivos: `src/lib/exports.ts`, `src/lib/exports.test.ts` (somente se houver teste do `printPdf`), `src/routes/c.$token.tsx`. NÃO altere outros arquivos de `src/`.
+Fazer: (1) remova a função `printPdf` de `exports.ts`; mantenha `buildPdfDocument` e `exportToPDF` EXATAMENTE como estão; (2) em `c.$token.tsx`, remova o botão "Imprimir", o valor "print" do estado de exportação, o manipulador e a importação do `printPdf`; "Baixar Excel" e "Baixar PDF" ficam como estão; mantenha o bloco `@media print` e as classes `print:` da tabela (para quem usar Ctrl+P); (3) remova eventuais testes do `printPdf`; mantenha os de `buildPdfDocument`, do SEC-26 e de data de nascimento; (4) `git grep -n "printPdf\|window.print" -- src` não pode achar nada.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run exports`; suíte completa; `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`.
+Parte MANUAL (dono, na PRÉVIA, depois do build da branch; domínio da prévia nos links): (a) na tela do cliente aparecem só "Baixar Excel" e "Baixar PDF"; (b) o "Baixar PDF" sai igual ao da produção (paisagem, cabeçalho roxo, todas as colunas); (c) o PDF baixado abre e imprime normalmente; (d) com 1 inscrição, o contador diz "1 inscrição"; (e) Ctrl+P na tela do cliente não mostra barra de rolagem nem corta a tabela.
+
 ---
 
 ## Fluxo de execução recomendado

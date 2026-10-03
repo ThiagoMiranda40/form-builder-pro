@@ -898,30 +898,29 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Descrição:** "Quem tiver este link vê todas as inscrições, inclusive CPF, e-mail e telefone, mas não consegue alterar nada. Compartilhe só com quem precisa."
 - **Estado sem token:**
   - Botão principal: "Gerar link do cliente".
-901: - **Estado com token:**
-902:   - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`, com associação de rótulo acessível via `htmlFor` e `id` (UX-13, corrigido na T-37).
-903:   - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
-904:   - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
-905:   - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
-906:   - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
-907:   - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
-908:   - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
-909: 
-910: ### 8b.2 Tela Pública do Cliente (`/c/$token`)
-911: - **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem, baixem relatórios em Excel/PDF e imprimam a lista de inscritos em tempo quase real, sem permissão para editar ou excluir dados.
-912: - **Metadados (Head):**
-913:   - Título: "Inscrições recebidas | Corre Time"
-914:   - `robots`: "noindex, nofollow"
-915:   - `referrer`: "no-referrer"
-916: - **Cabeçalho:**
-917:   - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
-918:   - Contadores em destaque: "{N} inscrições" (com forma no singular "1 inscrição" quando N = 1; UX-12 corrigido na T-37), "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
-919:   - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
-920:   - Ações globais:
-921:     - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
-922:     - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições.
-923:     - Botão "Imprimir": gera o mesmo documento PDF via `printPdf` de `exports.ts` e abre diretamente em nova aba do navegador para visualização/impressão com layout paisagem e cabeçalho roxo aprovado (com fallback automático para download caso haja bloqueio de pop-up). Em impressão direta pelo navegador (Ctrl+P), a página aplica classes `print:` para remover barra de rolagem e altura máxima.
-924: - **Tabela e Detalhes:**
+- **Estado com token:**
+  - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`, com associação de rótulo acessível via `htmlFor` e `id` (UX-13, corrigido na T-37).
+  - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
+  - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
+  - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
+  - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
+  - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
+  - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
+
+### 8b.2 Tela Pública do Cliente (`/c/$token`)
+- **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem e baixem relatórios em Excel e PDF em tempo quase real, sem permissão para editar ou excluir dados (o PDF baixado pode ser impresso pelo leitor).
+- **Metadados (Head):**
+  - Título: "Inscrições recebidas | Corre Time"
+  - `robots`: "noindex, nofollow"
+  - `referrer`: "no-referrer"
+- **Cabeçalho:**
+  - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
+  - Contadores em destaque: "{N} inscrições" (com forma no singular "1 inscrição" quando N = 1; UX-12 corrigido na T-37), "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
+  - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
+  - Ações globais:
+    - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
+    - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições (o layout aprovado em paisagem com cabeçalho roxo pode ser impresso pelo leitor de PDF). Em impressão direta pelo navegador (Ctrl+P), a página aplica classes `print:` para remover barra de rolagem e altura máxima.
+- **Tabela e Detalhes:**
 925:   - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`.
 926:   - CPF completo como gravado no banco de dados (sem truncamento, em uma única linha).
 927:   - Sem botões de editar, excluir ou copiar link de edição em nenhuma parte da tela.

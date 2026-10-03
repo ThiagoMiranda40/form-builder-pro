@@ -290,7 +290,7 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Gerar link no editor:** No editor de um formulário de teste, clicar em "Gerar link do cliente": o cartão exibe o link gerado; o botão "Copiar" funciona com feedback visual/sonoro.
 - [ ] **Visualização anônima somente leitura:** Abrir o link gerado numa janela anônima (sem login): exibe título do evento, selo "Somente leitura", contadores de inscrições, vagas restantes (se houver), prazo (se houver), indicador "Atualizado às HH:mm" e a tabela com TODAS as inscrições e CPF completo, sem nenhum botão de editar ou excluir.
 - [ ] **Interação na tabela e card de detalhes:** Busca rápida por texto, 4 modos de ordenação, cabeçalho fixo e coluna do nome fixa funcionam; clicar numa linha abre o card de detalhes sem botões de ação (somente leitura).
-- [ ] **Exportações e impressão:** "Baixar Excel" e "Baixar PDF" baixam os arquivos corretos com as datas em dd/mm/aaaa e ordenação ativa; "Imprimir" abre a prévia de impressão com a tabela inteira e botões de ação ocultos.
+- [ ] **Exportações:** "Baixar Excel" e "Baixar PDF" baixam os arquivos corretos com as datas em dd/mm/aaaa e ordenação ativa; o PDF baixado abre e imprime normalmente.
 - [ ] **Atualização periódica quase em tempo real:** Enviar uma nova inscrição no formulário de teste pelo celular: em até cerca de 30 segundos ela surge na tela do cliente sem recarregar a página.
 - [ ] **Regenerar link do cliente:** No editor, acionar "Gerar novo link" e confirmar: o link anterior passa a exibir na hora "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou.".
 - [ ] **Desativar link do cliente:** No editor, acionar "Desativar link" e confirmar: o novo link também deixa de funcionar imediatamente.
@@ -299,12 +299,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Segurança estrita de dados (O link do cliente nunca expõe links de edição):** O link do cliente nunca expõe tokens de edição (`edit_token`) ou URLs de edição em nenhuma parte da tela, no HTML gerado, nos diálogos de detalhes, nos relatórios baixados (Excel/PDF) ou nos payloads das funções de servidor.
 
 ### 5.10 Imprimir do Link do Cliente e Polimento da Auditoria (T-37)
-- [ ] **Baixar PDF idêntico ao da produção:** Na tela do cliente (`/c/$token`), "Baixar PDF" gera o arquivo exatamente igual ao da produção (orientação paisagem, cabeçalho roxo, todas as colunas, sem barra de rolagem).
-- [ ] **Imprimir abre o mesmo PDF em nova aba:** Clicar no botão "Imprimir" abre uma nova aba do navegador exibindo o mesmo PDF via `printPdf`, pronto para visualização ou impressão.
-- [ ] **Fallback com bloqueio de pop-ups:** Com bloqueio de pop-ups ativo no navegador, o clique em "Imprimir" cai de forma segura e automática para o download do arquivo PDF (`doc.save`).
+- [ ] **Baixar PDF idêntico ao da produção:** Na tela do cliente (`/c/$token`), "Baixar PDF" gera o arquivo exatamente igual ao da produção (orientação paisagem, cabeçalho roxo, todas as colunas, sem barra de rolagem). O PDF baixado abre e imprime normalmente.
 - [ ] **Contador no singular com 1 inscrição (UX-12):** Quando o formulário tem exatamente 1 inscrição recebida, o contador exibe *"1 inscrição"* no singular (e no plural com 0 ou 2+ inscrições).
 - [ ] **Ctrl+P nativo sem rolagem ou corte:** Acionar Ctrl+P diretamente na tela do cliente (sem usar o botão) aplica `@media print` removendo alturas máximas e barras de rolagem da tabela.
-- [ ] **Abertura de PDF no mobile:** No celular, clicar em "Imprimir" abre o documento PDF no visualizador nativo.
 - [ ] **Acessibilidade de rótulo no ShareLinkCard (UX-13):** O campo com a URL do cliente no editor possui rótulo devidamente associado via `htmlFor` e `id` ou elemento não-rótulo sem falha de acessibilidade.
 - [ ] **Teste de regressão SEC-26 (Injeção CSV/Excel):** Teste automatizado em `src/lib/exports.test.ts` confirma que respostas iniciadas por `=`, `+`, `-` ou `@` são exportadas pela biblioteca `xlsx` (`aoa_to_sheet`) estritamente com tipo texto (`t === "s"`) e sem propriedade de fórmula (`f`).
 
