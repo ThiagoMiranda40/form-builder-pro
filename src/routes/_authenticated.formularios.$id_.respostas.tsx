@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
 import { isEdited, describeResponse } from "@/lib/responses-view";
-import { formatAnswer } from "@/lib/answer-format";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +16,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AdminEditResponseDialog } from "@/components/AdminEditResponseDialog";
+import { ResponsesTable } from "@/components/ResponsesTable";
+import { ResponseDetailDialog } from "@/components/ResponseDetailDialog";
+import {
+  sortRows,
+  findNameQuestion,
+  type SortMode,
+  type TableRow,
+} from "@/lib/responses-table";
+import { findEmailQuestionWithAnswer } from "@/lib/admin-response";
+import { resendEditLink } from "@/lib/admin-response.functions";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -49,6 +58,21 @@ function Respostas() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id_/respostas" });
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
   const [onlyEdited, setOnlyEdited] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [detailRow, setDetailRow] = useState<{
+    id: string;
+    answers: Record<string, string | string[]>;
+    submitted_at: string;
+    updated_at: string | null;
+    edit_token: string;
+    identifier?: string | null;
+  } | null>(null);
+  const [confirmResendRow, setConfirmResendRow] = useState<{
+    id: string;
+    answers: Record<string, string | string[]>;
+  } | null>(null);
+  const [isResending, setIsResending] = useState(false);
+
   const [responseToEdit, setResponseToEdit] = useState<{
     id: string;
     answers: Record<string, string | string[]>;
@@ -108,12 +132,13 @@ function Respostas() {
   const handleExportExcel = async (
     title: string,
     questions: { id: string; label: string; field_type?: string }[],
-    responses: { answers: Record<string, string | string[]>; submitted_at: string }[],
+    responses: { id: string; answers: Record<string, string | string[]>; submitted_at: string }[],
   ) => {
     try {
       setExporting("excel");
       const { exportToExcel } = await import("@/lib/exports");
-      await exportToExcel(title, questions, responses);
+      const sortedAll = sortRows(responses, questions, sortMode);
+      await exportToExcel(title, questions, sortedAll);
     } catch {
       toast.error("Não foi possível exportar. Tente novamente.");
     } finally {
@@ -124,12 +149,13 @@ function Respostas() {
   const handleExportPDF = async (
     title: string,
     questions: { id: string; label: string; field_type?: string }[],
-    responses: { answers: Record<string, string | string[]>; submitted_at: string }[],
+    responses: { id: string; answers: Record<string, string | string[]>; submitted_at: string }[],
   ) => {
     try {
       setExporting("pdf");
       const { exportToPDF } = await import("@/lib/exports");
-      await exportToPDF(title, questions, responses);
+      const sortedAll = sortRows(responses, questions, sortMode);
+      await exportToPDF(title, questions, sortedAll);
     } catch {
       toast.error("Não foi possível exportar. Tente novamente.");
     } finally {
@@ -167,6 +193,9 @@ function Respostas() {
       }
 
       toast.success("Inscrição excluída.");
+      if (detailRow && detailRow.id === responseToDelete.id) {
+        setDetailRow(null);
+      }
       setResponseToDelete(null);
       await query.refetch();
     } catch {
@@ -215,10 +244,11 @@ function Respostas() {
 
   const updatedAtText = formatUpdatedAt(query.dataUpdatedAt);
 
-  const cell = (fieldType: string | undefined, value: string | string[] | undefined) => {
-    const formatted = formatAnswer(fieldType, value);
-    return formatted === "" ? "—" : formatted;
-  };
+  const detailEmailInfo = detailRow
+    ? findEmailQuestionWithAnswer(questions, detailRow.answers)
+    : null;
+  const detailRecipientEmail = detailEmailInfo?.email || "";
+  const detailHasEmail = Boolean(detailRecipientEmail);
 
   return (
     <section className="rise space-y-4">
@@ -250,7 +280,7 @@ function Respostas() {
           <button
             type="button"
             onClick={() => query.refetch()}
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white"
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
           >
             Atualizar
           </button>
@@ -259,7 +289,7 @@ function Respostas() {
               type="button"
               aria-pressed={onlyEdited}
               onClick={() => setOnlyEdited((prev) => !prev)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors cursor-pointer ${
                 onlyEdited
                   ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
                   : "bg-white/70 text-foreground hover:bg-white"
@@ -271,134 +301,191 @@ function Respostas() {
           <button
             onClick={() => handleExportExcel(form.title, questions, responses)}
             disabled={responses.length === 0 || exporting !== null}
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50"
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             Exportar Excel
           </button>
           <button
             onClick={() => handleExportPDF(form.title, questions, responses)}
             disabled={responses.length === 0 || exporting !== null}
-            className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50"
+            className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             Exportar PDF
           </button>
         </div>
       </div>
 
-      <div className="glass overflow-hidden rounded-2xl">
-        {responses.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber
-            inscrições.
-          </p>
-        ) : displayedResponses.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            Nenhuma inscrição editada.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="bg-white/70 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Enviado em</th>
-                  <th className="px-4 py-3 font-medium">Atualizado em</th>
-                  {questions.map((q) => (
-                    <th key={q.id} className="px-4 py-3 font-medium">
-                      {q.label}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedResponses.map((r) => {
-                  const edited = isEdited(r.submitted_at, r.updated_at);
-                  return (
-                    <tr
-                      key={r.id}
-                      className={`border-t border-black/5 ${
-                        edited
-                          ? "bg-amber-50/70 hover:bg-amber-50"
-                          : "odd:bg-white/40"
-                      }`}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                        {new Date(r.submitted_at).toLocaleString("pt-BR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                        {edited && r.updated_at ? (
-                          <span className="inline-flex items-center gap-1.5 text-foreground">
-                            <span>
-                              {new Date(r.updated_at).toLocaleString("pt-BR", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
-                            </span>
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
-                              Editada
-                            </span>
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      {questions.map((q) => (
-                        <td key={q.id} className="px-4 py-3">
-                          {cell(q.field_type, r.answers?.[q.id])}
-                        </td>
-                      ))}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {(() => {
-                            const nameQ = questions.find(
-                              (q) => q.field_type === "name" || /nome/i.test(q.label),
-                            );
-                            const nome =
-                              nameQ &&
-                              typeof r.answers?.[nameQ.id] === "string" &&
-                              (r.answers[nameQ.id] as string).trim()
-                                ? (r.answers[nameQ.id] as string).trim()
-                                : describeResponse(questions, r.answers);
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => setResponseToEdit(r)}
-                                aria-label={`Editar inscrição de ${nome}`}
-                                className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
-                              >
-                                Editar
-                              </button>
-                            );
-                          })()}
-                          <button
-                            type="button"
-                            onClick={() => handleCopyEditLink(r.edit_token)}
-                            className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
-                          >
-                            Copiar link de edição
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setResponseToDelete(r)}
-                            disabled={isDeleting}
-                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <ResponsesTable
+        questions={questions}
+        rows={displayedResponses}
+        sortMode={sortMode}
+        onSortModeChange={setSortMode}
+        showUpdatedAt={true}
+        emptyMessage={
+          onlyEdited
+            ? "Nenhuma inscrição editada."
+            : "Nenhuma resposta ainda. Compartilhe o link do formulário para começar a receber inscrições."
+        }
+        onRowClick={(row) => {
+          // Busca a resposta completa correspondente da lista de responses
+          const full = responses.find((r) => r.id === row.id);
+          if (full) {
+            setDetailRow(full);
+          }
+        }}
+        renderRowActions={(r) => {
+          const nameQ = findNameQuestion(questions);
+          const nome =
+            nameQ &&
+            typeof r.answers?.[nameQ.id] === "string" &&
+            (r.answers[nameQ.id] as string).trim()
+              ? (r.answers[nameQ.id] as string).trim()
+              : describeResponse(questions, r.answers);
 
+          const full = responses.find((resp) => resp.id === r.id) || r;
+
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setResponseToEdit(full as any)}
+                aria-label={`Editar inscrição de ${nome}`}
+                className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyEditLink((full as any).edit_token)}
+                className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
+              >
+                Copiar link de edição
+              </button>
+              <button
+                type="button"
+                onClick={() => setResponseToDelete(full as any)}
+                disabled={isDeleting}
+                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Excluir
+              </button>
+            </div>
+          );
+        }}
+      />
+
+      {/* Card de Detalhes da Inscrição */}
+      <ResponseDetailDialog
+        open={detailRow !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailRow(null);
+          }
+        }}
+        row={detailRow}
+        questions={questions}
+        actions={
+          detailRow ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = detailRow;
+                  setDetailRow(null);
+                  setResponseToEdit(target);
+                }}
+                className="rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-black/10 hover:bg-white cursor-pointer"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopyEditLink(detailRow.edit_token)}
+                className="rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-black/10 hover:bg-white cursor-pointer"
+              >
+                Copiar link de edição
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmResendRow(detailRow)}
+                disabled={!detailHasEmail || isResending}
+                title={
+                  detailHasEmail
+                    ? "Reenviar e-mail de confirmação com link de edição"
+                    : "Esta inscrição não possui e-mail cadastrado."
+                }
+                className="rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-black/10 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Reenviar e-mail
+              </button>
+              <button
+                type="button"
+                onClick={() => setResponseToDelete(detailRow)}
+                disabled={isDeleting}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-destructive ring-1 ring-destructive/20 hover:bg-destructive/10 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Excluir
+              </button>
+            </>
+          ) : null
+        }
+      />
+
+      {/* Diálogo de confirmação para Reenviar E-mail do card */}
+      <AlertDialog
+        open={confirmResendRow !== null}
+        onOpenChange={(open) => {
+          if (!open && !isResending) {
+            setConfirmResendRow(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reenviar e-mail com link de edição?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O e-mail de confirmação contendo o link de edição será reenviado para{" "}
+              <strong className="font-semibold text-foreground break-all">
+                {confirmResendRow
+                  ? findEmailQuestionWithAnswer(questions, confirmResendRow.answers)?.email
+                  : ""}
+              </strong>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isResending}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmResendRow) return;
+                try {
+                  setIsResending(true);
+                  const res = await resendEditLink({
+                    data: { responseId: confirmResendRow.id },
+                  });
+                  if (res.sent) {
+                    toast.success("E-mail reenviado com sucesso!");
+                    setConfirmResendRow(null);
+                  } else {
+                    toast.error(res.error || "Não foi possível reenviar o e-mail.");
+                  }
+                } catch {
+                  toast.error("Erro ao reenviar e-mail.");
+                } finally {
+                  setIsResending(false);
+                }
+              }}
+              className="bg-brand text-primary-foreground hover:bg-brand/90 disabled:opacity-50"
+            >
+              {isResending ? "Enviando..." : "Confirmar reenvio"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmação para Excluir Inscrição */}
       <AlertDialog
         open={responseToDelete !== null}
         onOpenChange={(open) => {
@@ -460,4 +547,3 @@ function Respostas() {
     </section>
   );
 }
-
