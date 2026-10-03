@@ -89,3 +89,36 @@ export function validateBirthdate(value: string, now: Date): string | null {
 
   return null;
 }
+
+export type DateInputAttrs = {
+  type: "date";
+  min?: string;
+  max?: string;
+  autoComplete?: string;
+};
+
+/**
+ * Retorna os atributos HTML para campos de data ("date" ou "birthdate").
+ * - Para "date": { type: "date" }
+ * - Para "birthdate": { type: "date", min: "1900-01-01", max: <ontem em SP>, autoComplete: "bday" }
+ * - Para outros tipos: null
+ */
+export function dateInputAttrs(
+  fieldType: string,
+  now: Date,
+): DateInputAttrs | null {
+  if (fieldType === "date") {
+    return { type: "date" };
+  }
+  if (fieldType === "birthdate") {
+    const bounds = birthdateBounds(now);
+    return {
+      type: "date",
+      min: bounds.min,
+      max: bounds.max,
+      autoComplete: "bday",
+    };
+  }
+  return null;
+}
+

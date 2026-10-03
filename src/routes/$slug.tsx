@@ -15,6 +15,8 @@ import { buildFormMeta } from "@/lib/site-meta";
 import { normalizeDescription } from "@/lib/description";
 import { Calendar, Users } from "lucide-react";
 import { buildAvailability } from "@/lib/availability";
+import { dateInputAttrs } from "@/lib/birthdate";
+
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
@@ -468,8 +470,10 @@ function PublicForm() {
             const errorId = `error-${q.id}`;
             const labelId = `label-${q.id}`;
             const isChoice = type === "single_choice" || type === "multi_choice";
+            const dateAttrs = dateInputAttrs(type, new Date());
 
             return (
+
               <div key={q.id}>
                 {isChoice ? (
                   <span id={labelId} className="mb-1.5 block text-sm font-medium">
@@ -555,18 +559,22 @@ function PublicForm() {
                   <input
                     id={fieldId}
                     type={
-                      type === "date"
-                        ? "date"
+                      dateAttrs
+                        ? dateAttrs.type
                         : type === "number"
                           ? "number"
                           : type === "email"
                             ? "email"
                             : "text"
                     }
+                    min={dateAttrs?.min}
+                    max={dateAttrs?.max}
+                    autoComplete={dateAttrs?.autoComplete}
                     inputMode={
                       type === "number" || type === "phone" || type === "cpf" ? "numeric" : undefined
                     }
                     value={(value as string) ?? ""}
+
                     onChange={(e) => {
                       setValue(q.id, type, e.target.value);
                       if (type === "email") {
