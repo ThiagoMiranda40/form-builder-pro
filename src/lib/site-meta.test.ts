@@ -216,15 +216,25 @@ describe("buildFormMeta (T-19)", () => {
   });
 });
 
-describe("buildClientLinkMeta (T-39)", () => {
+describe("buildClientLinkMeta (T-40)", () => {
   it("exporta constantes para o link do cliente", () => {
     expect(CLIENT_LINK_TAB_TITLE).toBe("Inscrições recebidas | Corre Time");
     expect(CLIENT_LINK_OG_TITLE).toBe(
-      "Lista de inscritos AO VIVO (somente leitura) | Corre Time"
+      "NÃO COMPARTILHE: lista de inscritos | Corre Time"
     );
     expect(CLIENT_LINK_DESCRIPTION).toBe(
-      "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição."
+      "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição."
     );
+  });
+
+  it("buildClientLinkMeta devolve valores iguais aos literais definidos", () => {
+    const meta = buildClientLinkMeta();
+    expect(meta.title).toBe(CLIENT_LINK_TAB_TITLE);
+    expect(meta.ogTitle).toBe("NÃO COMPARTILHE: lista de inscritos | Corre Time");
+    expect(meta.description).toBe(
+      "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição."
+    );
+    expect(meta.ogDescription).toBe(meta.description);
   });
 
   it("devolve textos diferentes de SITE_TITLE e SITE_DESCRIPTION", () => {
@@ -240,12 +250,6 @@ describe("buildClientLinkMeta (T-39)", () => {
     expect(meta.ogTitle.length).toBeLessThanOrEqual(70);
     expect(meta.ogDescription.length).toBeLessThanOrEqual(160);
     expect(meta.description).toBe(meta.ogDescription);
-  });
-
-  it("a descrição contém 'Não é o link de inscrição' e 'Não Compartilhe'", () => {
-    const meta = buildClientLinkMeta();
-    expect(meta.description).toContain("Não é o link de inscrição");
-    expect(meta.description).toContain("Não Compartilhe");
   });
 
   it("nenhum dos textos contém 'SKF' nem '{' (genérico)", () => {

@@ -13,9 +13,9 @@ export const DEFAULT_FORM_OG_DESCRIPTION =
 
 export const CLIENT_LINK_TAB_TITLE = "Inscrições recebidas | Corre Time";
 export const CLIENT_LINK_OG_TITLE =
-  "Lista de inscritos AO VIVO (somente leitura) | Corre Time";
+  "NÃO COMPARTILHE: lista de inscritos | Corre Time";
 export const CLIENT_LINK_DESCRIPTION =
-  "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição.";
+  "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição.";
 
 export interface ClientLinkMetaResult {
   title: string;
