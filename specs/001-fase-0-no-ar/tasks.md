@@ -524,6 +524,20 @@ Parte MANUAL (dono, no site publicado, depois do deploy): (1) buscar "ricardo" a
 
 ---
 
+## T-26b — Tabela de respostas no celular: coluna do nome sem congelar em telas pequenas (correção da T-26)
+Depende de: T-26.
+Problema real: no celular em pé (menos de 768 px) a coluna do nome, congelada (`sticky left-0`) e sem quebra de linha, ocupa quase toda a largura e esconde as demais colunas ao rolar para a direita; no computador e no tablet na horizontal está correto.
+Arquivos: `src/components/ResponsesTable.tsx` (SOMENTE classes e a dica abaixo).
+Fazer:
+ 1. A coluna do nome só congela a partir de `md` (768 px): no `<th>` e no `<td>` dessa coluna, troque `sticky left-0 z-30` por `md:sticky md:left-0 md:z-30` e `sticky left-0 z-10` por `md:sticky md:left-0 md:z-10`, e leve para `md:` a sombra lateral (`md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]`). O cabeçalho continua fixo no topo (`sticky top-0`) em todos os tamanhos. O fundo opaco das células dessa coluna pode continuar em todos os tamanhos (não atrapalha).
+ 2. No celular, a célula do nome ganha largura máxima e reticências: `max-w-[11rem] truncate md:max-w-none md:overflow-visible` na célula e `title` com o nome completo; o cabeçalho dessa coluna também usa `max-w-[11rem] truncate md:max-w-none`. Em `md:` e acima nada muda.
+ 3. Dica visível só em telas pequenas, acima da tabela e só quando `onRowClick` existir e houver linhas: `<p className="text-xs text-slate-600 md:hidden">Toque numa linha para ver todos os dados.</p>`.
+ 4. Nada mais muda: busca, ordenação, rolagem, cabeçalho fixo, card de detalhes, ações, exportações.
+Verificação (agente): suíte completa (os 338 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. Como a mudança é só de estilo, cole no relatório o `git diff` das linhas alteradas de `ResponsesTable.tsx` e diga que a conferência visual fica para a parte manual.
+Parte MANUAL (dono, no site publicado, depois do deploy): (1) no celular em pé, rolar a tabela para a direita mostra e-mail, telefone e as demais colunas, e a coluna do nome rola junto; (2) o nome aparece cortado com reticências; tocar na linha abre o card com tudo; (3) a frase "Toque numa linha para ver todos os dados." aparece acima da tabela no celular e NÃO aparece no computador; (4) no computador e no tablet na horizontal, a coluna do nome continua fixa à esquerda como antes; (5) o cabeçalho continua fixo ao rolar para baixo em todos os tamanhos.
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.

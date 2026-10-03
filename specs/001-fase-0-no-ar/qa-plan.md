@@ -262,6 +262,11 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Regressão de ações da linha (T-26):** "Editar", "Copiar link de edição", "Excluir" e "Mostrar só editadas" continuam funcionando perfeitamente como antes.
 - [ ] **Responsividade mobile 360 px (T-26):** No celular (360 px), apenas a área da tabela rola horizontalmente (a página não vaza) e o card de detalhes ocupa a tela inteira com boa legibilidade.
 - [ ] **Acessibilidade por teclado (T-26):** Navegando com a tecla Tab, o foco chega à área da tabela (`role="region"` com `tabIndex={0}`) e as setas direcionais rolam seu conteúdo.
+- [ ] **Coluna do nome sem congelar no celular (T-26b):** No celular em pé (menos de 768 px), rolar a tabela para a direita mostra e-mail, telefone e as demais colunas, e a coluna do nome rola junto sem esconder os dados.
+- [ ] **Nome com reticências no celular (T-26b):** No celular, o nome aparece cortado com reticências (largura máxima); tocar na linha abre o card de detalhes com todos os dados completos.
+- [ ] **Dica de toque em telas pequenas (T-26b):** A frase "Toque numa linha para ver todos os dados." aparece acima da tabela no celular e NÃO aparece no computador (a partir de 768 px).
+- [ ] **Coluna do nome fixa no desktop/tablet (T-26b):** No computador e no tablet na horizontal (≥ 768 px), a coluna do nome continua fixa à esquerda ao rolar a tabela lateralmente.
+- [ ] **Cabeçalho fixo preservado (T-26b):** O cabeçalho da tabela continua fixo no topo ao rolar para baixo em todos os tamanhos de tela.
 
 ### 5.6 Tela de Entrada (`/auth`)
 - [ ] **Apenas e-mail e senha:** Não pode existir botão de "Criar conta", nem link alternativo, nem botão de login com o Google.
