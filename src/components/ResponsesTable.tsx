@@ -123,21 +123,27 @@ export function ResponsesTable({
           </p>
         </div>
       ) : (
-        <div
-          role="region"
-          aria-label="Tabela de inscrições"
-          tabIndex={0}
-          className="relative max-h-[70vh] overflow-auto rounded-2xl glass ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
-        >
-          <table className="w-full min-w-[640px] text-left text-sm border-collapse">
-            <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-sm text-xs uppercase tracking-wide text-muted-foreground shadow-sm">
-              <tr>
-                {nameQuestion ? (
-                  <>
-                    <th className="sticky left-0 z-30 bg-slate-100/95 px-4 py-2 font-medium whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
-                      {nameQuestion.label}
-                    </th>
-                    <th className="px-4 py-2 font-medium whitespace-nowrap">Enviado em</th>
+        <div className="space-y-2">
+          {onRowClick && (
+            <p className="text-xs text-slate-600 md:hidden">
+              Toque numa linha para ver todos os dados.
+            </p>
+          )}
+          <div
+            role="region"
+            aria-label="Tabela de inscrições"
+            tabIndex={0}
+            className="relative max-h-[70vh] overflow-auto rounded-2xl glass ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
+          >
+            <table className="w-full min-w-[640px] text-left text-sm border-collapse">
+              <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-sm text-xs uppercase tracking-wide text-muted-foreground shadow-sm">
+                <tr>
+                  {nameQuestion ? (
+                    <>
+                      <th className="md:sticky md:left-0 md:z-30 bg-slate-100/95 px-4 py-2 font-medium whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                        {nameQuestion.label}
+                      </th>
+                      <th className="px-4 py-2 font-medium whitespace-nowrap">Enviado em</th>
                     {showUpdatedAt && (
                       <th className="px-4 py-2 font-medium whitespace-nowrap">Atualizado em</th>
                     )}
@@ -217,7 +223,12 @@ export function ResponsesTable({
                     {nameQuestion ? (
                       <>
                         <td
-                          className={`sticky left-0 z-10 px-4 py-2 font-medium text-foreground whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${stickyBgClass}`}
+                          title={
+                            cell(nameQuestion.field_type, r.answers?.[nameQuestion.id]) === "—"
+                              ? undefined
+                              : cell(nameQuestion.field_type, r.answers?.[nameQuestion.id])
+                          }
+                          className={`md:sticky md:left-0 md:z-10 px-4 py-2 font-medium text-foreground whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:overflow-visible md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${stickyBgClass}`}
                         >
                           {cell(nameQuestion.field_type, r.answers?.[nameQuestion.id])}
                         </td>
@@ -322,6 +333,7 @@ export function ResponsesTable({
             </tbody>
           </table>
         </div>
+      </div>
       )}
     </div>
   );
