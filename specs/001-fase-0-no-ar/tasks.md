@@ -583,6 +583,18 @@ Parte MANUAL (dono, na PRÉVIA, depois do build da branch; domínio da prévia n
 
 ---
 
+## T-39 — Texto próprio na prévia do link do cliente (WhatsApp e redes)
+Contexto: a rota `/c/$token` só define `title`, `robots` e `referrer`; as tags `description`, `og:title` e `og:description` vêm do layout raiz (SITE_TITLE e SITE_DESCRIPTION: "Faça sua inscrição online e corrija seus dados depois pelo link que enviamos ao seu e-mail."), então o cartão do WhatsApp do link do cliente fica igual ao do link de inscrição e causa confusão. Decisão do dono: texto próprio e GENÉRICO (sem nome do formulário, para a página continuar sem consultar o banco no servidor e sem dados no HTML inicial).
+Arquivos: `src/lib/site-meta.ts`, `src/lib/site-meta.test.ts`, `src/routes/c.$token.tsx`, `src/lib/routes.test.ts`. NÃO altere outros arquivos de `src/`.
+Fazer (testes primeiro, vistos falhando):
+ 1. `site-meta.ts`: exporte `CLIENT_LINK_TAB_TITLE = "Inscrições recebidas | Corre Time"`, `CLIENT_LINK_OG_TITLE = "Lista de inscritos AO VIVO (somente leitura) | Corre Time"` e `CLIENT_LINK_DESCRIPTION = "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição."`, e a função pura `buildClientLinkMeta()` que devolve `{ title, description, ogTitle, ogDescription }` com esses valores (a descrição e a og:description iguais). Não use token nem dado de formulário.
+ 2. `c.$token.tsx`: no `head`, mantenha `robots` ("noindex, nofollow") e `referrer` ("no-referrer") e use `buildClientLinkMeta()` para `{ title }`, `{ name: "description" }`, `{ property: "og:title" }` e `{ property: "og:description" }`. NÃO acrescente loader, consulta ao banco nem qualquer dado do token ou do formulário. Mantenha a imagem herdada do layout raiz.
+ 3. Testes: em `site-meta.test.ts`, `buildClientLinkMeta()` devolve textos DIFERENTES de SITE_TITLE e SITE_DESCRIPTION; `ogTitle` com no máximo 70 caracteres e `ogDescription` com no máximo 160; a descrição contém "Não é o link de inscrição"; nenhum dos textos contém "SKF" nem "{" (garantia de que é genérico). Em `routes.test.ts`, confirme (lendo o arquivo da rota) que `c.$token.tsx` importa `buildClientLinkMeta`, contém `og:title` e `og:description` e mantém "noindex, nofollow" e "no-referrer"; e que `$slug.tsx` continua usando `buildFormMeta` (sem regressão).
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run site-meta`; `... run routes`; suíte completa (os 367 testes seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. A conferência no navegador e no WhatsApp fica para a parte manual.
+Parte MANUAL (dono, na PRÉVIA, depois do build da branch; use um endereço nunca visto, para o WhatsApp não reaproveitar um cartão antigo): (1) no PowerShell: `((curl.exe -s https://spec-001-fase-0-no-ar-form-builder-pro.triadetecnologiaesolucoes.workers.dev/c/0000000000000000000000000000000000000000000000000000000000000009) -split '<meta') | Select-String 'og:title|og:description|robots|referrer'` mostra o título e a descrição novos, e `noindex, nofollow` e `no-referrer`; (2) no WhatsApp (conversa com você mesmo), colar esse endereço mostra o cartão com o título "Lista de inscritos (somente leitura) | Corre Time" e a descrição nova; (3) colar o link de um formulário de inscrição (`.../<slug>`) continua mostrando o nome e a descrição do formulário (sem regressão); (4) o endereço dos 64 zeros continua mostrando "Link não encontrado", sem nenhum dado.
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.
