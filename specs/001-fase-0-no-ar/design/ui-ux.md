@@ -850,6 +850,28 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 ### 8.2 Textos Exatos da Interface
 - **Indicador de atualização periódica:** "Atualizado às " (seguido de HH:mm)
 - **Aria-label do gráfico:** "Respostas por dia nos últimos 7 dias: {resumo}"
+- **Dicas (Tooltips) dos Cards do Painel:**
+  - *Formulários publicados:* "Formulários com status publicado, entre todos os seus formulários."
+  - *Respostas totais:* "Soma das respostas de todos os formulários, abertos, rascunhos e encerrados."
+  - *Respostas nos 7 dias:* "Respostas enviadas nos últimos 7 dias, hoje incluído, em todos os formulários."
+  - *Prazos próximos:* "Formulários com prazo de encerramento nos próximos 3 dias."
+- **Dicas (Tooltips) das Barras do Gráfico:**
+  - Formato: `"{weekdayName}, {dd/mm/aaaa}: {n} {resposta|respostas}"` (acrescentando `"(hoje)"` no dia atual; ex.: *"sexta-feira, 02/10/2026 (hoje): 35 respostas"*).
+- **Dicas (Tooltips) dos Cartões de Vagas e Prazo (Formulário Público):**
+  - *Vagas:* "Vagas ainda disponíveis neste formulário. Quando restam 10 ou menos, aparece o aviso Últimas vagas."
+  - *Prazo:* "Data e hora limite para enviar a inscrição, no horário de Brasília."
+
+### 8.3 Cursor Global e Comportamento de Dicas (Tooltips)
+- **Regra de Cursor Global:**
+  - Elementos clicáveis exibem `cursor: pointer`: `button:not(:disabled)`, `[role="button"]:not([aria-disabled="true"])`, `[role="tab"]`, `[role="menuitem"]`, `[role="option"]`, `a[href]`, `summary`, `select:not(:disabled)`, `label[for]`, `input[type="checkbox"]:not(:disabled)`, `input[type="radio"]:not(:disabled)`, `input[type="file"]:not(:disabled)`, `input[type="submit"]:not(:disabled)` e `[data-clickable]`.
+  - Elementos desabilitados exibem `cursor: not-allowed`: `:disabled` e `[aria-disabled="true"]`.
+  - Entradas de texto preservam o cursor padrão de texto (`cursor: text`).
+- **Comportamento das Dicas (Tooltips):**
+  - Gerenciadas por `TooltipProvider` (`delayDuration={150}`).
+  - Acionadas por mouse (`hover`), teclado (`focus-visible`) e toque no celular (`touch`), com cada cartão e barra implementado como gatilho focável `<button type="button">` com `cursor-help`.
+  - Acessibilidade: o atributo `aria-label` do gatilho contém o rótulo, valor e texto explicativo, garantindo que a informação esteja disponível a leitores de tela sem depender da dica visual.
+  - O gráfico deixa de usar `role="img"` e passa a usar `role="group"` com o `aria-label` de resumo, expondo os botões interativos das barras para foco e leitor de tela.
+  - Conteúdo da dica (`TooltipContent`) com largura `max-w-xs`, contraste garantido mínimo de 4,5:1 e `motion-reduce:animate-none`.
 
 ---
 
@@ -888,6 +910,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
 14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
 15. P-NN [Editor e formulário público] tipo Data de nascimento com validação, aprovada pelo dono.
+16. P-NN [Painel, Formulário público e geral] cursor de mãozinha global e dicas nos cards e gráficos, aprovadas pelo dono.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
