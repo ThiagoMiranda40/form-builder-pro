@@ -20,9 +20,11 @@ export type Database = {
           consent_text: string | null
           created_at: string
           description: string
+          edit_window_hours: number | null
           id: string
           max_responses: number | null
           owner_id: string
+          share_token: string | null
           slug: string
           status: string
           success_message: string
@@ -35,9 +37,11 @@ export type Database = {
           consent_text?: string | null
           created_at?: string
           description?: string
+          edit_window_hours?: number | null
           id?: string
           max_responses?: number | null
           owner_id: string
+          share_token?: string | null
           slug: string
           status?: string
           success_message?: string
@@ -50,9 +54,11 @@ export type Database = {
           consent_text?: string | null
           created_at?: string
           description?: string
+          edit_window_hours?: number | null
           id?: string
           max_responses?: number | null
           owner_id?: string
+          share_token?: string | null
           slug?: string
           status?: string
           success_message?: string

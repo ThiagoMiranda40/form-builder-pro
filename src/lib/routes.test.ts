@@ -57,5 +57,21 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
       expect(politicaMatch[1]).not.toMatch(/Slug/i);
     }
   });
+
+  it("o arquivo da rota do cliente c.$token.tsx existe e não é filha de /$slug (T-25)", () => {
+    const clientRoutePath = path.join(rootDir, "src/routes/c.$token.tsx");
+    expect(fs.existsSync(clientRoutePath)).toBe(true);
+
+    if (fs.existsSync(routeTreePath)) {
+      const content = fs.readFileSync(routeTreePath, "utf-8");
+      const clientRouteMatch = content.match(
+        /const CTokenRoute =[\s\S]*?getParentRoute:\s*\(\)\s*=>\s*([A-Za-z0-9_]+)/
+      );
+      if (clientRouteMatch) {
+        expect(clientRouteMatch[1]).not.toMatch(/Slug/i);
+        expect(clientRouteMatch[1]).toMatch(/^rootRoute/);
+      }
+    }
+  });
 });
 

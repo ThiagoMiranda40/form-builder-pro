@@ -111,7 +111,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
 
     const { data: form, error: formError } = await supabaseAdmin
       .from("forms")
-      .select("*")
+      .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text")
       .eq("slug", data.slug)
       .maybeSingle();
 

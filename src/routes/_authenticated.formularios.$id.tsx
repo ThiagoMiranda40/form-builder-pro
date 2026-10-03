@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
 import { normalizeOptions } from "@/lib/options";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
+import { ShareLinkCard } from "@/components/ShareLinkCard";
 import { StatusPill } from "./_authenticated.painel";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id")({
@@ -46,6 +47,7 @@ type FormState = {
   closes_at: string | null;
   consent_text: string | null;
   success_message: string;
+  share_token: string | null;
 };
 
 const toLocalInput = (value: string | null) =>
@@ -98,6 +100,7 @@ function Editor() {
       closes_at: (f["closes_at"] as string | null) ?? null,
       consent_text: (f["consent_text"] as string | null) ?? null,
       success_message: (f["success_message"] as string) ?? "",
+      share_token: (f["share_token"] as string | null) ?? null,
     });
     setQuestions(
       (query.data.questions as Record<string, unknown>[]).map((q) => ({
@@ -357,6 +360,14 @@ function Editor() {
           </p>
         )}
       </div>
+
+      <ShareLinkCard
+        formId={id}
+        shareToken={form.share_token ?? null}
+        onShareTokenChange={(newToken) => {
+          setForm((prev) => (prev ? { ...prev, share_token: newToken } : null));
+        }}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
         <div className="glass rounded-2xl p-5">

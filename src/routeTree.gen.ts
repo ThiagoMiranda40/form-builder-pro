@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SaudeRouteImport } from './routes/saude'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated.painel'
+import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as EditarTokenRouteImport } from './routes/editar.$token'
 import { Route as LegalPoliticaDePrivacidadeRouteImport } from './routes/legal.politica-de-privacidade'
 import { Route as LegalTermosDeUsoRouteImport } from './routes/legal.termos-de-uso'
@@ -49,6 +50,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const CTokenRoute = CTokenRouteImport.update({
+  id: '/c/$token',
+  path: '/c/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EditarTokenRoute = EditarTokenRouteImport.update({
   id: '/editar/$token',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/c/$token': typeof CTokenRoute
   '/editar/$token': typeof EditarTokenRoute
   '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
   '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/c/$token': typeof CTokenRoute
   '/editar/$token': typeof EditarTokenRoute
   '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
   '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/saude': typeof SaudeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/c/$token': typeof CTokenRoute
   '/editar/$token': typeof EditarTokenRoute
   '/legal/politica-de-privacidade': typeof LegalPoliticaDePrivacidadeRoute
   '/legal/termos-de-uso': typeof LegalTermosDeUsoRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/painel'
+    | '/c/$token'
     | '/editar/$token'
     | '/legal/politica-de-privacidade'
     | '/legal/termos-de-uso'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/painel'
+    | '/c/$token'
     | '/editar/$token'
     | '/legal/politica-de-privacidade'
     | '/legal/termos-de-uso'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/saude'
     | '/_authenticated/painel'
+    | '/c/$token'
     | '/editar/$token'
     | '/legal/politica-de-privacidade'
     | '/legal/termos-de-uso'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SaudeRoute: typeof SaudeRoute
+  CTokenRoute: typeof CTokenRoute
   EditarTokenRoute: typeof EditarTokenRoute
   LegalPoliticaDePrivacidadeRoute: typeof LegalPoliticaDePrivacidadeRoute
   LegalTermosDeUsoRoute: typeof LegalTermosDeUsoRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/c/$token': {
+      id: '/c/$token'
+      path: '/c/$token'
+      fullPath: '/c/$token'
+      preLoaderRoute: typeof CTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/editar/$token': {
       id: '/editar/$token'
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SaudeRoute: SaudeRoute,
+  CTokenRoute: CTokenRoute,
   EditarTokenRoute: EditarTokenRoute,
   LegalPoliticaDePrivacidadeRoute: LegalPoliticaDePrivacidadeRoute,
   LegalTermosDeUsoRoute: LegalTermosDeUsoRoute,
