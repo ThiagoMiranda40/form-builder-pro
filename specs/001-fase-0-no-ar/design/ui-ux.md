@@ -898,82 +898,83 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Descrição:** "Quem tiver este link vê todas as inscrições, inclusive CPF, e-mail e telefone, mas não consegue alterar nada. Compartilhe só com quem precisa."
 - **Estado sem token:**
   - Botão principal: "Gerar link do cliente".
-- **Estado com token:**
-  - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`.
-  - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
-  - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
-  - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
-  - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
-  - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
-  - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
-
-### 8b.2 Tela Pública do Cliente (`/c/$token`)
-- **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem, baixem relatórios em Excel/PDF e imprimam a lista de inscritos em tempo quase real, sem permissão para editar ou excluir dados.
-- **Metadados (Head):**
-  - Título: "Inscrições recebidas | Corre Time"
-  - `robots`: "noindex, nofollow"
-  - `referrer`: "no-referrer"
-- **Cabeçalho:**
-  - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
-  - Contadores em destaque: "{N} inscrições", "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
-  - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
-  - Ações globais:
-    - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
-    - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições.
-    - Botão "Imprimir": invoca `window.print()` com regras de mídia de impressão (`@media print`) que ocultam botões de controle e ajustam a tabela para orientação paisagem completa.
-- **Tabela e Detalhes:**
-  - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`.
-  - CPF completo como gravado no banco de dados (sem truncamento, em uma única linha).
-  - Sem botões de editar, excluir ou copiar link de edição em nenhuma parte da tela.
-  - Clique na linha (`onRowClick`) abre o `ResponseDetailDialog` sem o slot `actions` (exibição puramente em modo de leitura).
-  - Busca rápida e ordenação pelas 4 modalidades mantidas e sincronizadas com as exportações.
-- **Estados da Tela:**
-  - **Carregando:** feedback com mensagem "Carregando inscrições...".
-  - **Não encontrado (`not_found`):** "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou." (sem expor nenhum dado nem detalhe técnico).
-  - **Erro de rede / servidor:** mensagem clara de falha com botão "Tentar de novo".
-  - **Responsividade:** em 360 px a página não possui rolagem horizontal; apenas a área interna da tabela rola lateralmente.
-
----
-
-## 9. Padrões de Markup e Classes Reutilizadas
-
-Não há dependência de novos componentes pesados de UI; o projeto reaproveita estritamente o vocabulário HTML e as classes utilitárias já existentes no repositório:
-
-| Padrão / Elemento | Classes e Markup Reutilizados do Repositório |
-|---|---|
-| **Casca de Página Pública** | `<div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">` em wrapper flex centralizado. |
-| **Cartão Glass (Painel/Editor)** | `<div className="glass rounded-2xl p-4 sm:p-5">`. |
-| **Campos de Texto/Data/Número** | `className="w-full rounded-lg bg-white/80 px-3 py-2.5 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"`. |
-| **Botão de Ação Primária (Tema)** | `<button style={{ backgroundColor: accent, color: readableTextColor(accent) }} className="w-full rounded-lg py-3 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60">`. |
-| **Botão de Ação Primária (Admin)** | `<button className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90">`. |
-| **Botão Secundário / Cópia** | `<button className="rounded-lg bg-white/70 px-3 py-2 text-xs font-medium ring-1 ring-black/5 hover:bg-white">`. |
-| **Alerta de Aviso (Slug Publicado)** | `<div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200/80">`. |
-| **Tabela de Dados** | `<div className="glass overflow-hidden rounded-2xl"><table className="w-full min-w-[640px] text-left text-sm">...</table></div>`. |
-
----
-
-## 10. Propostas de Mudança no spec / plan / tasks
-
-As propostas discutidas e incorporadas na documentação oficial:
-1. **Rótulo da Aba no Editor:** Renomear o rótulo da aba existente de "Limites" para **"Limites e Termos"** (mantendo a chave interna `limites`), posicionando o campo de consentimento LGPD junto às configurações de encerramento e capacidade do formulário.
-2. **Contrato do Servidor com `emailSent: boolean`:** Incorporado no `plan.md` e `tasks.md` para suportar a exibição condicional da mensagem de confirmação de e-mail na tela de sucesso e na tela de edição.
-3. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`, devolvendo `#ffffff` ou `#000000` para garantir contraste >= 4,5:1.
-4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
-5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
-6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
-7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
-8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
-9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
-10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
-11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
-12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
-13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
-14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
-15. P-NN [Editor e formulário público] tipo Data de nascimento com validação, aprovada pelo dono.
-16. P-NN [Painel, Formulário público e geral] cursor de mãozinha global e dicas nos cards e gráficos, aprovadas pelo dono.
-17. P-NN [Respostas] busca, ordenação, rolagem da tabela e card de detalhes, aprovadas pelo dono.
-18. P-NN [Respostas] coluna do nome sem congelar no celular e dica de toque, aprovada pelo dono.
-19. P-NN [Editor e Tela F] link do cliente somente leitura, aprovado pelo dono.
+901: - **Estado com token:**
+902:   - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`, com associação de rótulo acessível via `htmlFor` e `id` (UX-13, corrigido na T-37).
+903:   - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
+904:   - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
+905:   - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
+906:   - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
+907:   - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
+908:   - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
+909: 
+910: ### 8b.2 Tela Pública do Cliente (`/c/$token`)
+911: - **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem, baixem relatórios em Excel/PDF e imprimam a lista de inscritos em tempo quase real, sem permissão para editar ou excluir dados.
+912: - **Metadados (Head):**
+913:   - Título: "Inscrições recebidas | Corre Time"
+914:   - `robots`: "noindex, nofollow"
+915:   - `referrer`: "no-referrer"
+916: - **Cabeçalho:**
+917:   - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
+918:   - Contadores em destaque: "{N} inscrições" (com forma no singular "1 inscrição" quando N = 1; UX-12 corrigido na T-37), "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
+919:   - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
+920:   - Ações globais:
+921:     - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
+922:     - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições.
+923:     - Botão "Imprimir": gera o mesmo documento PDF via `printPdf` de `exports.ts` e abre diretamente em nova aba do navegador para visualização/impressão com layout paisagem e cabeçalho roxo aprovado (com fallback automático para download caso haja bloqueio de pop-up). Em impressão direta pelo navegador (Ctrl+P), a página aplica classes `print:` para remover barra de rolagem e altura máxima.
+924: - **Tabela e Detalhes:**
+925:   - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`.
+926:   - CPF completo como gravado no banco de dados (sem truncamento, em uma única linha).
+927:   - Sem botões de editar, excluir ou copiar link de edição em nenhuma parte da tela.
+928:   - Clique na linha (`onRowClick`) abre o `ResponseDetailDialog` sem o slot `actions` (exibição puramente em modo de leitura).
+929:   - Busca rápida e ordenação pelas 4 modalidades mantidas e sincronizadas com as exportações.
+930: - **Estados da Tela:**
+931:   - **Carregando:** feedback com mensagem "Carregando inscrições...".
+932:   - **Não encontrado (`not_found`):** "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou." (sem expor nenhum dado nem detalhe técnico).
+933:   - **Erro de rede / servidor:** mensagem clara de falha com botão "Tentar de novo".
+934:   - **Responsividade:** em 360 px a página não possui rolagem horizontal; apenas a área interna da tabela rola lateralmente.
+935: 
+936: ---
+937: 
+938: ## 9. Padrões de Markup e Classes Reutilizadas
+939: 
+940: Não há dependência de novos componentes pesados de UI; o projeto reaproveita estritamente o vocabulário HTML e as classes utilitárias já existentes no repositório:
+941: 
+942: | Padrão / Elemento | Classes e Markup Reutilizados do Repositório |
+943: |---|---|
+944: | **Casca de Página Pública** | `<div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">` em wrapper flex centralizado. |
+945: | **Cartão Glass (Painel/Editor)** | `<div className="glass rounded-2xl p-4 sm:p-5">`. |
+946: | **Campos de Texto/Data/Número** | `className="w-full rounded-lg bg-white/80 px-3 py-2.5 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"`. |
+947: | **Botão de Ação Primária (Tema)** | `<button style={{ backgroundColor: accent, color: readableTextColor(accent) }} className="w-full rounded-lg py-3 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60">`. |
+948: | **Botão de Ação Primária (Admin)** | `<button className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90">`. |
+949: | **Botão Secundário / Cópia** | `<button className="rounded-lg bg-white/70 px-3 py-2 text-xs font-medium ring-1 ring-black/5 hover:bg-white">`. |
+950: | **Alerta de Aviso (Slug Publicado)** | `<div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200/80">`. |
+951: | **Tabela de Dados** | `<div className="glass overflow-hidden rounded-2xl"><table className="w-full min-w-[640px] text-left text-sm">...</table></div>`. |
+952: 
+953: ---
+954: 
+955: ## 10. Propostas de Mudança no spec / plan / tasks
+956: 
+957: As propostas discutidas e incorporadas na documentação oficial:
+958: 1. **Rótulo da Aba no Editor:** Renomear o rótulo da aba existente de "Limites" para **"Limites e Termos"** (mantendo a chave interna `limites`), posicionando o campo de consentimento LGPD junto às configurações de encerramento e capacidade do formulário.
+959: 2. **Contrato do Servidor com `emailSent: boolean`:** Incorporado no `plan.md` e `tasks.md` para suportar a exibição condicional da mensagem de confirmação de e-mail na tela de sucesso e na tela de edição.
+960: 3. **Função Pura `readableTextColor` em `src/lib/theme.ts`:** Incorporada como RF-13 no `spec.md`, na tabela de regras puras do `plan.md` e testada em T-08 de `tasks.md`, devolvendo `#ffffff` ou `#000000` para garantir contraste >= 4,5:1.
+961: 4. **Tratamento do Erro 23505 no Editor:** Incorporado no editor para informar de forma limpa *"Esse endereço já está em uso."* caso ocorra colisão de concorrência ao salvar.
+962: 5. P-NN [Tela C] CPF mascarado na edição (SEC-17), aprovada pelo dono.
+963: 6. P-NN [Tela B] O estado 'Inscrições encerradas' vale também para o encerramento manual e usa texto neutro, aprovada pelo dono.
+964: 7. P-NN [Tela D] O link copiado usa sempre o domínio de produção, aprovada pelo dono.
+965: 8. P-NN [Tela B] bloco do e-mail em destaque, sugestão de domínio e confirmação de e-mail; [Tela D] coluna Atualizado em e filtro de editadas, aprovadas pelo dono.
+966: 9. P-NN [Tela D] exclusão de inscrição pelo painel, para atender pedidos de exclusão (LGPD), aprovada pelo dono.
+967: 10. P-NN [Tela B e Tela E] links para Termos e Política em nova aba, rodapé e páginas legais, aprovadas pelo dono.
+968: 11. P-NN [Editor e formulário público] descrição com quebras de linha e campo de edição maior, aprovadas pelo dono.
+969: 12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
+970: 13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
+971: 14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
+972: 15. P-NN [Editor e formulário público] tipo Data de nascimento com validação, aprovada pelo dono.
+973: 16. P-NN [Painel, Formulário público e geral] cursor de mãozinha global e dicas nos cards e gráficos, aprovadas pelo dono.
+974: 17. P-NN [Respostas] busca, ordenação, rolagem da tabela e card de detalhes, aprovadas pelo dono.
+975: 18. P-NN [Respostas] coluna do nome sem congelar no celular e dica de toque, aprovada pelo dono.
+976: 19. P-NN [Editor e Tela F] link do cliente somente leitura, aprovado pelo dono.
+977: 20. P-NN [Tela F e Editor] Imprimir abre o mesmo PDF em nova aba, contador no singular (UX-12) e acessibilidade de rótulo no ShareLinkCard (UX-13), aprovada pelo dono (T-37).
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
