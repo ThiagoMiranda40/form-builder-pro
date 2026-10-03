@@ -595,6 +595,17 @@ Parte MANUAL (dono, na PRÉVIA, depois do build da branch; use um endereço nunc
 
 ---
 
+## T-40 — Reordenar o texto do cartão do link do cliente
+Contexto: em telas pequenas o WhatsApp corta o fim do título e da descrição; o aviso mais importante (não compartilhar) precisa vir no começo. Textos LITERAIS: os dois definidos no topo deste prompt; o título da aba continua "Inscrições recebidas | Corre Time".
+Arquivos: `src/lib/site-meta.ts` e `src/lib/site-meta.test.ts`. NÃO altere outros arquivos de `src/`.
+Fazer (testes primeiro, vistos falhando):
+ 1. Em `site-meta.ts`, ajuste `CLIENT_LINK_OG_TITLE` e `CLIENT_LINK_DESCRIPTION` para os textos literais; a `description` e a `og:description` continuam iguais; `CLIENT_LINK_TAB_TITLE` não muda.
+ 2. Em `site-meta.test.ts`, atualize as expectativas: os dois valores iguais aos textos literais (uma única fonte de verdade), `ogTitle` com no máximo 70 caracteres, `ogDescription` com no máximo 160, textos diferentes de SITE_TITLE e SITE_DESCRIPTION, e nenhum contendo "SKF" nem "{". Remova as expectativas de frases fixas antigas (por exemplo "Não Compartilhe" e "Não é o link de inscrição"), que podem não existir mais no texto novo. Nenhum outro arquivo de `src/`.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run site-meta`; suíte completa (os 373 testes seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`.
+Parte MANUAL (dono, na PRÉVIA, depois do build da branch; use um endereço nunca visto): (1) no PowerShell: `((curl.exe -s https://spec-001-fase-0-no-ar-form-builder-pro.triadetecnologiaesolucoes.workers.dev/c/0000000000000000000000000000000000000000000000000000000000000012) -split '<meta') | Select-String 'og:title|og:description|robots|referrer'` mostra o título e a descrição novos, e `noindex, nofollow` e `no-referrer`; (2) no WhatsApp (conversa com você mesmo), colar esse endereço mostra o cartão com o título e a descrição novos, e o aviso aparece mesmo em tela pequena; (3) colar o link de um formulário de inscrição continua mostrando o nome e a descrição do formulário; (4) o endereço dos 64 zeros continua mostrando "Link não encontrado".
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.

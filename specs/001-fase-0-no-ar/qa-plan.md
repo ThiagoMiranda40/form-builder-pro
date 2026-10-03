@@ -305,9 +305,9 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Acessibilidade de rótulo no ShareLinkCard (UX-13):** O campo com a URL do cliente no editor possui rótulo devidamente associado via `htmlFor` e `id` ou elemento não-rótulo sem falha de acessibilidade.
 - [ ] **Teste de regressão SEC-26 (Injeção CSV/Excel):** Teste automatizado em `src/lib/exports.test.ts` confirma que respostas iniciadas por `=`, `+`, `-` ou `@` são exportadas pela biblioteca `xlsx` (`aoa_to_sheet`) estritamente com tipo texto (`t === "s"`) e sem propriedade de fórmula (`f`).
 
-### 5.11 Texto Próprio na Prévia do Link do Cliente (T-39)
-- [ ] **Meta tags específicas no HTML inicial:** No PowerShell: `((curl.exe -s https://spec-001-fase-0-no-ar-form-builder-pro.triadetecnologiaesolucoes.workers.dev/c/0000000000000000000000000000000000000000000000000000000000000009) -split '<meta') | Select-String 'og:title|og:description|robots|referrer'` mostra o título e a descrição novos, e `noindex, nofollow` e `no-referrer`.
-- [ ] **Prévia de cartão no WhatsApp:** No WhatsApp (conversa com você mesmo), colar esse endereço mostra o cartão com o título "Lista de inscritos (somente leitura) | Corre Time" e a descrição nova.
+### 5.11 Texto Próprio na Prévia do Link do Cliente (T-39 e T-40)
+- [ ] **Meta tags específicas no HTML inicial:** No PowerShell: `((curl.exe -s https://spec-001-fase-0-no-ar-form-builder-pro.triadetecnologiaesolucoes.workers.dev/c/0000000000000000000000000000000000000000000000000000000000000012) -split '<meta') | Select-String 'og:title|og:description|robots|referrer'` mostra o título e a descrição novos, e `noindex, nofollow` e `no-referrer`.
+- [ ] **Prévia de cartão no WhatsApp:** No WhatsApp (conversa com você mesmo), colar esse endereço mostra o cartão com o título "NÃO COMPARTILHE: lista de inscritos | Corre Time" e a descrição "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição.", e o aviso aparece mesmo em tela pequena.
 - [ ] **Sem regressão na prévia do formulário público:** Colar o link de um formulário de inscrição (`.../<slug>`) continua mostrando o nome e a descrição do formulário (sem regressão).
 - [ ] **Segurança em links desconhecidos:** O endereço dos 64 zeros continua mostrando "Link não encontrado", sem nenhum dado.
 

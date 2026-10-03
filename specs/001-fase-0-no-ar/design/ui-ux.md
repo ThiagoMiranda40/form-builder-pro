@@ -911,9 +911,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem e baixem relatórios em Excel e PDF em tempo quase real, sem permissão para editar ou excluir dados (o PDF baixado pode ser impresso pelo leitor).
 - **Metadados (Head):**
   - Título: "Inscrições recebidas | Corre Time" (CLIENT_LINK_TAB_TITLE)
-  - `description`: "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
-  - `og:title`: "Lista de inscritos AO VIVO (somente leitura) | Corre Time" (CLIENT_LINK_OG_TITLE)
-  - `og:description`: "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
+  - `description`: "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
+  - `og:title`: "NÃO COMPARTILHE: lista de inscritos | Corre Time" (CLIENT_LINK_OG_TITLE)
+  - `og:description`: "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
   - `robots`: "noindex, nofollow"
   - `referrer`: "no-referrer"
 - **Cabeçalho:**
