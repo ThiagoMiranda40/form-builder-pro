@@ -104,7 +104,7 @@ export function ResponsesTable({
         </div>
 
         <p aria-live="polite" className="text-xs text-muted-foreground whitespace-nowrap">
-          Mostrando {filteredAndSortedRows.length} de {rows.length} inscrições
+          Mostrando {filteredAndSortedRows.length} de {rows.length} {rows.length === 1 ? "inscrição" : "inscrições"}
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export function ResponsesTable({
       ) : (
         <div className="space-y-2">
           {onRowClick && (
-            <p className="text-xs text-slate-600 md:hidden">
+            <p className="text-xs text-slate-600 md:hidden print:hidden">
               Toque numa linha para ver todos os dados.
             </p>
           )}
@@ -133,46 +133,60 @@ export function ResponsesTable({
             role="region"
             aria-label="Tabela de inscrições"
             tabIndex={0}
-            className="relative max-h-[70vh] overflow-auto rounded-2xl glass ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
+            className="relative max-h-[70vh] overflow-auto rounded-2xl glass ring-1 ring-black/5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none print:max-h-none print:overflow-visible print:rounded-none print:ring-0"
           >
-            <table className="w-full min-w-[640px] text-left text-sm border-collapse">
+            <table className="w-full min-w-[640px] text-left text-sm border-collapse print:min-w-0">
               <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-sm text-xs uppercase tracking-wide text-muted-foreground shadow-sm">
                 <tr>
                   {nameQuestion ? (
                     <>
-                      <th className="md:sticky md:left-0 md:z-30 bg-slate-100/95 px-4 py-2 font-medium whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+                      <th className="md:sticky md:left-0 md:z-30 bg-slate-100/95 px-4 py-2 font-medium whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] print:whitespace-normal print:px-1.5">
                         {nameQuestion.label}
                       </th>
-                      <th className="px-4 py-2 font-medium whitespace-nowrap">Enviado em</th>
-                    {showUpdatedAt && (
-                      <th className="px-4 py-2 font-medium whitespace-nowrap">Atualizado em</th>
-                    )}
-                    {orderedQuestions.slice(1).map((q) => (
-                      <th key={q.id} className="px-4 py-2 font-medium whitespace-nowrap">
-                        {q.label}
+                      <th className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5">
+                        Enviado em
                       </th>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <th className="px-4 py-2 font-medium whitespace-nowrap">Enviado em</th>
-                    {showUpdatedAt && (
-                      <th className="px-4 py-2 font-medium whitespace-nowrap">Atualizado em</th>
-                    )}
-                    {questions.map((q) => (
-                      <th key={q.id} className="px-4 py-2 font-medium whitespace-nowrap">
-                        {q.label}
+                      {showUpdatedAt && (
+                        <th className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5">
+                          Atualizado em
+                        </th>
+                      )}
+                      {orderedQuestions.slice(1).map((q) => (
+                        <th
+                          key={q.id}
+                          className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5"
+                        >
+                          {q.label}
+                        </th>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5">
+                        Enviado em
                       </th>
-                    ))}
-                  </>
-                )}
-                {renderRowActions && (
-                  <th className="px-4 py-2 font-medium whitespace-nowrap text-right sm:text-left">
-                    Ações
-                  </th>
-                )}
-              </tr>
-            </thead>
+                      {showUpdatedAt && (
+                        <th className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5">
+                          Atualizado em
+                        </th>
+                      )}
+                      {questions.map((q) => (
+                        <th
+                          key={q.id}
+                          className="px-4 py-2 font-medium whitespace-nowrap print:whitespace-normal print:px-1.5"
+                        >
+                          {q.label}
+                        </th>
+                      ))}
+                    </>
+                  )}
+                  {renderRowActions && (
+                    <th className="px-4 py-2 font-medium whitespace-nowrap text-right sm:text-left print:whitespace-normal print:px-1.5">
+                      Ações
+                    </th>
+                  )}
+                </tr>
+              </thead>
             <tbody className="divide-y divide-black/5">
               {filteredAndSortedRows.map((r) => {
                 const edited = isEdited(r.submitted_at, r.updated_at);
@@ -228,18 +242,18 @@ export function ResponsesTable({
                               ? undefined
                               : cell(nameQuestion.field_type, r.answers?.[nameQuestion.id])
                           }
-                          className={`md:sticky md:left-0 md:z-10 px-4 py-2 font-medium text-foreground whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:overflow-visible md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${stickyBgClass}`}
+                          className={`md:sticky md:left-0 md:z-10 px-4 py-2 font-medium text-foreground whitespace-nowrap max-w-[11rem] truncate md:max-w-none md:overflow-visible md:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${stickyBgClass} print:whitespace-normal print:px-1.5`}
                         >
                           {cell(nameQuestion.field_type, r.answers?.[nameQuestion.id])}
                         </td>
-                        <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground">
+                        <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground print:whitespace-normal print:px-1.5">
                           {new Date(r.submitted_at).toLocaleString("pt-BR", {
                             dateStyle: "short",
                             timeStyle: "short",
                           })}
                         </td>
                         {showUpdatedAt && (
-                          <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground">
+                          <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground print:whitespace-normal print:px-1.5">
                             {edited && r.updated_at ? (
                               <span className="inline-flex items-center gap-1.5 text-foreground">
                                 <span>
@@ -266,7 +280,7 @@ export function ResponsesTable({
                                 isLongText
                                   ? "max-w-[20rem] whitespace-normal break-words"
                                   : "whitespace-nowrap"
-                              }`}
+                              } print:whitespace-normal print:px-1.5`}
                             >
                               {cell(q.field_type, r.answers?.[q.id])}
                             </td>
@@ -275,14 +289,14 @@ export function ResponsesTable({
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground">
+                        <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground print:whitespace-normal print:px-1.5">
                           {new Date(r.submitted_at).toLocaleString("pt-BR", {
                             dateStyle: "short",
                             timeStyle: "short",
                           })}
                         </td>
                         {showUpdatedAt && (
-                          <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground">
+                          <td className="px-4 py-2 whitespace-nowrap tabular-nums text-muted-foreground print:whitespace-normal print:px-1.5">
                             {edited && r.updated_at ? (
                               <span className="inline-flex items-center gap-1.5 text-foreground">
                                 <span>
@@ -309,7 +323,7 @@ export function ResponsesTable({
                                 isLongText
                                   ? "max-w-[20rem] whitespace-normal break-words"
                                   : "whitespace-nowrap"
-                              }`}
+                              } print:whitespace-normal print:px-1.5`}
                             >
                               {cell(q.field_type, r.answers?.[q.id])}
                             </td>
@@ -320,7 +334,7 @@ export function ResponsesTable({
 
                     {renderRowActions && (
                       <td
-                        className="px-4 py-2 whitespace-nowrap text-right sm:text-left"
+                        className="px-4 py-2 whitespace-nowrap text-right sm:text-left print:whitespace-normal print:px-1.5"
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => e.stopPropagation()}
                       >

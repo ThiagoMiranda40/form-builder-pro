@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildRows, type ExportQuestion, type ExportResponse } from "./exports";
+import * as XLSX from "xlsx";
+import {
+  buildRows,
+  buildPdfDocument,
+  type ExportQuestion,
+  type ExportResponse,
+} from "./exports";
 
 describe("buildRows (T-12 / Item 6)", () => {
   const questions: ExportQuestion[] = [
@@ -115,5 +121,78 @@ describe("buildRows (T-12 / Item 6)", () => {
     const row = rows[0]!;
     expect(row[1]).toBe("Ana Paula");
     expect(row[2]).toBe("20/12/1981");
+  });
+
+  it("(a) buildRows com field_type: 'birthdate' devolve dd/mm/aaaa (QA-GAP-13)", () => {
+    const questionsWithBirthdate: ExportQuestion[] = [
+      { id: "q-nome", label: "Nome", field_type: "name" },
+      { id: "q-nasc", label: "Data de Nascimento", field_type: "birthdate" },
+    ];
+    const responses: ExportResponse[] = [
+      {
+        submitted_at: "2026-10-01T10:00:00.000Z",
+        answers: {
+          "q-nome": "Mariana Lima",
+          "q-nasc": "1994-07-15",
+        },
+      },
+    ];
+
+    const { rows } = buildRows(questionsWithBirthdate, responses);
+    const row = rows[0]!;
+    expect(row[1]).toBe("Mariana Lima");
+    expect(row[2]).toBe("15/07/1994");
+  });
+
+  it("(b) regressão do SEC-26: respostas começadas por =, +, - e @ saem como texto (t === 's') e sem propriedade f", () => {
+    const formulaQuestions: ExportQuestion[] = [
+      { id: "q1", label: "Fórmula 1" },
+      { id: "q2", label: "Fórmula 2" },
+      { id: "q3", label: "Fórmula 3" },
+      { id: "q4", label: "Fórmula 4" },
+    ];
+    const formulaResponses: ExportResponse[] = [
+      {
+        submitted_at: "2026-10-01T10:00:00.000Z",
+        answers: {
+          q1: "=1+1",
+          q2: "+5511999999999",
+          q3: "-100",
+          q4: "@SUM(A1:A10)",
+        },
+      },
+    ];
+    const { header, rows } = buildRows(formulaQuestions, formulaResponses);
+    const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    for (const cellRef of ["B2", "C2", "D2", "E2"]) {
+      const cell = sheet[cellRef];
+      expect(cell).toBeDefined();
+      expect(cell.t).toBe("s");
+      expect(cell.f).toBeUndefined();
+    }
+  });
+});
+
+describe("buildPdfDocument (T-37)", () => {
+  it("(c) buildPdfDocument devolve um PDF válido começando com %PDF e tabela configurada", async () => {
+    const sampleQuestions: ExportQuestion[] = [
+      { id: "q-cpf", label: "CPF", field_type: "cpf" },
+      { id: "q-nome", label: "Nome", field_type: "name" },
+    ];
+    const sampleResponses: ExportResponse[] = [
+      {
+        submitted_at: "2026-10-01T10:00:00.000Z",
+        answers: {
+          "q-cpf": "123.456.789-00",
+          "q-nome": "Fulano",
+        },
+      },
+    ];
+    const doc = await buildPdfDocument("Evento Teste", sampleQuestions, sampleResponses);
+    expect(doc).toBeDefined();
+    const arrayBuffer = doc.output("arraybuffer");
+    const headerBytes = new Uint8Array(arrayBuffer.slice(0, 4));
+    const headerStr = String.fromCharCode(...headerBytes);
+    expect(headerStr).toBe("%PDF");
   });
 });

@@ -66,7 +66,7 @@ function SharedResponsesPage() {
 
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [detailRow, setDetailRow] = useState<TableRow | null>(null);
-  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [exporting, setExporting] = useState<"excel" | "pdf" | "print" | null>(null);
 
   if (query.isLoading) {
     return (
@@ -149,8 +149,21 @@ function SharedResponsesPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async (
+    title: string,
+    qList: TableQuestion[],
+    rList: TableRow[],
+  ) => {
+    try {
+      setExporting("print");
+      const { printPdf } = await import("@/lib/exports");
+      const sortedAll = sortRows(rList, qList, sortMode);
+      await printPdf(title, qList, sortedAll);
+    } catch {
+      toast.error("Não foi possível exportar. Tente novamente.");
+    } finally {
+      setExporting(null);
+    }
   };
 
   const updatedAtText = formatUpdatedAt(query.dataUpdatedAt);
@@ -203,7 +216,9 @@ function SharedResponsesPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span>{responses.length} inscrições</span>
+              <span>
+                {responses.length === 1 ? "1 inscrição" : `${responses.length} inscrições`}
+              </span>
               {remainingVagas !== null && (
                 <span>
                   · {remainingVagas} {remainingVagas === 1 ? "vaga restante" : "vagas restantes"}
@@ -220,7 +235,7 @@ function SharedResponsesPage() {
               disabled={responses.length === 0 || exporting !== null}
               className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
-              Baixar Excel
+              {exporting === "excel" ? "Gerando…" : "Baixar Excel"}
             </button>
             <button
               type="button"
@@ -228,15 +243,15 @@ function SharedResponsesPage() {
               disabled={responses.length === 0 || exporting !== null}
               className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
-              Baixar PDF
+              {exporting === "pdf" ? "Gerando…" : "Baixar PDF"}
             </button>
             <button
               type="button"
-              onClick={handlePrint}
-              disabled={responses.length === 0}
+              onClick={() => handlePrint(form.title, questions, responses)}
+              disabled={responses.length === 0 || exporting !== null}
               className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
-              Imprimir
+              {exporting === "print" ? "Gerando…" : "Imprimir"}
             </button>
           </div>
         </div>

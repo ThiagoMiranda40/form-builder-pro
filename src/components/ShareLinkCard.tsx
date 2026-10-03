@@ -95,9 +95,9 @@ export function ShareLinkCard({
   return (
     <div className="glass rounded-2xl p-4 mt-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-        <label className="text-xs font-semibold text-slate-800">
+        <h3 className="text-xs font-semibold text-slate-800">
           Link do cliente (somente leitura)
-        </label>
+        </h3>
       </div>
 
       <p className="mt-1 text-xs text-slate-600">
