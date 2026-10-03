@@ -62,4 +62,35 @@ describe("countByDay (T-22 / Item 3)", () => {
     expect(result.find((d) => d.dateText === "02/10")?.total).toBe(2);
     expect(result.reduce((acc, d) => acc + d.total, 0)).toBe(5);
   });
+
+  describe("T-27: isoDate e weekdayName", () => {
+    it("com now fixo, o último item é hoje com weekdayName e isoDate corretos (2026-10-02 é sexta-feira)", () => {
+      const result = countByDay([], 7, fixedNow);
+      expect(result).toHaveLength(7);
+
+      const today = result[6];
+      expect(today?.isoDate).toBe("2026-10-02");
+      expect(today?.weekdayName).toBe("sexta-feira");
+
+      const first = result[0];
+      expect(first?.isoDate).toBe("2026-09-26");
+      expect(first?.weekdayName).toBe("sábado");
+
+      const sunday = result[1];
+      expect(sunday?.isoDate).toBe("2026-09-27");
+      expect(sunday?.weekdayName).toBe("domingo");
+    });
+
+    it("resposta às 23:30 de São Paulo cai no dia certo com weekdayName e isoDate esperados", () => {
+      // 2026-10-01 às 23:30 em SP (UTC-3) corresponde a 2026-10-02T02:30:00.000Z em UTC
+      const dates = ["2026-10-02T02:30:00.000Z"];
+      const result = countByDay(dates, 7, fixedNow);
+
+      const oct01 = result.find((d) => d.dateText === "01/10");
+      expect(oct01?.total).toBe(1);
+      expect(oct01?.isoDate).toBe("2026-10-01");
+      expect(oct01?.weekdayName).toBe("quinta-feira");
+    });
+  });
 });
+

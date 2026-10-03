@@ -16,6 +16,13 @@ import { normalizeDescription } from "@/lib/description";
 import { Calendar, Users } from "lucide-react";
 import { buildAvailability } from "@/lib/availability";
 import { dateInputAttrs } from "@/lib/birthdate";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PUBLIC_FORM_HINTS } from "@/lib/dashboard-hints";
 
 
 export const Route = createFileRoute("/$slug")({
@@ -363,83 +370,103 @@ function PublicForm() {
           </p>
         )}
         {(availability.slots || availability.deadline) && (
-          <div
-            role="group"
-            aria-label="Vagas e prazo"
-            className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"
-          >
-            {availability.slots && (
-              <div
-                className={`rounded-xl px-4 py-3 ring-1 transition-colors ${
-                  !hasBoth ? "sm:col-span-2" : ""
-                } ${
-                  availability.slots.urgent
-                    ? "bg-amber-50 ring-amber-300"
-                    : "bg-white ring-black/10"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                    <Users className="size-4 text-slate-500" aria-hidden="true" />
-                    Vagas
-                  </span>
-                  {availability.slots.badge && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                      {availability.slots.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span
-                    className={`text-3xl font-bold ${
-                      availability.slots.urgent ? "text-amber-950" : "text-slate-900"
-                    }`}
-                  >
-                    {availability.slots.number}
-                  </span>
-                  <span className="text-sm text-slate-700">
-                    {availability.slots.label}
-                  </span>
-                </div>
-              </div>
-            )}
+          <TooltipProvider delayDuration={150}>
+            <div
+              role="group"
+              aria-label="Vagas e prazo"
+              className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              {availability.slots && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`Vagas: ${availability.slots.number} ${availability.slots.label}.${availability.slots.badge ? ` ${availability.slots.badge}.` : ""} ${PUBLIC_FORM_HINTS.SLOTS}`}
+                      className={`rounded-xl px-4 py-3 ring-1 transition-colors text-left cursor-help w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                        !hasBoth ? "sm:col-span-2" : ""
+                      } ${
+                        availability.slots.urgent
+                          ? "bg-amber-50 ring-amber-300"
+                          : "bg-white ring-black/10"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                          <Users className="size-4 text-slate-500" aria-hidden="true" />
+                          Vagas
+                        </span>
+                        {availability.slots.badge && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                            {availability.slots.badge}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-1.5">
+                        <span
+                          className={`text-3xl font-bold ${
+                            availability.slots.urgent ? "text-amber-950" : "text-slate-900"
+                          }`}
+                        >
+                          {availability.slots.number}
+                        </span>
+                        <span className="text-sm text-slate-700">
+                          {availability.slots.label}
+                        </span>
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs bg-slate-900 text-slate-50 motion-reduce:animate-none">
+                    {PUBLIC_FORM_HINTS.SLOTS}
+                  </TooltipContent>
+                </Tooltip>
+              )}
 
-            {availability.deadline && (
-              <div
-                className={`rounded-xl px-4 py-3 ring-1 transition-colors ${
-                  !hasBoth ? "sm:col-span-2" : ""
-                } ${
-                  availability.deadline.urgent
-                    ? "bg-amber-50 ring-amber-300"
-                    : "bg-white ring-black/10"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                    <Calendar className="size-4 text-slate-500" aria-hidden="true" />
-                    Inscrições até
-                  </span>
-                  {availability.deadline.badge && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
-                      {availability.deadline.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
-                  <span
-                    className={`text-2xl font-bold ${
-                      availability.deadline.urgent ? "text-amber-950" : "text-slate-900"
-                    }`}
-                  >
-                    {availability.deadline.dateText}
-                  </span>
-                  <span className="text-sm text-slate-700">
-                    às {availability.deadline.timeText}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+              {availability.deadline && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`Inscrições até: ${availability.deadline.dateText} às ${availability.deadline.timeText}.${availability.deadline.badge ? ` ${availability.deadline.badge}.` : ""} ${PUBLIC_FORM_HINTS.DEADLINE}`}
+                      className={`rounded-xl px-4 py-3 ring-1 transition-colors text-left cursor-help w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                        !hasBoth ? "sm:col-span-2" : ""
+                      } ${
+                        availability.deadline.urgent
+                          ? "bg-amber-50 ring-amber-300"
+                          : "bg-white ring-black/10"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                          <Calendar className="size-4 text-slate-500" aria-hidden="true" />
+                          Inscrições até
+                        </span>
+                        {availability.deadline.badge && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                            {availability.deadline.badge}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                        <span
+                          className={`text-2xl font-bold ${
+                            availability.deadline.urgent ? "text-amber-950" : "text-slate-900"
+                          }`}
+                        >
+                          {availability.deadline.dateText}
+                        </span>
+                        <span className="text-sm text-slate-700">
+                          às {availability.deadline.timeText}
+                        </span>
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs bg-slate-900 text-slate-50 motion-reduce:animate-none">
+                    {PUBLIC_FORM_HINTS.DEADLINE}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </TooltipProvider>
         )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">

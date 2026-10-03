@@ -4,9 +4,20 @@ export type DayCount = {
   label: string;
   total: number;
   dateText: string;
+  isoDate: string;
+  weekdayName: string;
 };
 
 const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"] as const;
+const WEEKDAY_NAMES = [
+  "domingo",
+  "segunda-feira",
+  "terça-feira",
+  "quarta-feira",
+  "quinta-feira",
+  "sexta-feira",
+  "sábado",
+] as const;
 
 function getCivilDateInSP(d: Date): { year: number; month: number; day: number } | null {
   if (isNaN(d.getTime())) return null;
@@ -38,7 +49,14 @@ export function countByDay(dates: string[], days: number, now: Date): DayCount[]
   const anchorUTC = Date.UTC(nowCivil.year, nowCivil.month - 1, nowCivil.day, 12, 0, 0);
 
   // Gera os slots do mais antigo (offset = days - 1) até hoje (offset = 0)
-  const slots: Array<{ key: string; label: string; dateText: string; total: number }> = [];
+  const slots: Array<{
+    key: string;
+    label: string;
+    dateText: string;
+    isoDate: string;
+    weekdayName: string;
+    total: number;
+  }> = [];
   const slotMap = new Map<string, number>();
 
   for (let i = 0; i < days; i++) {
@@ -52,9 +70,11 @@ export function countByDay(dates: string[], days: number, now: Date): DayCount[]
     const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const dateText = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
     const label = WEEKDAY_LABELS[dayOfWeek]!;
+    const isoDate = key;
+    const weekdayName = WEEKDAY_NAMES[dayOfWeek]!;
 
     slotMap.set(key, i);
-    slots.push({ key, label, dateText, total: 0 });
+    slots.push({ key, label, dateText, isoDate, weekdayName, total: 0 });
   }
 
   for (const rawDate of dates) {
@@ -70,5 +90,11 @@ export function countByDay(dates: string[], days: number, now: Date): DayCount[]
     }
   }
 
-  return slots.map(({ label, total, dateText }) => ({ label, total, dateText }));
+  return slots.map(({ label, total, dateText, isoDate, weekdayName }) => ({
+    label,
+    total,
+    dateText,
+    isoDate,
+    weekdayName,
+  }));
 }
