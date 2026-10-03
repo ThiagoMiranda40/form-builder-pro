@@ -674,6 +674,10 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Falha na Exclusão** | Caso a exclusão falhe ou o banco retorne 0 linhas: toast *"Não foi possível excluir. Tente novamente."*. O botão fica desabilitado durante o envio. |
 | **Formato de Datas nas Respostas** | Perguntas do tipo data (`field_type === "date"`) são exibidas na tabela no formato `dd/mm/aaaa` por manipulação direta de texto (evitando desvios de fuso horário). O mesmo formato é preservado nas exportações em Excel e PDF via `buildRows`. Nenhuma outra coluna é alterada. |
 | **Atualização Automática** | A consulta de respostas atualiza periodicamente a cada 30 segundos (`refetchInterval: 30_000`, `refetchIntervalInBackground: false`). Perto do título da tela, é exibido o texto *"Atualizado às HH:mm"* (`text-xs text-slate-600`, fuso de São Paulo, a partir de `dataUpdatedAt`, sem `aria-live`). O botão manual *"Atualizar"* continua disponível. |
+| **Barra de Ferramentas da Tabela** | Acima da tabela, barra compacta com campo de busca (`type="search"`, `aria-label="Buscar inscrição"`, placeholder *"Buscar por nome, CPF, e-mail, telefone..."*), botão *"Limpar busca"* quando houver texto digitado, seletor de ordenação (`aria-label="Ordem das inscrições"`) com as opções *"Mais recentes primeiro"*, *"Mais antigas primeiro"*, *"Nome (A a Z)"* e *"Nome (Z a A)"* (as opções de nome só aparecem se houver pergunta de nome), e contador de resultados com `aria-live="polite"` (*"Mostrando {n} de {total} inscrições"*). Sem correspondências: exibe *"Nenhuma inscrição encontrada para “{texto}”."*. |
+| **Área da Tabela e Rolagem** | Contêiner com `role="region"`, `aria-label="Tabela de inscrições"`, `tabIndex={0}`, `overflow-auto` e altura máxima `max-h-[70vh]`. A barra de rolagem horizontal fica sempre visível junto à tabela sem rolar a página inteira. Cabeçalho fixo no topo (`sticky top-0`, fundo opaco, `py-2`, sem quebra de linha). Havendo pergunta de nome, ela fica fixa à esquerda (`sticky left-0`, fundo opaco igual à linha, sombra leve à direita, z-index correto), seguida de "Enviado em", "Atualizado em" e das demais colunas. Células em linha única (`whitespace-nowrap`), exceto perguntas de texto longo (largura máxima 20rem com quebra). Datas com `tabular-nums`. |
+| **Interação com a Linha** | A linha inteira é clicável e focável (`cursor-pointer`, `data-clickable`, `tabIndex={0}`, `aria-label="Abrir detalhes da inscrição de {nome}"`). Clicar na linha ou pressionar Enter/Espaço abre o `ResponseDetailDialog`. Cliques dentro da coluna de "Ações" e seleção de texto com o mouse não disparam a abertura do card. |
+| **Card de Detalhes da Inscrição** | Diálogo modal (`ResponseDetailDialog`, tela cheia em 360 px) com título exibindo o nome do inscrito, metadados de "Enviado em" e "Atualizado em" (com selo "Editada" quando aplicável), slot de ações em destaque no topo com 4 botões (*"Editar"*, *"Copiar link de edição"*, *"Reenviar e-mail"* com confirmação e *"Excluir"*), seguido da lista de todas as perguntas com respostas completas e formatadas via `formatAnswer` (CPF completo e textos longos com quebra). |
 | **Erro de carga** | *"Não foi possível carregar as respostas."* e o botão *"Tentar de novo"*. |
 
 ### 5.4 Textos Exatos da Interface
@@ -710,6 +714,16 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Feedback de cópia:** "Link de edição copiado!"
 - **Falha ao copiar:** "Não foi possível copiar o link."
 - **Indicador de atualização periódica:** "Atualizado às " (seguido de HH:mm)
+- **Aria-label do campo de busca:** "Buscar inscrição"
+- **Placeholder do campo de busca:** "Buscar por nome, CPF, e-mail, telefone..."
+- **Botão limpar busca:** "Limpar busca"
+- **Aria-label da ordem:** "Ordem das inscrições"
+- **Opções de ordenação:** "Mais recentes primeiro", "Mais antigas primeiro", "Nome (A a Z)", "Nome (Z a A)"
+- **Contador de inscrições filtradas:** "Mostrando {n} de {total} inscrições"
+- **Busca sem resultados:** "Nenhuma inscrição encontrada para “{texto}”."
+- **Aria-label da região da tabela:** "Tabela de inscrições"
+- **Aria-label da linha da tabela:** "Abrir detalhes da inscrição de " (seguido do nome)
+- **Título do diálogo de detalhes:** Nome do participante
 - **Erro de carga:** "Não foi possível carregar as respostas."
 - **Botão de retry:** "Tentar de novo"
 - **Erro de exportação:** "Não foi possível exportar. Tente novamente."
@@ -911,6 +925,7 @@ As propostas discutidas e incorporadas na documentação oficial:
 14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
 15. P-NN [Editor e formulário público] tipo Data de nascimento com validação, aprovada pelo dono.
 16. P-NN [Painel, Formulário público e geral] cursor de mãozinha global e dicas nos cards e gráficos, aprovadas pelo dono.
+17. P-NN [Respostas] busca, ordenação, rolagem da tabela e card de detalhes, aprovadas pelo dono.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.

@@ -252,6 +252,16 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Reflexo nas exportações:** Após editar a inscrição pelo painel, exportar a planilha Excel: o arquivo baixado reflete os novos valores atualizados.
 - [ ] **Segurança de autorização (dono):** Usuário autenticado que não é dono do formulário não consegue editar respostas nem disparar o reenvio de e-mail (retorna erro genérico de não encontrado sem revelar a existência).
 - [ ] **Proteção de rota:** Sem login, o endereço de respostas leva a /auth e não mostra dados.
+- [ ] **Busca de inscrições (T-26):** Buscar "ricardo" acha a inscrição; buscar um CPF só com números acha; buscar parte do telefone acha; buscar "livia" acha "Lívia"; buscar "02/10/2026" acha as datas.
+- [ ] **Limpar busca e contador (T-26):** Clicar em "Limpar busca" volta à lista completa e o contador exibe "Mostrando N de N inscrições" com anúncio polido a leitores de tela.
+- [ ] **Ordenação de inscrições (T-26):** As 4 ordens funcionam: "Mais recentes primeiro" (padrão), "Mais antigas primeiro" (mostrando a primeira inscrição no topo), "Nome (A a Z)" e "Nome (Z a A)" (com "Álvaro" ordenado entre "Alice" e "Bruno", e inscritos sem nome por último nas duas direções).
+- [ ] **Rolagem da tabela e colunas fixas (T-26):** A barra de rolagem horizontal aparece junto da tabela (altura máxima 70vh) sem rolar a página; o cabeçalho fica fixo ao rolar para baixo e a coluna do nome fica fixa à esquerda ao rolar para a direita.
+- [ ] **Densidade e não quebra de linha (T-26):** CPF, telefone e datas ficam em linha única (`whitespace-nowrap`), com números tabulares e sem quebra feia.
+- [ ] **Card de detalhes da inscrição (T-26):** Clicar em qualquer ponto da linha (ou focar e pressionar Enter ou Espaço) abre o `ResponseDetailDialog`; os botões da linha não abrem o card; no card, os botões "Editar", "Copiar link de edição", "Reenviar e-mail" e "Excluir" funcionam.
+- [ ] **Exportação Excel e PDF ordenadas (T-26):** O Excel e o PDF saem com todas as inscrições (ignoram filtro e busca) ordenadas de acordo com o `sortMode` selecionado na tela.
+- [ ] **Regressão de ações da linha (T-26):** "Editar", "Copiar link de edição", "Excluir" e "Mostrar só editadas" continuam funcionando perfeitamente como antes.
+- [ ] **Responsividade mobile 360 px (T-26):** No celular (360 px), apenas a área da tabela rola horizontalmente (a página não vaza) e o card de detalhes ocupa a tela inteira com boa legibilidade.
+- [ ] **Acessibilidade por teclado (T-26):** Navegando com a tecla Tab, o foco chega à área da tabela (`role="region"` com `tabIndex={0}`) e as setas direcionais rolam seu conteúdo.
 
 ### 5.6 Tela de Entrada (`/auth`)
 - [ ] **Apenas e-mail e senha:** Não pode existir botão de "Criar conta", nem link alternativo, nem botão de login com o Google.
