@@ -7,6 +7,10 @@ import {
   SITE_DESCRIPTION,
   OG_IMAGE,
   buildFormMeta,
+  CLIENT_LINK_TAB_TITLE,
+  CLIENT_LINK_OG_TITLE,
+  CLIENT_LINK_DESCRIPTION,
+  buildClientLinkMeta,
 } from "./site-meta";
 
 describe("site-meta (T-18)", () => {
@@ -209,5 +213,46 @@ describe("buildFormMeta (T-19)", () => {
     expect(resFull.ogTitle).toBe("Corrida Lotada");
     expect(resFull.title).toBe("Corrida Lotada | Corre Time");
     expect(resFull.description).toBe("Vagas esgotadas.");
+  });
+});
+
+describe("buildClientLinkMeta (T-39)", () => {
+  it("exporta constantes para o link do cliente", () => {
+    expect(CLIENT_LINK_TAB_TITLE).toBe("Inscrições recebidas | Corre Time");
+    expect(CLIENT_LINK_OG_TITLE).toBe(
+      "Lista de inscritos AO VIVO (somente leitura) | Corre Time"
+    );
+    expect(CLIENT_LINK_DESCRIPTION).toBe(
+      "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição."
+    );
+  });
+
+  it("devolve textos diferentes de SITE_TITLE e SITE_DESCRIPTION", () => {
+    const meta = buildClientLinkMeta();
+    expect(meta.title).not.toBe(SITE_TITLE);
+    expect(meta.description).not.toBe(SITE_DESCRIPTION);
+    expect(meta.ogTitle).not.toBe(SITE_TITLE);
+    expect(meta.ogDescription).not.toBe(SITE_DESCRIPTION);
+  });
+
+  it("ogTitle com no máximo 70 caracteres e ogDescription com no máximo 160", () => {
+    const meta = buildClientLinkMeta();
+    expect(meta.ogTitle.length).toBeLessThanOrEqual(70);
+    expect(meta.ogDescription.length).toBeLessThanOrEqual(160);
+    expect(meta.description).toBe(meta.ogDescription);
+  });
+
+  it("a descrição contém 'Não é o link de inscrição' e 'Não Compartilhe'", () => {
+    const meta = buildClientLinkMeta();
+    expect(meta.description).toContain("Não é o link de inscrição");
+    expect(meta.description).toContain("Não Compartilhe");
+  });
+
+  it("nenhum dos textos contém 'SKF' nem '{' (genérico)", () => {
+    const meta = buildClientLinkMeta();
+    for (const val of [meta.title, meta.description, meta.ogTitle, meta.ogDescription]) {
+      expect(val).not.toContain("SKF");
+      expect(val).not.toContain("{");
+    }
   });
 });

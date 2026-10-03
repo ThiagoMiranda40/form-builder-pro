@@ -73,5 +73,20 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
       }
     }
   });
+
+  it("c.$token.tsx importa buildClientLinkMeta, define og:title e og:description e mantém noindex e no-referrer (T-39)", () => {
+    const clientRoutePath = path.join(rootDir, "src/routes/c.$token.tsx");
+    const content = fs.readFileSync(clientRoutePath, "utf-8");
+
+    expect(content).toContain("buildClientLinkMeta");
+    expect(content).toContain("og:title");
+    expect(content).toContain("og:description");
+    expect(content).toContain("noindex, nofollow");
+    expect(content).toContain("no-referrer");
+
+    const slugRoutePath = path.join(rootDir, "src/routes/$slug.tsx");
+    const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
+    expect(slugContent).toContain("buildFormMeta");
+  });
 });
 

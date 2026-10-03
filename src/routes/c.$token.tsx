@@ -12,6 +12,7 @@ import {
   type TableQuestion,
   type TableRow,
 } from "@/lib/responses-table";
+import { buildClientLinkMeta } from "@/lib/site-meta";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -42,10 +43,15 @@ function formatClosesAt(dateStr: string): string {
   return `Prazo: ${datePart} às ${timePart}`;
 }
 
+const clientMeta = buildClientLinkMeta();
+
 export const Route = createFileRoute("/c/$token")({
   head: () => ({
     meta: [
-      { title: "Inscrições recebidas | Corre Time" },
+      { title: clientMeta.title },
+      { name: "description", content: clientMeta.description },
+      { property: "og:title", content: clientMeta.ogTitle },
+      { property: "og:description", content: clientMeta.ogDescription },
       { name: "robots", content: "noindex, nofollow" },
       { name: "referrer", content: "no-referrer" },
     ],

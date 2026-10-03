@@ -11,6 +11,31 @@ export const DEFAULT_FORM_OG_TITLE = "Formulário de inscrição";
 export const DEFAULT_FORM_OG_DESCRIPTION =
   "Preencha seus dados para concluir a inscrição.";
 
+export const CLIENT_LINK_TAB_TITLE = "Inscrições recebidas | Corre Time";
+export const CLIENT_LINK_OG_TITLE =
+  "Lista de inscritos AO VIVO (somente leitura) | Corre Time";
+export const CLIENT_LINK_DESCRIPTION =
+  "Link de acompanhamento das inscrições. EXCLUSIVO PARA GESTÃO. Não Compartilhe! Não é o link de inscrição.";
+
+export interface ClientLinkMetaResult {
+  title: string;
+  description: string;
+  ogTitle: string;
+  ogDescription: string;
+}
+
+/**
+ * Constrói metadados estáticos e genéricos para o link do cliente (/c/$token) (T-39).
+ */
+export function buildClientLinkMeta(): ClientLinkMetaResult {
+  return {
+    title: CLIENT_LINK_TAB_TITLE,
+    description: CLIENT_LINK_DESCRIPTION,
+    ogTitle: CLIENT_LINK_OG_TITLE,
+    ogDescription: CLIENT_LINK_DESCRIPTION,
+  };
+}
+
 export interface FormMetaPayload {
   state?: string | null;
   form?: {
