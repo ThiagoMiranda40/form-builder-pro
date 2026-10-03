@@ -180,6 +180,8 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Aria-label da descrição:** "Descrição do formulário"
 - **Placeholder da descrição:** "Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
 - **Rótulo exato da aba:** "Limites e Termos"
+- **Tipo de campo Data de nascimento (Editor):** Rótulo "Data de nascimento", dica "Não aceita hoje nem datas futuras"
+
 
 ### 2.5 Markup e Classes Reutilizadas (de `_authenticated.formularios.$id.tsx`)
 - Cartão de compartilhamento: `<div className="glass rounded-2xl p-4">`.
@@ -395,6 +397,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição e do rodapé legal. |
 | **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."* e do rodapé legal. |
 | **Sucesso (sem pergunta de e-mail)** | Cartão do link de edição sem nenhuma menção a e-mail, seguido do rodapé legal. |
+| **Campo Data de nascimento** | `<input type="date">` com `autoComplete="bday"` e limites no seletor (`min="1900-01-01"` e `max` igual ao dia anterior a hoje em São Paulo via `birthdateBounds(now)`). |
+| **Erro: Data de nascimento (hoje/futura)** | Mensagem vermelha abaixo do campo: *"Informe uma data de nascimento válida: não pode ser hoje nem uma data futura."*. |
+| **Erro: Data de nascimento (inválida)** | Mensagem vermelha abaixo do campo: *"Data de nascimento inválida."* (quando formato/calendário for inválido ou a data for anterior a 1900-01-01). |
 | **Vagas Esgotadas / Encerrado** | Telas estáticas em `Frame`: *"Vagas esgotadas"* ou *"Inscrições encerradas"*, com rodapé legal abaixo do cartão. |
 
 ### 3.4 Textos Exatos da Interface
@@ -429,6 +434,10 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Prefixo de horário:** "às"
 - **Selo de encerramento hoje:** "Encerra hoje"
 - **Selo de encerramento amanhã:** "Encerra amanhã"
+- **Erro data de nascimento hoje ou futura:** "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura."
+- **Erro data de nascimento inválida:** "Data de nascimento inválida."
+- **Erro data genérica inválida:** "Data inválida."
+
 
 ### 3.5 Markup e Classes Reutilizadas (de `src/routes/f.$slug.tsx`)
 - Container: `<div className="flex min-h-screen items-start justify-center px-5 py-10 sm:py-16"><div className="glass-strong rise w-full max-w-xl rounded-2xl p-6 sm:p-8">{children}</div></div>`.
@@ -878,6 +887,8 @@ As propostas discutidas e incorporadas na documentação oficial:
 12. P-NN [Formulário público] vagas e prazo em destaque, aprovadas pelo dono.
 13. P-NN [Painel e Respostas] gráfico por dia, atualização automática e datas em dd/mm/aaaa, aprovadas pelo dono.
 14. P-NN [Respostas] edição pelo painel e reenvio de e-mail, aprovadas pelo dono.
+15. P-NN [Editor e formulário público] tipo Data de nascimento com validação, aprovada pelo dono.
+
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
 

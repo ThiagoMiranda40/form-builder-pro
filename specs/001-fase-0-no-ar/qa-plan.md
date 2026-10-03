@@ -151,6 +151,16 @@ Esta seção identifica exatamente **o que ainda não estava coberto** nos teste
 | **TC-EDIT-04** | Tentativa de adulterar 1 caractere no link de edição | Retorna página "Inscrição não encontrada" | Links incorretos ou falsos não acessam dados de ninguém. |
 | **TC-EDIT-05** | Inscrito edita menos de 10 minutos depois de se inscrever | Salvo no banco, nenhum e-mail disparado | A confirmação da inscrição conta como o último e-mail da janela. |
 
+### 4.8 Validação de Data de Nascimento e Datas
+| ID | Cenário | Resultado Esperado | O que prova em linguagem simples |
+|---|---|---|---|
+| **TC-DATE-01** | Data de nascimento igual à data de hoje em São Paulo | Recusada: "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura." | Ninguém pode nascer hoje no momento de se inscrever. |
+| **TC-DATE-02** | Data de nascimento no futuro | Recusada: "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura." | Bloqueia digitação acidental de anos futuros. |
+| **TC-DATE-03** | Data de nascimento válida no passado (ex.: ontem, 1981-12-20) | Aceita com sucesso | Datas legítimas de nascimento passam normalmente. |
+| **TC-DATE-04** | Data de nascimento anterior a 1900-01-01 (ex.: 1899-12-31) | Recusada: "Data de nascimento inválida." | Impede anos irreais ou erros de digitação grosseiros. |
+| **TC-DATE-05** | Data inexistente no calendário (ex.: 2026-02-30 ou 2026-13-01) | Recusada: "Data de nascimento inválida." (ou "Data inválida." no tipo date) | Valida calendário real por ida e volta em UTC. |
+| **TC-DATE-06** | Data de nascimento de hoje ou futura enviada diretamente ao servidor | Recusada no navegador e no servidor com a mesma mensagem | Regra de negócio "data de nascimento de hoje ou futura é recusada no navegador e no servidor" aplicada estritamente. |
+
 ---
 
 ## 5. Roteiro de Teste Exploratório por Tela
@@ -175,7 +185,11 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Alerta de prazo iminente:** Num formulário de teste com prazo para hoje, exibe o selo *"Encerra hoje"*; para amanhã, *"Encerra amanhã"*.
 - [ ] **Formulário sem limite e sem prazo:** Num formulário de teste sem limite de vagas e sem prazo cadastrados, o bloco não aparece.
 - [ ] **Fuso horário fixo:** O horário do prazo exibido é rigorosamente o mesmo no computador e no celular (fuso de São Paulo).
+- [ ] **Data de nascimento no formulário público:** O seletor não deixa escolher hoje nem datas futuras (`max` fixado no dia anterior a hoje em São Paulo).
+- [ ] **Tentativa de envio de data de nascimento de hoje ou futura:** Recusada no navegador e no servidor com *"Informe uma data de nascimento válida: não pode ser hoje nem uma data futura."*.
+- [ ] **Envio com data de nascimento válida:** Enviar uma inscrição de teste com data válida: concluída com sucesso, e o e-mail de confirmação recebido mostra a data em dd/mm/aaaa.
 - [ ] **Rodapé de documentos legais:** Abaixo do cartão do formulário (em todos os estados: aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"*, ambos abrindo em nova aba com texto para leitor de tela.
+
 
 ### 5.2 Tela de Sucesso da Inscrição
 - [ ] **Ordem dos blocos:** O aviso de e-mail (quando enviado) deve vir posicionado **antes** do cartão do link de edição.
@@ -202,10 +216,15 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Gráfico de respostas por dia no painel:** O gráfico exibe os últimos 7 dias; a barra de hoje mostra o número de respostas acima da barra (quando > 0), e os dias anteriores com 0 sem barra alta; o conjunto possui `role="img"` e `aria-label` com o resumo dos 7 dias.
 - [ ] **Atualização automática no painel:** As consultas do painel atualizam a cada 30 segundos sem recarregar a página inteira; perto do título é exibido "Atualizado às HH:mm" (fuso de São Paulo); o painel segue carregando normalmente.
 - [ ] **Atualização em tempo real (teste prático do painel):** Num formulário de teste, enviar uma inscrição pelo celular: em até cerca de 30 segundos o painel reflete a nova inscrição e o "Atualizado às HH:mm" avança sem recarregar.
+- [ ] **Configuração do tipo Data de nascimento no editor:** No editor do formulário da SKF (`/formularios/$id`), trocar o tipo da pergunta "Data de Nascimento" para "Data de nascimento" (com a dica *"Não aceita hoje nem datas futuras"*) e salvar.
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.
 - [ ] **Datas de respostas em dd/mm/aaaa:** Na tabela de respostas, perguntas com resposta de data (ex.: data de nascimento no formulário da SKF) são exibidas no formato dd/mm/aaaa por manipulação de texto.
+- [ ] **Datas em dd/mm/aaaa no Excel e no PDF:** O Excel e o PDF baixados mostram perguntas de data formatadas em dd/mm/aaaa.
+- [ ] **Preservação de inscrições antigas:** As inscrições antigas continuam intactas e com seus dados preservados.
+- [ ] **Validação de data de nascimento na edição pelo painel:** Na tela de respostas, ao editar uma das duas inscrições com nascimento igual a 02/10/2026, o diálogo exige uma data válida para salvar.
+
 - [ ] **Coluna "Atualizado em":** Posicionada logo após "Enviado em", exibe a data e hora da alteração em pt-BR ou "—" quando a inscrição nunca foi editada.
 - [ ] **Selo de inscrição editada:** Linhas de inscrições retificadas exibem o selo textual *"Editada"* ao lado da data e fundo âmbar claro.
 - [ ] **Resumo de respostas, vagas, editadas e prazo:** Cabeçalho exibe `"{n} resposta(s)"` + (se houver limite) `" de {v} vagas"` + (se houver editadas) `" · {e} editada(s)"` + (se houver prazo) `" · prazo {data}"`.

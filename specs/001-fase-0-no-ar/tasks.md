@@ -464,9 +464,26 @@ Parte MANUAL (dono, em formulário de TESTE com 2 inscrições, depois do deploy
 
 ---
 
+## T-24 — Tipo de campo "Data de nascimento" com validação e datas no e-mail de confirmação (M-21)
+Depende de: T-23
+Problemas reais: duas inscrições vieram com nascimento igual à data da própria inscrição; o tipo "Data" não valida nada no servidor; e o e-mail de confirmação mostra datas como AAAA-MM-DD. NÃO há mudança de banco (`field_type` é texto livre).
+Arquivos: `src/lib/birthdate.ts` e `src/lib/birthdate.test.ts` (novos), `src/lib/validators.ts`, `src/lib/validators.test.ts`, `src/lib/answer-format.ts`, `src/lib/answer-format.test.ts`, `src/components/QuestionField.tsx`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`.
+Antes de escrever, LEIA: `src/lib/validators.ts`, `src/lib/answer-format.ts`, `src/components/QuestionField.tsx`, `src/lib/confirmation-email.ts` e verifique que `submit-response.ts`, `edit-response.ts` e `admin-response.functions.ts` validam todos por `validateAndCleanAnswers` -> `validateAnswer`. Trate o novo tipo em cada lugar onde "date" aparece (fora de testes).
+Fazer (testes primeiro, vistos falhando):
+ 1. `birthdate.ts` exporta: `todayInSaoPaulo(now: Date): string` (AAAA-MM-DD no fuso fixo "America/Sao_Paulo", via `Intl.DateTimeFormat` com `timeZone`, nunca o fuso do aparelho); `birthdateBounds(now: Date): { min: string; max: string }` com min = "1900-01-01" e max = o DIA ANTERIOR a hoje em São Paulo; `isValidIsoDate(value: string): boolean` (formato AAAA-MM-DD e data real de calendário, por ida e volta com `Date.UTC`; recusa "2026-02-30" e "2026-13-01"); `validateBirthdate(value: string, now: Date): string | null`: null quando válida; "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura." quando o formato é válido mas a data é hoje ou futura (comparação por texto AAAA-MM-DD); "Data de nascimento inválida." quando formato/calendário é inválido ou a data é anterior a 1900-01-01. Testes: ontem -> ok; hoje -> mensagem de hoje/futura; amanhã -> idem; "1900-01-01" -> ok; "1899-12-31" -> inválida; "2026-02-30" -> inválida; "abc" e "" -> inválida; com `now` = 2026-10-03T02:00:00Z (ainda 02/10 em São Paulo), "2026-10-02" é HOJE -> erro; com `now` = 2026-10-03T03:30:00Z (já 03/10 em São Paulo), "2026-10-02" é ontem -> ok; `birthdateBounds` nesses dois horários.
+ 2. `validators.ts`: `FieldType` ganha "birthdate" e `FIELD_TYPES` ganha `{ value: "birthdate", label: "Data de nascimento", hint: "Não aceita hoje nem datas futuras" }` logo depois de "date". `validateAnswer(type, required, raw, now = new Date())` (4º parâmetro opcional; todos os chamadores atuais continuam iguais): "birthdate" -> `validateBirthdate`; "date" passa a recusar valor que não seja data real de calendário com "Data inválida." (sem limite de ano). Vazio e obrigatório continuam com "Este campo é obrigatório.". Testes para os dois tipos, incluindo opcional vazio.
+ 3. `answer-format.ts`: "birthdate" é formatado como "date" (dd/mm/aaaa). Atualize os testes.
+ 4. `QuestionField.tsx`: para "birthdate", `<input type="date">` com `min`/`max` de `birthdateBounds(new Date())` e `autoComplete="bday"`; o restante (rótulo, erro, acessibilidade, bloqueio no modo de edição) igual ao tipo "date". O tipo "date" não muda. Isso também vale para o diálogo de edição do painel (T-23), que usa `QuestionField`.
+ 5. `confirmation-email.ts`: os valores de pergunta do tipo "date" e "birthdate" no e-mail (texto e HTML) passam por `formatAnswer` (dd/mm/aaaa); hoje saem como AAAA-MM-DD (o código usa `q.field_type ?? q.type`: trate os dois). CPF e RG continuam mascarados e todo o resto igual. Teste: e-mail com nascimento "1981-12-20" mostra "20/12/1981"; CPF segue mascarado; a suíte existente do e-mail segue passando.
+Verificação (agente): `bun node_modules/vitest/vitest.mjs run birthdate`; `... run validators`; `... run answer-format`; `... run confirmation-email`; suíte completa (os 290 anteriores seguem passando); `bun node_modules/typescript/bin/tsc --noEmit`; `bun node_modules/vite/bin/vite.js build`. As telas dependem do banco: diga no relatório que a conferência visual fica para a parte manual.
+Parte MANUAL (dono, no site publicado, depois do deploy): (1) no editor do formulário da SKF, trocar o tipo da pergunta "Data de Nascimento" para "Data de nascimento" e salvar; (2) no formulário público, o seletor não deixa escolher hoje nem datas futuras; (3) enviar uma inscrição de TESTE com data válida: funciona, e o e-mail recebido mostra a data em dd/mm/aaaa; (4) o Excel e o PDF mostram dd/mm/aaaa; (5) as inscrições antigas continuam intactas; (6) no painel, editar uma das duas inscrições com nascimento igual a 02/10/2026: o diálogo exige uma data válida para salvar.
+
+---
+
 ## Fluxo de execução recomendado
 
 1. Abrir o Claude Code / Antigravity em **plan mode** apontando para `specs/001-fase-0-no-ar/plan.md` e pedir revisão antes de codar.
 2. Executar **uma task por vez**, rodando a verificação antes de seguir. Não misturar tasks.
 3. **Padrão Writer/Reviewer** nas tasks sensíveis (T-04, T-08, T-09, T-11): uma segunda sessão, em contexto limpo, revisa só o diff contra `plan.md` e `spec.md`, reportando apenas lacunas de corretude ou de requisito (não estilo).
 4. Ao final, rodar os cenários-chave do `spec.md`.
+
