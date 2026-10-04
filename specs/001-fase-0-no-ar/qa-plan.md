@@ -162,6 +162,19 @@ Esta seção identifica exatamente **o que ainda não estava coberto** nos teste
 | **TC-DATE-06** | Data de nascimento de hoje ou futura enviada diretamente ao servidor | Recusada no navegador e no servidor com a mesma mensagem | Regra de negócio "data de nascimento de hoje ou futura é recusada no navegador e no servidor" aplicada estritamente. |
 | **TC-DATE-07** | Pergunta do tipo Data de nascimento no formulário público | O formulário público desenha o tipo Data de nascimento com seletor e limites (`type="date"`, `min="1900-01-01"`, `max` no dia anterior a hoje em São Paulo e `autoComplete="bday"`) | Garante que o formulário público desenha o tipo Data de nascimento com seletor e limites no navegador. |
 
+### 4.9 Editor: Reordenação de Perguntas e Controles Acessíveis (T-34)
+| ID | Cenário | Resultado Esperado | O que prova em linguagem simples |
+|---|---|---|---|
+| **TC-ORDER-01** | `normalizePositions` em lista vazia ou desordenada | Devolve nova lista com posições sequenciais 0, 1, 2... sem mutar a entrada | Mantém integridade da sequência de posições. |
+| **TC-ORDER-02** | `moveByStep` para cima (-1) no primeiro item ou para baixo (1) no último | Devolve cópia com a mesma ordem | Impede movimentos fora dos limites da lista. |
+| **TC-ORDER-03** | `moveByStep` em item intermediário | Troca posição com vizinho e normaliza posições sequenciais (0, 1, 2...) | Move item por passo com setas acessíveis. |
+| **TC-ORDER-04** | `moveToIndex` para o mesmo índice ou fora dos limites | Devolve cópia inalterada ou limita ao intervalo válido | Operação neutra e segura ao soltar no mesmo ponto ou além dos extremos. |
+| **TC-ORDER-05** | `moveToIndex` reposicionando item | Reposiciona o item no novo índice e devolve posições sequenciais 0..n-1 | Garante arrastar e soltar consistente. |
+| **TC-ORDER-06** | `insertionIndex` com `afterId` existente | Retorna índice imediatamente seguinte ao item | Nova pergunta entra logo abaixo da selecionada. |
+| **TC-ORDER-07** | `insertionIndex` com `afterId` nulo ou inexistente | Retorna tamanho da lista (fim) | Sem pergunta selecionada, insere no final. |
+| **TC-ORDER-08** | `moveAnnouncement` para nova posição | Retorna texto literal: "Pergunta movida para a posição {n} de {total}." | Anuncia para leitores de tela em aria-live. |
+| **TC-ORDER-09** | Checagens estáticas em `routes.test.ts` | Confirma os 4 aria-labels literais, `lg:sticky`, AlertDialog, textos exatos de exclusão e adição, ausência de `<span onClick>` e ausência de dependências dnd externas | Garante conformidade de código sem bibliotecas extras. |
+
 ---
 
 
@@ -224,6 +237,16 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Atualização automática no painel:** As consultas do painel atualizam a cada 30 segundos sem recarregar a página inteira; perto do título é exibido "Atualizado às HH:mm" (fuso de São Paulo); o painel segue carregando normalmente.
 - [ ] **Atualização em tempo real (teste prático do painel):** Num formulário de teste, enviar uma inscrição pelo celular: em até cerca de 30 segundos o painel reflete a nova inscrição e o "Atualizado às HH:mm" avança sem recarregar.
 - [ ] **Configuração do tipo Data de nascimento no editor:** No editor do formulário da SKF (`/formularios/$id`), trocar o tipo da pergunta "Data de Nascimento" para "Data de nascimento" (com a dica *"Não aceita hoje nem datas futuras"*) e salvar.
+- [ ] **Edição na própria pergunta (T-34):** Clicar numa pergunta abre os campos de edição ali mesmo no cartão (rótulo, texto de ajuda, tipo, obrigatória e opções), e o painel lateral mostra a mesma pergunta sincronizada; editar o rótulo no cartão muda o painel e vice-versa; clicar de novo no cabeçalho da pergunta a recolhe.
+- [ ] **Painel lateral fixo na rolagem (T-34):** No computador (≥ 1024 px), com a lista comprida, o painel lateral acompanha a rolagem (`lg:sticky`) e não fica escondido pelo cabeçalho fixo do `AppShell` (`lg:top-24`); no celular, o painel fica abaixo e a edição no cartão funciona.
+- [ ] **Adicionar pergunta abaixo da selecionada (T-34):** Com a pergunta 2 selecionada, "+ Adicionar pergunta" cria a 3ª, aberta, com o cursor no rótulo e "Nova pergunta" selecionado (digitar substitui); sem nenhuma selecionada, vai para o fim.
+- [ ] **Persistência de posições após adicionar pergunta (T-34):** Depois de adicionar abaixo da 2ª, recarregar a página SEM clicar em Salvar: a nova pergunta continua na 3ª posição e as demais seguem a ordem esperada no banco.
+- [ ] **Arrastar por alça nativa (T-34):** Arrastar pela alça a pergunta 4 para entre a 1 e a 2 mostra uma linha de inserção e, ao soltar, ela fica na 2ª; recarregar sem salvar volta à ordem antiga; clicar em Salvar e recarregar mantém a nova.
+- [ ] **Reordenação acessível por teclado (T-34):** Com Tab, chegar nos botões "Mover pergunta {n} para cima" e "Mover pergunta {n} para baixo" e acioná-los com Enter ou Espaço; os de cima e de baixo ficam desabilitados no primeiro e no último; anúncio acessível em `aria-live` ("Pergunta movida para a posição {n} de {total}.").
+- [ ] **Excluir com confirmação em AlertDialog (T-34):** O botão "Excluir pergunta {n}" abre o diálogo com o título "Excluir esta pergunta?", a descrição "As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita." e os botões "Cancelar" e "Excluir"; "Cancelar" e Esc não excluem; "Excluir" exclui e o foco vai para a pergunta seguinte.
+- [ ] **Formulário público na ordem salva (T-34):** O formulário público do teste mostra as perguntas na ordem salva e aceita uma inscrição de teste.
+- [ ] **Salvar e Publicar continuam funcionando (T-34):** "Salvar" e "Publicar" continuam gravando normalmente.
+- [ ] **Celular: cartões, edição no cartão e setas (T-34):** No celular, cartões, edição no cartão e setas funcionam (arrastar não é esperado no toque).
 
 ### 5.5 Tabela de Respostas e Exportações (`/formularios/$id/respostas`)
 - [ ] **Abrir a página:** No editor, clicar "Ver respostas"; a tabela deve abrir.

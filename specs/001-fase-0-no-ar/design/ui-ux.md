@@ -49,26 +49,24 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 ## 2. Tela A — Editor de Formulário
 
 ### 2.1 Objetivo e Fluxo
-- **Objetivo:** Permitir ao administrador configurar um endereço amigável para o formulário (RF-11) com sanitização ao digitar, aviso de quebra em formulário já publicado, e campo de texto de consentimento LGPD opcional (RF-08).
+- **Objetivo:** Permitir ao administrador configurar endereço personalizado amigável (RF-11), texto de consentimento LGPD (RF-08), e editar perguntas diretamente na lista ou no painel lateral que acompanha a rolagem (T-34 / M-32), reordenar perguntas por arrastar nativo ou por setas acessíveis, inserir novas perguntas logo abaixo da selecionada com foco automático e texto selecionado, e excluir perguntas com diálogo de confirmação seguro.
 - **Fluxo do Administrador:**
   ```mermaid
   flowchart TD
-      A[Acessa Editor /formularios/:id] --> B[Cartão 'Link de compartilhamento']
-      B --> C[Visualiza prefixo dinâmico window.location.origin + campo slug]
-      C --> D[Digita novo endereço no campo]
-      D --> E{Sanitização ao digitar}
-      E -->|Converte acentos/espaços/símbolos| F[Exibe slug formatado]
-      E -->|Menor que 3 caracteres| G[Erro em linha: 'O endereço deve ter entre 3 e 60 caracteres.']
-      E -->|Nome reservado auth, painel, etc.| H[Erro em linha: 'Esse nome é reservado pelo sistema.']
-      E -->|Válido| I[Validação local OK]
-      I --> J{Formulário já publicado?}
-      J -->|Sim| K[Exibe alerta âmbar: 'Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço.']
-      J -->|Não| L[Sem alerta de quebra]
-      K --> M[Clica em 'Salvar']
-      L --> M
-      M --> N{Resposta do Banco ao Salvar}
-      N -->|Erro 23505| O[Exibe erro no campo: 'Esse endereço já está em uso.']
-      N -->|Sucesso| P[Toast: 'Alterações salvas.' ou 'Formulário publicado! O link já pode ser compartilhado.']
+      A[Acessa Editor /formularios/:id] --> B[Visualiza Cartão de Compartilhamento e Lista de Perguntas]
+      B --> C{Ação na Lista de Perguntas}
+      C -->|Clica no cabeçalho da pergunta| D[Seleciona e expande: abre QuestionEditFields no próprio cartão]
+      C -->|Clica novamente na aberta| E[Recolhe a pergunta: selected = null]
+      C -->|Arrasta pela alça| F[Arrasto nativo: mostra linha de inserção antes/depois e move ao soltar]
+      C -->|Clica em Mover para cima/baixo| G[Move 1 posição com teclado/mouse e anuncia em aria-live]
+      C -->|Clica em '+ Adicionar pergunta'| H[Insere logo abaixo da selecionada ou no fim]
+      H --> I[Grava novas posições das perguntas abaixo e foca no rótulo com 'Nova pergunta' selecionado]
+      C -->|Clica em 'Excluir pergunta'| J[Abre AlertDialog: 'Excluir esta pergunta?']
+      J -->|Cancelar ou Esc| K[Fecha diálogo e devolve foco ao botão de exclusão]
+      J -->|Excluir| L[Exclui no banco, normaliza posições e foca na próxima pergunta]
+      B --> M[Painel Lateral de Configurações]
+      M --> N[Acompanha a rolagem a partir de 1024px: lg:sticky lg:top-24]
+      M --> O[Aba Pergunta sincronizada em tempo real com o cartão selecionado]
   ```
 
 ### 2.2 Wireframes de Baixa Fidelidade
@@ -80,80 +78,71 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | [Ver respostas] [Salvar] [Encerrar]|
 +------------------------------------+
 | LINK DE COMPARTILHAMENTO           |
-|                                    |
-| Endereço do formulário:            |
-| +--------------------------------+ |
-| | https://meudominio.com/        | | <- window.location.origin/
-| +--------------------------------+ |
-| | skf-corrida-track-field        | | <- inputClass
-| +--------------------------------+ |
-| (i) Minúsculas, números e hífens.  |
-|                                    |
-| [!] ATENÇÃO: Como este formulário  |
-| já está publicado, links já        |
-| compartilhados deixarão de         |
-| funcionar se você alterar o        |
-| endereço.                          |
-|                                    |
-| [ Copiar link ] [ Abrir link ↗ ]   |
+| Endereço: https://dominio.com/...  |
 +------------------------------------+
-| ABAS DO EDITOR                     |
-| [Pergunta] [Aparência] [Limites e Termos] |
+| PERGUNTAS DO FORMULÁRIO            |
+|                                    |
+| [::] [ 1. CPF (cpf)          ] [↑][↓][✕]
+|                                    |
+| [::] [ 2. Nome completo (text) ] [↑][↓][✕]
+| +--------------------------------+ |
+| | Rótulo da pergunta:            | | <- QuestionEditFields no cartão
+| | [ Nome completo              ] | |
+| | Texto de ajuda:                | |
+| | [ Opcional                   ] | |
+| | Tipo: [ Texto curto          ] | |
+| | [x] Resposta obrigatória       | |
+| +--------------------------------+ |
+|                                    |
+| [ + Adicionar pergunta           ] |
+| A nova pergunta entra logo abaixo  |
+| da pergunta selecionada.           |
 +------------------------------------+
-| (Aba Limites e Termos selecionada) |
-|                                    |
-| Limite de respostas / vagas        |
-| [ 50                             ] |
-|                                    |
-| Prazo final (data e hora)          |
-| [ 15/10/2026 23:59               ] |
-|                                    |
-| Texto de consentimento (LGPD)      |
-| +--------------------------------+ |
-| | Declaro que li e concordo com  | | <- inputClass (textarea)
-| | o regulamento do evento...     | |
-| +--------------------------------+ |
-| Opcional. Se preenchido, os        |
-| participantes deverão marcar o     |
-| aceite obrigatoriamente.           |
+| CONFIGURAÇÕES (Abaixo da lista)    |
+| [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
 +------------------------------------+
 ```
 
-#### Desktop (≥ 1024 px)
+#### Desktop (≥ 1024 px) — Painel Lateral com `lg:sticky`
 ```text
 +----------------------------------------------------------------------------------------------------+
 | [← Painel]  [● Publicado]                          [Ver respostas]  [Salvar]  [Encerrar formulário] |
 +----------------------------------------------------------------------------------------------------+
 | LINK DE COMPARTILHAMENTO                                                                           |
-| Endereço do formulário:                                                                            |
-| +-----------------------------------------------+--------------------------------+ [ Copiar link ] |
-| | https://meudominio.com/                       | skf-corrida-track-field        | [ Abrir link ↗ ]|
-| +-----------------------------------------------+--------------------------------+                 |
-| [!] Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar |
-|     se você alterar o endereço.                                                                    |
+| Endereço: https://meudominio.com/skf-corrida-track-field                          [ Copiar link ]  |
 +----------------------------------------------------------------------------------------------------+
-| PERGUNTAS DO FORMULÁRIO                          | CONFIGURAÇÕES                                   |
-| +----------------------------------------------+ | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
-| | 1. [CPF] CPF do Atleta                   ::: | |                                                 |
-| | 2. [Texto] Nome completo                 ::: | | Limite de respostas / vagas:                    |
-| | 3. [Escolha única] Modalidade            ::: | | [ 50                                          ] |
+| PERGUNTAS DO FORMULÁRIO                          | CONFIGURAÇÕES (Acompanha a rolagem: lg:sticky)  |
+|                                                  | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
+| <ol>                                             |                                                 |
+| <li> [::] [ 1. CPF (cpf)       ] [↑][↓][✕] </li> | Aba Pergunta: usa o mesmo QuestionEditFields   |
+|                                                  | sincronizado com a pergunta selecionada.        |
+| <li> [::] [ 2. Nome (text) ▼   ] [↑][↓][✕] </li> |                                                 |
+| +----------------------------------------------+ | Limite de respostas / vagas:                    |
+| | Rótulo: [ Nome completo                    ] | | [ 50                                          ] |
+| | Ajuda:  [ Opcional                         ] | |                                                 |
+| | Tipo:   [ Texto curto                      ] | | Prazo final (data e hora):                      |
+| | [x] Resposta obrigatória                     | | [ 15/10/2026, 23:59                           ] |
 | +----------------------------------------------+ |                                                 |
-| [ + Adicionar pergunta                       ] | | Prazo final (data e hora):                      |
-|                                                  | | [ 15/10/2026, 23:59                           ] |
-|                                                  | |                                                 |
-|                                                  | | Texto de consentimento (LGPD):                  |
-|                                                  | | +---------------------------------------------+ |
-|                                                  | | | Declaro que concordo com o regulamento...   | |
-|                                                  | | +---------------------------------------------+ |
-|                                                  | | Opcional. Se preenchido, o aceite é           |
-|                                                  | | obrigatório para concluir a inscrição.        |
+|                                                  | Texto de consentimento (LGPD):                  |
+| <li> [::] [ 3. Modalidade      ] [↑][↓][✕] </li> | +---------------------------------------------+ |
+| </ol>                                            | | Declaro que concordo com o regulamento...   | |
+|                                                  | +---------------------------------------------+ |
+| [ + Adicionar pergunta                       ] | Opcional. Se preenchido, o aceite é             |
+| A nova pergunta entra logo abaixo da pergunta    | obrigatório para concluir a inscrição.          |
+| selecionada.                                     |                                                 |
 +----------------------------------------------------------------------------------------------------+
 ```
 
 ### 2.3 Todos os Estados
 | Estado | Elemento Visual / Comportamento |
 |---|---|
-| **Padrão / Carregado** | Prefixo `${window.location.origin}/` exibido como bloco não editável (`bg-white/60 text-muted-foreground text-xs px-3 py-2 rounded-l-lg`); campo de slug com valor atual (`inputClass`). |
+| **Padrão / Carregado** | Prefixo `${window.location.origin}/` exibido como bloco não editável (`bg-white/60 text-muted-foreground text-xs px-3 py-2 rounded-l-lg`); campo de slug com valor atual (`inputClass`). Lista de perguntas em `<ol>` com botões acessíveis e alça de arrasto. |
+| **Pergunta Recolhida** | Item `<li>` exibindo botão de cabeçalho (`aria-expanded="false"`) com número, rótulo, tipo e texto de ajuda, acompanhado dos botões independentes de arrastar ("Arrastar pergunta {n}"), mover para cima ("Mover pergunta {n} para cima"), mover para baixo ("Mover pergunta {n} para baixo") e excluir ("Excluir pergunta {n}"). Mover para cima fica desabilitado no primeiro item; mover para baixo no último. Alça com `cursor-grab`; botões com cursor pointer e alvo mínimo de 32 px. |
+| **Pergunta Selecionada / Aberta** | Botão de cabeçalho com `aria-expanded="true"` e `aria-controls`. Dentro do cartão da pergunta surge o componente `QuestionEditFields` (rótulo com maxLength 200, texto de ajuda com maxLength 200 e placeholder "Opcional", tipo de campo, caixa "Resposta obrigatória" e, para tipos de escolha, gerenciamento de opções). A edição no cartão reflete imediatamente na aba "Pergunta" do painel lateral e vice-versa. Clicar novamente no cabeçalho fecha a edição (`selected = null`). |
+| **Arrastando Pergunta (DND Nativo)** | Acionado exclusivamente ao pressionar a alça de arrasto (`pointerdown` ativa `draggable` no `<li>`). No `dragstart`: `effectAllowed = "move"` e transferência de id via `text/plain`. Item arrastado exibe opacidade reduzida. Nos itens sobre os quais se passa o mouse (`dragover`), calcula se o cursor está na metade superior ou inferior e exibe linha visual de inserção antes ou depois. No `drop`, reposiciona via `moveToIndex`. Ao final (`dragend` / `pointerup`), limpa estados de arrasto e anuncia via `aria-live="polite"` ("Pergunta movida para a posição {n} de {total}."). As novas posições são salvas no banco ao clicar em "Salvar". |
+| **Painel Lateral com Rolagem (Desktop)** | A partir de 1024 px (`lg:`), o painel lateral `<aside>` acompanha a rolagem da página: `lg:sticky lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:top-24`, sem ser obstruído pelo cabeçalho fixo do `AppShell` (`z-30`). Em telas menores (< 1024 px), permanece no fluxo normal abaixo da lista. |
+| **Adicionar Pergunta** | O botão "+ Adicionar pergunta" insere a nova pergunta logo abaixo da pergunta selecionada (ou no fim da lista se nenhuma estiver selecionada). As perguntas que ficaram abaixo da inserida têm suas posições atualizadas imediatamente no banco; em caso de falha de rede na atualização das posições, exibe alerta *"Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."*. A nova pergunta fica selecionada, aberta, com rolagem suave até ela (`scrollIntoView({ block: "nearest" })`), foco no campo de rótulo e o texto padrão "Nova pergunta" selecionado para substituição imediata. Abaixo do botão há a dica: *"A nova pergunta entra logo abaixo da pergunta selecionada."*. |
+| **Excluir com Confirmação (AlertDialog)** | O botão "Excluir pergunta {n}" abre diálogo modal `AlertDialog` com título *"Excluir esta pergunta?"*, descrição *"As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* e botão destrutivo *"Excluir"*. Ao cancelar ou pressionar Esc, o foco retorna ao botão de exclusão de origem. Ao confirmar, exclui no banco, normaliza as posições locais e move o foco para o cabeçalho da próxima pergunta (ou anterior, ou botão de adicionar). Sem uso de `window.confirm`. |
 | **Digitando Slug** | Execução de `sanitizeSlugInput`: converte acentos para letras simples, maiúsculas para minúsculas, caracteres especiais e espaços viram hífen único. Mantém hífen final temporário para digitação contínua. |
 | **Blur do Slug** | Disparo de `trimSlugEdges`: remove hífen residual do início ou fim. |
 | **Erro: Tamanho inválido** | Texto vermelho abaixo do campo: *"O endereço deve ter entre 3 e 60 caracteres."*. |
@@ -181,15 +170,21 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Placeholder da descrição:** "Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
 - **Rótulo exato da aba:** "Limites e Termos"
 - **Tipo de campo Data de nascimento (Editor):** Rótulo "Data de nascimento", dica "Não aceita hoje nem datas futuras"
-
-
-### 2.5 Markup e Classes Reutilizadas (de `_authenticated.formularios.$id.tsx`)
-- Cartão de compartilhamento: `<div className="glass rounded-2xl p-4">`.
-- Helper `Field` para agrupamento: `<Field label="Endereço do formulário">`.
-- Classe padrão de input: `inputClass = "w-full rounded-lg bg-white/80 px-3 py-2 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"`.
-- Textarea da descrição: `className="w-full resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40" style={{ minHeight: "6rem", maxHeight: "24rem" }}`.
-- Botão salvar: `<button className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60">`.
-- Botão copiar link: `<button className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90">`.
+- **Botão adicionar pergunta:** "+ Adicionar pergunta"
+- **Ajuda do botão adicionar pergunta:** "A nova pergunta entra logo abaixo da pergunta selecionada."
+- **Título padrão da pergunta nova:** "Nova pergunta"
+- **Placeholder do texto de ajuda da pergunta:** "Opcional"
+- **Rótulo da caixa obrigatória:** "Resposta obrigatória"
+- **Aria-label da alça de arrasto:** "Arrastar pergunta {n}"
+- **Aria-label mover para cima:** "Mover pergunta {n} para cima"
+- **Aria-label mover para baixo:** "Mover pergunta {n} para baixo"
+- **Aria-label excluir pergunta:** "Excluir pergunta {n}"
+- **Anúncio de movimento (aria-live):** "Pergunta movida para a posição {n} de {total}."
+- **Aviso de falha na reordenação automática:** "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."
+- **Título do diálogo de exclusão de pergunta:** "Excluir esta pergunta?"
+- **Descrição do diálogo de exclusão de pergunta:** "As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita."
+- **Botão cancelar exclusão de pergunta:** "Cancelar"
+- **Botão confirmar exclusão de pergunta:** "Excluir"
 
 ---
 
@@ -977,6 +972,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 975: 18. P-NN [Respostas] coluna do nome sem congelar no celular e dica de toque, aprovada pelo dono.
 976: 19. P-NN [Editor e Tela F] link do cliente somente leitura, aprovado pelo dono.
 977: 20. P-NN [Tela F e Editor] Imprimir abre o mesmo PDF em nova aba, contador no singular (UX-12) e acessibilidade de rótulo no ShareLinkCard (UX-13), aprovada pelo dono (T-37).
+21. P-NN [Editor] Edição na própria pergunta, arrastar para reordenar, painel lateral fixo na rolagem (lg:sticky), adicionar pergunta logo abaixo da selecionada e exclusão com diálogo de confirmação AlertDialog, aprovada pelo dono (T-34 / M-32).
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
