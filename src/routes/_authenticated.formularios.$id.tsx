@@ -4,9 +4,31 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
-import { normalizeOptions } from "@/lib/options";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
+import {
+  normalizePositions,
+  moveByStep,
+  moveToIndex,
+  insertionIndex,
+  insertAfter,
+  moveAnnouncement,
+} from "@/lib/question-order";
+import {
+  QuestionEditFields,
+  Field,
+  inputClass,
+} from "@/components/QuestionEditFields";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { StatusPill } from "./_authenticated.painel";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id")({
@@ -58,11 +80,22 @@ function Editor() {
   const [form, setForm] = useState<FormState | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pergunta" | "aparencia" | "limites">("pergunta");
   const [saving, setSaving] = useState(false);
   const [initialSlug, setInitialSlug] = useState<string>("");
   const [slugError, setSlugError] = useState<string | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Estados de arrastar (DND nativo) e acessibilidade
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: "before" | "after" } | null>(null);
+  const [liveAnnouncement, setLiveAnnouncement] = useState<string>("");
+
+  // Estado de exclusão com confirmação (AlertDialog)
+  const [questionToDelete, setQuestionToDelete] = useState<{ id: string; index: number } | null>(null);
+  const [deletingQuestion, setDeletingQuestion] = useState(false);
 
   useEffect(() => {
     const el = descriptionTextareaRef.current;
@@ -120,58 +153,114 @@ function Editor() {
   const publicUrl = form ? `${origin}/${form.slug}` : "";
   const current = questions.find((q) => q.id === selected) ?? null;
 
-  function patchQuestion(patch: Partial<Question>) {
-    if (!current) return;
-    setQuestions((list) => list.map((q) => (q.id === current.id ? { ...q, ...patch } : q)));
+  function patchQuestion(questionId: string, patch: Partial<Question>) {
+    setQuestions((list) => list.map((q) => (q.id === questionId ? { ...q, ...patch } : q)));
   }
 
   async function addQuestion() {
+    const targetPos = insertionIndex(questions, selected);
     const { data, error } = await supabase
       .from("questions")
       .insert({
         form_id: id,
         label: "Nova pergunta",
         field_type: "short_text",
-        position: questions.length,
+        position: targetPos,
       })
       .select("*")
       .single();
+
     if (error || !data) {
       toast.error("Não foi possível adicionar a pergunta.");
       return;
     }
-    setQuestions((list) => [
-      ...list,
-      {
-        id: data.id as string,
-        label: "Nova pergunta",
-        help_text: "",
-        field_type: "short_text",
-        required: false,
-        options: [],
-        position: list.length,
-      },
-    ]);
-    setSelected(data.id as string);
+
+    const newQuestion: Question = {
+      id: data.id as string,
+      label: "Nova pergunta",
+      help_text: "",
+      field_type: "short_text",
+      required: false,
+      options: [],
+      position: targetPos,
+    };
+
+    const nextQuestions = insertAfter(questions, newQuestion, selected);
+    setQuestions(nextQuestions);
+    setSelected(newQuestion.id);
+    setJustAddedId(newQuestion.id);
     setTab("pergunta");
-  }
 
-  async function removeQuestion(questionId: string) {
-    const { error } = await supabase.from("questions").delete().eq("id", questionId);
-    if (error) {
-      toast.error("Não foi possível excluir a pergunta.");
-      return;
+    // Grava imediatamente as novas posições de todas as perguntas que ficaram abaixo da inserida
+    const updatedBelow = nextQuestions.filter(
+      (q) => q.id !== newQuestion.id && q.position > targetPos,
+    );
+
+    if (updatedBelow.length > 0) {
+      try {
+        const results = await Promise.all(
+          updatedBelow.map((q) =>
+            supabase.from("questions").update({ position: q.position }).eq("id", q.id),
+          ),
+        );
+        const hasError = results.some((r) => r.error);
+        if (hasError) {
+          toast.error(
+            "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem.",
+          );
+        }
+      } catch {
+        toast.error(
+          "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem.",
+        );
+      }
     }
-    setQuestions((list) => list.filter((q) => q.id !== questionId));
-    if (selected === questionId) setSelected(null);
+
+    requestAnimationFrame(() => {
+      const cardEl = document.getElementById(`question-card-${newQuestion.id}`);
+      cardEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
   }
 
-  function move(index: number, direction: -1 | 1) {
-    const next = [...questions];
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target]!, next[index]!];
-    setQuestions(next.map((q, i) => ({ ...q, position: i })));
+  async function confirmRemoveQuestion() {
+    if (!questionToDelete) return;
+    const { id: questionId, index: deletedIndex } = questionToDelete;
+    setDeletingQuestion(true);
+    try {
+      const { error } = await supabase.from("questions").delete().eq("id", questionId);
+      if (error) {
+        toast.error("Não foi possível excluir a pergunta.");
+        return;
+      }
+      const nextQuestions = normalizePositions(questions.filter((q) => q.id !== questionId));
+      setQuestions(nextQuestions);
+      if (selected === questionId) setSelected(null);
+      setQuestionToDelete(null);
+
+      // Foco na pergunta seguinte, na anterior ou no botão adicionar
+      requestAnimationFrame(() => {
+        if (nextQuestions[deletedIndex]) {
+          document.getElementById(`question-header-${nextQuestions[deletedIndex]?.id}`)?.focus();
+        } else if (deletedIndex > 0 && nextQuestions[deletedIndex - 1]) {
+          document.getElementById(`question-header-${nextQuestions[deletedIndex - 1]?.id}`)?.focus();
+        } else {
+          document.getElementById("add-question-btn")?.focus();
+        }
+      });
+    } catch {
+      toast.error("Não foi possível excluir a pergunta.");
+    } finally {
+      setDeletingQuestion(false);
+    }
+  }
+
+  function handleMoveByStep(index: number, direction: -1 | 1) {
+    const next = moveByStep(questions, index, direction);
+    setQuestions(next);
+    const newPos = index + direction;
+    if (newPos >= 0 && newPos < next.length) {
+      setLiveAnnouncement(moveAnnouncement(newPos, next.length));
+    }
   }
 
   async function save(nextStatus?: string) {
@@ -250,6 +339,11 @@ function Editor() {
 
   return (
     <section className="rise space-y-4">
+      {/* Região para anúncios de leitores de tela */}
+      <div aria-live="polite" className="sr-only">
+        {liveAnnouncement}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <Link to="/painel" className="text-sm text-muted-foreground hover:text-foreground">
           ← Painel
@@ -403,81 +497,210 @@ function Editor() {
             </span>
           </div>
 
-          <div className="mt-5 space-y-3">
-            {questions.map((q, index) => (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setSelected(q.id);
-                  setTab("pergunta");
-                }}
-                className={`w-full rounded-xl bg-white/70 p-4 text-left ring-1 transition-colors ${
-                  selected === q.id ? "ring-brand/50" : "ring-black/5 hover:ring-black/10"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-brand-soft text-xs font-semibold text-brand">
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {q.label || "Pergunta sem título"}
-                      {q.required && <span className="ml-1 text-destructive">*</span>}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {FIELD_TYPES.find((t) => t.value === q.field_type)?.label ?? q.field_type}
-                      {q.help_text ? ` · ${q.help_text}` : ""}
-                    </p>
+          <ol className="mt-5 space-y-3">
+            {questions.map((q, index) => {
+              const isSelected = selected === q.id;
+              const isDragged = draggedId === q.id;
+              const isTargetBefore = dropTarget?.id === q.id && dropTarget.position === "before";
+              const isTargetAfter = dropTarget?.id === q.id && dropTarget.position === "after";
+
+              return (
+                <li
+                  key={q.id}
+                  id={`question-card-${q.id}`}
+                  draggable={activeDragId === q.id}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", q.id);
+                    setDraggedId(q.id);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!draggedId || draggedId === q.id) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const isTop = e.clientY < rect.top + rect.height / 2;
+                    setDropTarget({ id: q.id, position: isTop ? "before" : "after" });
+                  }}
+                  onDragLeave={(e) => {
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                    if (dropTarget?.id === q.id) {
+                      setDropTarget(null);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (!draggedId || draggedId === q.id) {
+                      setDraggedId(null);
+                      setDropTarget(null);
+                      setActiveDragId(null);
+                      return;
+                    }
+                    const fromIndex = questions.findIndex((item) => item.id === draggedId);
+                    const toQuestionIndex = questions.findIndex((item) => item.id === q.id);
+                    if (fromIndex !== -1 && toQuestionIndex !== -1) {
+                      let targetIndex = toQuestionIndex;
+                      if (dropTarget?.position === "after" && fromIndex < toQuestionIndex) {
+                        targetIndex = toQuestionIndex;
+                      } else if (dropTarget?.position === "after" && fromIndex > toQuestionIndex) {
+                        targetIndex = toQuestionIndex + 1;
+                      } else if (dropTarget?.position === "before" && fromIndex < toQuestionIndex) {
+                        targetIndex = toQuestionIndex - 1;
+                      } else if (dropTarget?.position === "before" && fromIndex > toQuestionIndex) {
+                        targetIndex = toQuestionIndex;
+                      }
+                      const nextList = moveToIndex(questions, fromIndex, targetIndex);
+                      setQuestions(nextList);
+                      const newPos = nextList.findIndex((item) => item.id === draggedId);
+                      setLiveAnnouncement(moveAnnouncement(newPos, nextList.length));
+                    }
+                    setDraggedId(null);
+                    setDropTarget(null);
+                    setActiveDragId(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setDropTarget(null);
+                    setActiveDragId(null);
+                  }}
+                  className={`rounded-xl bg-white/70 p-4 ring-1 transition-all ${
+                    isSelected ? "ring-brand/50" : "ring-black/5 hover:ring-black/10"
+                  } ${isDragged ? "opacity-50" : ""} ${
+                    isTargetBefore ? "border-t-2 border-brand" : ""
+                  } ${isTargetAfter ? "border-b-2 border-brand" : ""}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {/* Alça de arrastar nativo */}
+                    <button
+                      type="button"
+                      aria-label={`Arrastar pergunta ${index + 1}`}
+                      onPointerDown={() => setActiveDragId(q.id)}
+                      onPointerUp={() => setActiveDragId(null)}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-black/5 hover:text-slate-700 cursor-grab active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        className="size-4 pointer-events-none"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                      >
+                        <circle cx="5" cy="3" r="1.5" />
+                        <circle cx="11" cy="3" r="1.5" />
+                        <circle cx="5" cy="8" r="1.5" />
+                        <circle cx="11" cy="8" r="1.5" />
+                        <circle cx="5" cy="13" r="1.5" />
+                        <circle cx="11" cy="13" r="1.5" />
+                      </svg>
+                    </button>
+
+                    {/* Botão de cabeçalho: seleciona e expande / recolhe */}
+                    <button
+                      id={`question-header-${q.id}`}
+                      type="button"
+                      aria-expanded={isSelected}
+                      aria-controls={`question-fields-${q.id}`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelected(null);
+                        } else {
+                          setSelected(q.id);
+                          setTab("pergunta");
+                        }
+                      }}
+                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none"
+                    >
+                      <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-brand-soft text-xs font-semibold text-brand">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900">
+                          {q.label || "Pergunta sem título"}
+                          {q.required && <span className="ml-1 text-destructive">*</span>}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {FIELD_TYPES.find((t) => t.value === q.field_type)?.label ?? q.field_type}
+                          {q.help_text ? ` · ${q.help_text}` : ""}
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Botões de controle FORA do botão de cabeçalho */}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Mover pergunta ${index + 1} para cima`}
+                        disabled={index === 0}
+                        onClick={() => handleMoveByStep(index, -1)}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-black/5 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
+                      >
+                        <span aria-hidden="true" className="text-sm font-semibold">
+                          ↑
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Mover pergunta ${index + 1} para baixo`}
+                        disabled={index === questions.length - 1}
+                        onClick={() => handleMoveByStep(index, 1)}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-black/5 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
+                      >
+                        <span aria-hidden="true" className="text-sm font-semibold">
+                          ↓
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Excluir pergunta ${index + 1}`}
+                        onClick={() => setQuestionToDelete({ id: q.id, index })}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
+                      >
+                        <span aria-hidden="true" className="text-sm font-semibold">
+                          ✕
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        move(index, -1);
-                      }}
-                      className="rounded px-1 hover:bg-black/5"
+
+                  {/* Edição na própria pergunta quando selecionada */}
+                  {isSelected && (
+                    <div
+                      id={`question-fields-${q.id}`}
+                      className="mt-4 border-t border-black/5 pt-4"
                     >
-                      ↑
-                    </span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        move(index, 1);
-                      }}
-                      className="rounded px-1 hover:bg-black/5"
-                    >
-                      ↓
-                    </span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeQuestion(q.id);
-                      }}
-                      className="rounded px-1 hover:bg-black/5 hover:text-destructive"
-                    >
-                      ✕
-                    </span>
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
+                      <QuestionEditFields
+                        question={q}
+                        onChange={(patch) => patchQuestion(q.id, patch)}
+                        idPrefix={`card-${q.id}-`}
+                        autoFocusLabel={justAddedId === q.id}
+                      />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
 
           <button
+            id="add-question-btn"
+            type="button"
             onClick={addQuestion}
-            className="mt-4 w-full rounded-xl border border-dashed border-brand/40 bg-white/40 py-3 text-sm font-medium text-brand hover:bg-white/70"
+            className="mt-4 w-full rounded-xl border border-dashed border-brand/40 bg-white/40 py-3 text-sm font-medium text-brand hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
           >
             + Adicionar pergunta
           </button>
+          <p className="mt-1 text-center text-xs text-muted-foreground">
+            A nova pergunta entra logo abaixo da pergunta selecionada.
+          </p>
         </div>
 
-        <aside className="glass rounded-2xl p-5">
+        {/* Painel lateral com lg:sticky lg:top-24 */}
+        <aside className="glass rounded-2xl p-5 lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           <div className="mb-4 flex gap-1 rounded-lg bg-white/60 p-1 text-xs">
             {(["pergunta", "aparencia", "limites"] as const).map((key) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setTab(key)}
-                className={`flex-1 rounded-md px-2 py-1.5 font-medium transition-colors ${
+                className={`flex-1 rounded-md px-2 py-1.5 font-medium transition-colors cursor-pointer ${
                   tab === key ? "bg-brand text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -488,54 +711,11 @@ function Editor() {
 
           {tab === "pergunta" &&
             (current ? (
-              <div className="space-y-4">
-                <Field label="Rótulo da pergunta">
-                  <input
-                    value={current.label}
-                    onChange={(e) => patchQuestion({ label: e.target.value })}
-                    maxLength={200}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Texto de ajuda">
-                  <input
-                    value={current.help_text}
-                    onChange={(e) => patchQuestion({ help_text: e.target.value })}
-                    maxLength={200}
-                    className={inputClass}
-                    placeholder="Opcional"
-                  />
-                </Field>
-                <Field label="Tipo de campo">
-                  <select
-                    value={current.field_type}
-                    onChange={(e) => patchQuestion({ field_type: e.target.value as FieldType })}
-                    className={inputClass}
-                  >
-                    {FIELD_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={current.required}
-                    onChange={(e) => patchQuestion({ required: e.target.checked })}
-                    className="size-4 accent-[var(--brand)]"
-                  />
-                  Resposta obrigatória
-                </label>
-                {(current.field_type === "single_choice" || current.field_type === "multi_choice") && (
-                  <QuestionOptionsField
-                    key={current.id}
-                    options={current.options}
-                    onChange={(options) => patchQuestion({ options })}
-                  />
-                )}
-              </div>
+              <QuestionEditFields
+                question={current}
+                onChange={(patch) => patchQuestion(current.id, patch)}
+                idPrefix="panel-"
+              />
             ) : (
               <p className="text-sm text-muted-foreground">
                 Selecione uma pergunta para editar seus detalhes.
@@ -642,48 +822,35 @@ function Editor() {
           )}
         </aside>
       </div>
+
+      {/* Diálogo de confirmação para Excluir Pergunta */}
+      <AlertDialog
+        open={Boolean(questionToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deletingQuestion) {
+            setQuestionToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta pergunta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingQuestion}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingQuestion}
+              onClick={confirmRemoveQuestion}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingQuestion ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg bg-white/80 px-3 py-2 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function QuestionOptionsField({
-  options,
-  onChange,
-}: {
-  options: string[];
-  onChange: (options: string[]) => void;
-}) {
-  const [text, setText] = useState(() => options.join("\n"));
-
-  return (
-    <Field label="Opções (uma por linha)">
-      <textarea
-        rows={5}
-        value={text}
-        onChange={(e) => {
-          const raw = e.target.value;
-          setText(raw);
-          onChange(normalizeOptions(raw));
-        }}
-        onBlur={() => {
-          const normalized = normalizeOptions(text);
-          setText(normalized.join("\n"));
-        }}
-        className={inputClass}
-        placeholder={"Opção A\nOpção B"}
-      />
-    </Field>
   );
 }

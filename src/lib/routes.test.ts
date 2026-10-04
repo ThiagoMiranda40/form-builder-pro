@@ -88,5 +88,37 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
     expect(slugContent).toContain("buildFormMeta");
   });
+
+  it("editor de formulários satisfaz os requisitos de T-34 (M-32)", () => {
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    // (a) os 4 aria-label literais do item 3
+    expect(editorContent).toContain("Arrastar pergunta");
+    expect(editorContent).toContain("Mover pergunta");
+    expect(editorContent).toContain("para cima");
+    expect(editorContent).toContain("para baixo");
+    expect(editorContent).toContain("Excluir pergunta");
+
+    // (b) lg:sticky
+    expect(editorContent).toContain("lg:sticky");
+
+    // (c) o uso de AlertDialog e dos textos literais
+    expect(editorContent).toContain("AlertDialog");
+    expect(editorContent).toContain("Excluir esta pergunta?");
+    expect(editorContent).toContain("A nova pergunta entra logo abaixo da pergunta selecionada.");
+
+    // (d) que NÃO há <span com onClick no arquivo
+    expect(editorContent).not.toMatch(/<span[^>]*onClick/);
+
+    // (e) que package.json não contém dnd-kit, react-beautiful-dnd, sortablejs nem react-sortable
+    const pkgPath = path.join(rootDir, "package.json");
+    const pkgContent = fs.readFileSync(pkgPath, "utf-8");
+    expect(pkgContent).not.toContain("dnd-kit");
+    expect(pkgContent).not.toContain("react-beautiful-dnd");
+    expect(pkgContent).not.toContain("sortablejs");
+    expect(pkgContent).not.toContain("react-sortable");
+  });
 });
+
 
