@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -13,6 +14,8 @@ import {
 } from "@/components/ui/tooltip";
 import { barHint, DASHBOARD_CARD_HINTS } from "@/lib/dashboard-hints";
 import { cloneForm } from "@/lib/clone-form";
+import { DeleteFormDialog } from "@/components/DeleteFormDialog";
+import { deleteFormCopy } from "@/lib/delete-form-copy";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -56,6 +59,14 @@ function Painel() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const [formToDelete, setFormToDelete] = useState<{
+    id: string;
+    title: string;
+    responses: number;
+    status: string;
+  } | null>(null);
+  const deleteCopy = formToDelete ? deleteFormCopy(formToDelete) : null;
 
   const formsQuery = useQuery({
     queryKey: ["forms"],
@@ -118,6 +129,10 @@ function Painel() {
     onSuccess: () => {
       toast.success("Formulário excluído.");
       queryClient.invalidateQueries({ queryKey: ["forms"] });
+      setFormToDelete(null);
+      requestAnimationFrame(() => {
+        document.getElementById("new-form-btn")?.focus();
+      });
     },
     onError: () => toast.error("Não foi possível excluir."),
   });
@@ -177,6 +192,7 @@ function Painel() {
             </div>
           </div>
           <button
+            id="new-form-btn"
             onClick={() => createForm.mutate()}
             disabled={createForm.isPending}
             className="inline-flex items-center gap-2 rounded-lg bg-brand py-2 pr-3 pl-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 transition-colors hover:bg-brand/90 disabled:opacity-60"
@@ -267,18 +283,25 @@ function Painel() {
                       <button
                         type="button"
                         aria-label={`Duplicar o formulário ${form.title}`}
-                        disabled={duplicateForm.isPending}
+                        disabled={duplicateForm.isPending || removeForm.isPending}
                         onClick={() => duplicateForm.mutate(form.id)}
                         className="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-50"
                       >
                         Duplicar
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Excluir “${form.title}” e todas as respostas?`))
-                            removeForm.mutate(form.id);
-                        }}
-                        className="text-muted-foreground hover:text-destructive"
+                        type="button"
+                        aria-label={`Excluir o formulário ${form.title}`}
+                        disabled={removeForm.isPending || duplicateForm.isPending}
+                        onClick={() =>
+                          setFormToDelete({
+                            id: form.id,
+                            title: form.title,
+                            responses: countFor(form.id),
+                            status: form.status,
+                          })
+                        }
+                        className="text-muted-foreground hover:text-destructive cursor-pointer disabled:opacity-50"
                       >
                         Excluir
                       </button>
@@ -329,6 +352,22 @@ function Painel() {
             </div>
           </div>
         </div>
+
+        <DeleteFormDialog
+          open={Boolean(formToDelete)}
+          onOpenChange={(open) => {
+            if (!open && !removeForm.isPending) {
+              setFormToDelete(null);
+            }
+          }}
+          copy={deleteCopy}
+          pending={removeForm.isPending}
+          onConfirm={() => {
+            if (formToDelete) {
+              removeForm.mutate(formToDelete.id);
+            }
+          }}
+        />
       </section>
     </TooltipProvider>
   );

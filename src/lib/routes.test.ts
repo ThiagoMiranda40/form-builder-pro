@@ -199,6 +199,25 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     // Editor contém a dica de alterações pendentes
     expect(editorContent).toContain(dirtyHint);
   });
+
+  it("painel e DeleteFormDialog satisfazem os requisitos de T-42 (excluir formulário com diálogo próprio)", () => {
+    const painelPath = path.join(rootDir, "src/routes/_authenticated.painel.tsx");
+    const painelContent = fs.readFileSync(painelPath, "utf-8");
+    const dialogPath = path.join(rootDir, "src/components/DeleteFormDialog.tsx");
+    const dialogContent = fs.readFileSync(dialogPath, "utf-8");
+
+    // (a) que _authenticated.painel.tsx NÃO contém confirm(
+    expect(painelContent).not.toContain("confirm(");
+
+    // (b) que importa DeleteFormDialog e deleteFormCopy
+    expect(painelContent).toMatch(/import\s*\{[^}]*DeleteFormDialog[^}]*\}\s*from\s*["'][^"']*DeleteFormDialog["']/);
+    expect(painelContent).toMatch(/import\s*\{[^}]*deleteFormCopy[^}]*\}\s*from\s*["'][^"']*delete-form-copy["']/);
+
+    // (c) que DeleteFormDialog.tsx contém AlertDialog, preventDefault e type="checkbox"
+    expect(dialogContent).toContain("AlertDialog");
+    expect(dialogContent).toContain("preventDefault");
+    expect(dialogContent).toContain('type="checkbox"');
+  });
 });
 
 
