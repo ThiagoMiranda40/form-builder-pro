@@ -367,6 +367,18 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Verificação de largura com textos longos (reteste T-34b):** Pergunta com rótulo de 200 caracteres e texto de ajuda de 200 caracteres (inclusive letras sem espaço) não cria rolagem horizontal na página.
 - [ ] **Testes automatizados estáticos:** Suíte `src/lib/routes.test.ts` valida que `QuestionEditFields.tsx` não contém `setText(options.join`, que o editor contém "Adicionar pergunta abaixo da pergunta" e "Adicionar uma pergunta logo abaixo desta", que o editor não contém `setTab("pergunta")`, `"pergunta" | "aparencia"` nem `tab === "pergunta"`, e que o editor contém o estado `adding`.
 
+### 5.15 Editor: Rolagem Automática ao Arrastar uma Pergunta (T-34d)
+- [ ] **Rolagem para baixo até o fim:** Em formulário longo (15+ perguntas), arrastar a 1ª pergunta pela alça e levar o ponteiro até a borda de baixo da janela (inclusive sobre a barra fixa de salvar): a página rola sozinha para baixo, mais rápido quanto mais perto da borda; soltar na última posição posiciona a pergunta em último.
+- [ ] **Rolagem para cima até o topo:** Arrastar a última pergunta para o topo, mantendo o ponteiro perto da borda superior: a página rola sozinha para cima até o início.
+- [ ] **Parada no meio da tela:** Posicionar o ponteiro no meio da tela interrompe a rolagem automática.
+- [ ] **Cancelamento e finalização:** Soltar a pergunta ou pressionar Esc encerra o arrasto e a rolagem imediatamente.
+- [ ] **Ausência de rolagem fora de arrasto:** Sem arrasto ativo de pergunta, o ponteiro próximo às bordas não provoca nenhuma rolagem.
+- [ ] **Comportamento em formulários curtos:** Em formulários sem rolagem, o arrasto continua funcionando normalmente com exibição da linha de inserção.
+- [ ] **Persistência da ordem:** O resultado da reordenação por arrasto é mantido e salvo normalmente via botão "Salvar" ou atalho Ctrl+S / Cmd+S.
+- [ ] **Compatibilidade:** Testado e aprovado nos navegadores Chrome e Edge.
+- [ ] **Testes unitários puros:** Suíte `src/lib/drag-autoscroll.test.ts` valida cálculo de `autoScrollSpeed` (meio da tela = 0, limites de borda, monotonicidade, simetria, saturação em `maxSpeed`, tratamento de entradas não finitas ou `viewportHeight <= 0`).
+- [ ] **Testes estáticos de rota:** Suíte `src/lib/routes.test.ts` valida que o editor importa `autoScrollSpeed`, utiliza `requestAnimationFrame`, `cancelAnimationFrame` e `window.scrollBy`, e registra `addEventListener("dragover"` no `document`.
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)
