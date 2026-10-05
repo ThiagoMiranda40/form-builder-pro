@@ -97,13 +97,15 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | [ + Adicionar pergunta           ] |
 | A nova pergunta entra logo abaixo  |
 | da pergunta selecionada.           |
+|                                    |
+| [● Alterações não salvas  [Salvar] ] <- Barra fixa (sticky bottom-4)
 +------------------------------------+
 | CONFIGURAÇÕES (Abaixo da lista)    |
 | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
 +------------------------------------+
 ```
 
-#### Desktop (≥ 1024 px) — Painel Lateral com `lg:sticky`
+#### Desktop (≥ 1024 px) — Painel Lateral com `lg:sticky` e Barra de Salvar Fixa
 ```text
 +----------------------------------------------------------------------------------------------------+
 | [← Painel]  [● Publicado]                          [Ver respostas]  [Salvar]  [Encerrar formulário] |
@@ -111,7 +113,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | LINK DE COMPARTILHAMENTO                                                                           |
 | Endereço: https://meudominio.com/skf-corrida-track-field                          [ Copiar link ]  |
 +----------------------------------------------------------------------------------------------------+
-| PERGUNTAS DO FORMULÁRIO                          | CONFIGURAÇÕES (Acompanha a rolagem: lg:sticky)  |
+| PERGUNTAS DO FORMULÁRIO (min-w-0)                 | CONFIGURAÇÕES (Acompanha a rolagem: lg:sticky)  |
 |                                                  | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
 | <ol>                                             |                                                 |
 | <li> [::] [ 1. CPF (cpf)       ] [↑][↓][✕] </li> | Aba Pergunta: usa o mesmo QuestionEditFields   |
@@ -130,18 +132,23 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | [ + Adicionar pergunta                       ] | Opcional. Se preenchido, o aceite é             |
 | A nova pergunta entra logo abaixo da pergunta    | obrigatório para concluir a inscrição.          |
 | selecionada.                                     |                                                 |
+|                                                  |                                                 |
+| [● Alterações não salvas               [Salvar]] | <- Barra de salvar fixa (sticky bottom-4 z-20)  |
 +----------------------------------------------------------------------------------------------------+
 ```
 
 ### 2.3 Todos os Estados
 | Estado | Elemento Visual / Comportamento |
 |---|---|
-| **Padrão / Carregado** | Prefixo `${window.location.origin}/` exibido como bloco não editável (`bg-white/60 text-muted-foreground text-xs px-3 py-2 rounded-l-lg`); campo de slug com valor atual (`inputClass`). Lista de perguntas em `<ol>` com botões acessíveis e alça de arrasto. |
-| **Pergunta Recolhida** | Item `<li>` exibindo botão de cabeçalho (`aria-expanded="false"`) com número, rótulo, tipo e texto de ajuda, acompanhado dos botões independentes de arrastar ("Arrastar pergunta {n}"), mover para cima ("Mover pergunta {n} para cima"), mover para baixo ("Mover pergunta {n} para baixo") e excluir ("Excluir pergunta {n}"). Mover para cima fica desabilitado no primeiro item; mover para baixo no último. Alça com `cursor-grab`; botões com cursor pointer e alvo mínimo de 32 px. |
-| **Pergunta Selecionada / Aberta** | Botão de cabeçalho com `aria-expanded="true"` e `aria-controls`. Dentro do cartão da pergunta surge o componente `QuestionEditFields` (rótulo com maxLength 200, texto de ajuda com maxLength 200 e placeholder "Opcional", tipo de campo, caixa "Resposta obrigatória" e, para tipos de escolha, gerenciamento de opções). A edição no cartão reflete imediatamente na aba "Pergunta" do painel lateral e vice-versa. Clicar novamente no cabeçalho fecha a edição (`selected = null`). |
-| **Arrastando Pergunta (DND Nativo)** | Acionado exclusivamente ao pressionar a alça de arrasto (`pointerdown` ativa `draggable` no `<li>`). No `dragstart`: `effectAllowed = "move"` e transferência de id via `text/plain`. Item arrastado exibe opacidade reduzida. Nos itens sobre os quais se passa o mouse (`dragover`), calcula se o cursor está na metade superior ou inferior e exibe linha visual de inserção antes ou depois. No `drop`, reposiciona via `moveToIndex`. Ao final (`dragend` / `pointerup`), limpa estados de arrasto e anuncia via `aria-live="polite"` ("Pergunta movida para a posição {n} de {total}."). As novas posições são salvas no banco ao clicar em "Salvar". |
-| **Painel Lateral com Rolagem (Desktop)** | A partir de 1024 px (`lg:`), o painel lateral `<aside>` acompanha a rolagem da página: `lg:sticky lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:top-24`, sem ser obstruído pelo cabeçalho fixo do `AppShell` (`z-30`). Em telas menores (< 1024 px), permanece no fluxo normal abaixo da lista. |
-| **Adicionar Pergunta** | O botão "+ Adicionar pergunta" insere a nova pergunta logo abaixo da pergunta selecionada (ou no fim da lista se nenhuma estiver selecionada). As perguntas que ficaram abaixo da inserida têm suas posições atualizadas imediatamente no banco; em caso de falha de rede na atualização das posições, exibe alerta *"Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."*. A nova pergunta fica selecionada, aberta, com rolagem suave até ela (`scrollIntoView({ block: "nearest" })`), foco no campo de rótulo e o texto padrão "Nova pergunta" selecionado para substituição imediata. Abaixo do botão há a dica: *"A nova pergunta entra logo abaixo da pergunta selecionada."*. |
+| **Padrão / Carregado** | Prefixo `${window.location.origin}/` exibido como bloco não editável (`bg-white/60 text-muted-foreground text-xs px-3 py-2 rounded-l-lg`); campo de slug com valor atual (`inputClass`). Lista de perguntas em `<ol>` com botões acessíveis e alça de arrasto. Layout com grade `lg:grid-cols-[minmax(0,1fr)_360px]`, coluna esquerda com `min-w-0`, `<ol>` e `<li>` com `min-w-0`, cabeçalhos flexíveis com `truncate` e campos de texto `w-full min-w-0`, prevenindo qualquer rolagem horizontal da página mesmo com rótulos ou ajudas longas (até 200 caracteres sem espaço). |
+| **Pergunta Recolhida** | Item `<li>` exibindo botão de cabeçalho (`aria-expanded="false"`) com número, rótulo, tipo e texto de ajuda com truncamento visual de linha única, acompanhado dos botões independentes de arrastar ("Arrastar pergunta {n}"), mover para cima ("Mover pergunta {n} para cima"), mover para baixo ("Mover pergunta {n} para baixo") e excluir ("Excluir pergunta {n}"). Mover para cima fica desabilitado no primeiro item; mover para baixo no último. Alça com `cursor-grab`; botões com cursor pointer e alvo mínimo de 32 px. |
+| **Pergunta Selecionada / Aberta** | Botão de cabeçalho com `aria-expanded="true"` e `aria-controls`. Dentro do cartão da pergunta surge o componente `QuestionEditFields` (rótulo com maxLength 200, texto de ajuda com maxLength 200 e placeholder "Opcional", tipo de campo, caixa "Resposta obrigatória" e, para tipos de escolha, gerenciamento de opções). A edição no cartão reflete imediatamente na aba "Pergunta" do painel lateral e vice-versa. Clicar novamente no cabeçalho fecha a edição (`selected = null`). Reabrir a mesma pergunta posteriormente não foca nem seleciona o texto do rótulo (proteção contra sobrescrita acidental). |
+| **Arrastando Pergunta (DND Nativo)** | Acionado exclusivamente ao pressionar a alça de arrasto (`pointerdown` ativa `draggable` no `<li>`). No `dragstart`: `effectAllowed = "move"` e transferência de id via `text/plain`. Item arrastado exibe opacidade reduzida. Nos itens sobre os quais se passa o mouse (`dragover`), calcula se o cursor está na metade superior ou inferior e exibe linha visual de inserção antes ou depois. No `drop`, reposiciona via `moveToIndex`. Ao final (`dragend` / `pointerup`), limpa estados de arrasto e anuncia via `aria-live="polite"` ("Pergunta movida para a posição {n} de {total}."). As novas posições alteram o snapshot local e ativam o status de alterações não salvas. |
+| **Painel Lateral com Rolagem (Desktop)** | A partir de 1024 px (`lg:`), o painel lateral `<aside>` acompanha a rolagem da página: `lg:sticky lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:top-24`, sem ser obstruído pelo cabeçalho fixo do `AppShell` (`z-30`) e mantendo-se perfeitamente visível à direita sem que textos longos o empurrem para fora da tela. Em telas menores (< 1024 px), permanece no fluxo normal abaixo da lista. |
+| **Barra de Salvar Fixa (Sticky Bottom)** | Na base da coluna esquerda, após a dica de adicionar pergunta, barra `sticky bottom-4 z-20 mt-4` com acabamento `glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3`. À esquerda exibe `<p role="status">` com "Alterações não salvas" (precedido por ponto âmbar `aria-hidden`) quando o editor está modificado, ou "Tudo salvo" quando o estado reflete o último salvamento. À direita, botão "Salvar" (mesmo estilo primário do topo), com texto "Salvando..." e desabilitado durante persistência. Fica sempre visível na rolagem e não cobre o botão de adicionar pergunta ao chegar no fim. |
+| **Aviso ao Fechar/Recarregar (beforeunload)** | Enquanto houver alterações locais não salvas (`isEditorDirty === true`), o editor intercepta tentativas de recarregar a página ou fechar a aba disparando a confirmação padrão do navegador (`beforeunload`). O estado limpo é restaurado após salvar com sucesso ou quando modificações são revertidas (ex.: mover pergunta e devolvê-la à posição original). |
+| **Atalho de Teclado (Ctrl+S / Cmd+S)** | Pressionar Ctrl+S (no Windows/Linux) ou Cmd+S (no macOS) executa imediatamente a função `save()`, prevenindo o comportamento padrão do navegador e salvando todas as configurações e perguntas sem necessidade de cliques. |
+| **Adicionar Pergunta** | O botão "+ Adicionar pergunta" insere a nova pergunta logo abaixo da pergunta selecionada (ou no fim da lista se nenhuma estiver selecionada). Todas as demais perguntas da lista têm suas posições atualizadas imediatamente no banco via `positionsToPersist`, garantindo que mesmo recarregando sem clicar em Salvar a ordem da tela é rigorosamente preservada no banco. Em caso de falha de rede na atualização das posições, exibe alerta *"Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."*. A nova pergunta fica selecionada, aberta, com rolagem suave até ela (`scrollIntoView({ block: "nearest" })`), foco no campo de rótulo e o texto padrão "Nova pergunta" selecionado para substituição imediata apenas no momento da criação. Abaixo do botão há a dica: *"A nova pergunta entra logo abaixo da pergunta selecionada."*. |
 | **Excluir com Confirmação (AlertDialog)** | O botão "Excluir pergunta {n}" abre diálogo modal `AlertDialog` com título *"Excluir esta pergunta?"*, descrição *"As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* e botão destrutivo *"Excluir"*. Ao cancelar ou pressionar Esc, o foco retorna ao botão de exclusão de origem. Ao confirmar, exclui no banco, normaliza as posições locais e move o foco para o cabeçalho da próxima pergunta (ou anterior, ou botão de adicionar). Sem uso de `window.confirm`. |
 | **Digitando Slug** | Execução de `sanitizeSlugInput`: converte acentos para letras simples, maiúsculas para minúsculas, caracteres especiais e espaços viram hífen único. Mantém hífen final temporário para digitação contínua. |
 | **Blur do Slug** | Disparo de `trimSlugEdges`: remove hífen residual do início ou fim. |
@@ -185,6 +192,10 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Descrição do diálogo de exclusão de pergunta:** "As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita."
 - **Botão cancelar exclusão de pergunta:** "Cancelar"
 - **Botão confirmar exclusão de pergunta:** "Excluir"
+- **Status de alterações pendentes na barra de salvar:** "Alterações não salvas"
+- **Status de tudo salvo na barra de salvar:** "Tudo salvo"
+- **Botão salvar na barra:** "Salvar"
+- **Texto do botão enquanto salva:** "Salvando..."
 
 ---
 

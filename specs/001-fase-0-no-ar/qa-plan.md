@@ -334,6 +334,27 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Sem regressão na prévia do formulário público:** Colar o link de um formulário de inscrição (`.../<slug>`) continua mostrando o nome e a descrição do formulário (sem regressão).
 - [ ] **Segurança em links desconhecidos:** O endereço dos 64 zeros continua mostrando "Link não encontrado", sem nenhum dado.
 
+### 5.12 Editor: Edição no Cartão, Arrastar, Painel Sticky e Adicionar Abaixo (T-34)
+- [ ] **Edição direta na pergunta e sincronia:** Clicar numa pergunta abre os campos de edição ali mesmo (rótulo, texto de ajuda, tipo, obrigatória e opções), refletindo simultaneamente no painel lateral; clicar novamente recolhe.
+- [ ] **Painel lateral sticky na rolagem:** Em telas grandes (≥ 1024 px), o painel acompanha a rolagem suavemente sem ser escondido pelo cabeçalho fixo do sistema.
+- [ ] **Inserção contextual de pergunta:** Com uma pergunta selecionada, "+ Adicionar pergunta" insere logo abaixo dela com foco automático e texto "Nova pergunta" selecionado; sem seleção, insere no fim.
+- [ ] **Reordenação por arrasto (DND):** Arrastar pela alça exibe linha de inserção e reordena ao soltar com anúncio acessível em `aria-live`.
+- [ ] **Setas de reordenação acessíveis:** Botões "Mover pergunta {n} para cima/baixo" acessíveis por teclado (Tab/Enter/Espaço), desabilitados no primeiro e último itens.
+- [ ] **Exclusão segura com AlertDialog:** Botão "Excluir pergunta {n}" abre diálogo modal com título "Excluir esta pergunta?" e confirmação obrigatória.
+- [ ] **Testes automatizados unitários:** Suíte `src/lib/question-order.test.ts` valida funções puras de reordenação e anúncios de movimento.
+
+### 5.13 Correções do Editor: Largura, Barra Fixa, Foco e Posições (T-34b)
+- [ ] **Contenção de largura com textos longos:** Pergunta com rótulo de 200 caracteres e texto de ajuda de 200 caracteres (inclusive sem espaço) não causa rolagem horizontal em 1024 px ou 1280 px; o painel lateral permanece fixo à direita e os cabeçalhos exibem reticências (`truncate`).
+- [ ] **Formulário real com textos longos (SKF):** Inspeção visual na prévia do formulário SKF confirma ausência total de overflow horizontal e alinhamento do painel.
+- [ ] **Barra de salvar fixa na rolagem:** Barra `sticky bottom-4 z-20` permanece sempre visível na base durante a rolagem, exibindo status e botão "Salvar", sem cobrir "+ Adicionar pergunta" ao final.
+- [ ] **Sincronia de estado modificado (Dirty State):** Edição de qualquer campo ou reordenação alterna o status para "Alterações não salvas"; salvar ou reverter as mudanças retorna para "Tudo salvo".
+- [ ] **Atalho de teclado Ctrl+S / Cmd+S:** Pressionar Ctrl+S ou Cmd+S aciona o salvamento imediato do formulário.
+- [ ] **Interceptação ao fechar/recarregar:** Tentativa de recarregar a página ou fechar a aba com alterações pendentes dispara o aviso de confirmação padrão do navegador (`beforeunload`).
+- [ ] **Foco único do rótulo:** Adicionar nova pergunta foca o rótulo com texto selecionado; fechar e reabrir a mesma pergunta posteriormente NÃO foca nem seleciona o texto.
+- [ ] **Persistência imediata de posições no banco:** Ao adicionar pergunta abaixo de outra, `positionsToPersist` grava as posições de todas as perguntas no banco; recarregar sem salvar mantém a ordem da tela.
+- [ ] **Responsividade da barra no mobile:** Em telas < 1024 px, a barra de salvar fixa permanece visível e funcional.
+- [ ] **Testes automatizados de regressão e pureza:** Suítes `question-order.test.ts` (`positionsToPersist`), `editor-dirty.test.ts` (`editorSnapshot`, `isEditorDirty`) e `routes.test.ts` (verificação estática de `minmax(0,1fr)`, ausência de `grid-cols-[1fr_360px]`, `sticky bottom-4`, textos e atalhos).
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)
