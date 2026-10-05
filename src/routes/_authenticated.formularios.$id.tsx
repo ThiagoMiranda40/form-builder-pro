@@ -13,7 +13,9 @@ import {
   insertionIndex,
   insertAfter,
   moveAnnouncement,
+  positionsToPersist,
 } from "@/lib/question-order";
+import { editorSnapshot, isEditorDirty } from "@/lib/editor-dirty";
 import {
   QuestionEditFields,
   Field,
@@ -83,6 +85,7 @@ function Editor() {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [tab, setTab] = useState<"pergunta" | "aparencia" | "limites">("pergunta");
   const [saving, setSaving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [initialSlug, setInitialSlug] = useState<string>("");
   const [slugError, setSlugError] = useState<string | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -96,6 +99,15 @@ function Editor() {
   // Estado de exclusão com confirmação (AlertDialog)
   const [questionToDelete, setQuestionToDelete] = useState<{ id: string; index: number } | null>(null);
   const [deletingQuestion, setDeletingQuestion] = useState(false);
+
+  // Limpeza de justAddedId no próximo quadro para foco de uso único (T-34b)
+  useEffect(() => {
+    if (!justAddedId) return;
+    const raf = requestAnimationFrame(() => {
+      setJustAddedId(null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [justAddedId]);
 
   useEffect(() => {
     const el = descriptionTextareaRef.current;
@@ -123,7 +135,7 @@ function Editor() {
     const loadedSlug = (f["slug"] as string) ?? "";
     setInitialSlug(loadedSlug);
     setSlugError(null);
-    setForm({
+    const loadedForm: FormState = {
       title: f["title"] as string,
       description: (f["description"] as string) ?? "",
       slug: loadedSlug,
@@ -134,24 +146,40 @@ function Editor() {
       consent_text: (f["consent_text"] as string | null) ?? null,
       success_message: (f["success_message"] as string) ?? "",
       share_token: (f["share_token"] as string | null) ?? null,
-    });
-    setQuestions(
-      (query.data.questions as Record<string, unknown>[]).map((q) => ({
-        id: q["id"] as string,
-        label: (q["label"] as string) ?? "",
-        help_text: (q["help_text"] as string) ?? "",
-        field_type: q["field_type"] as FieldType,
-        required: Boolean(q["required"]),
-        options: ((q["options"] as string[]) ?? []) as string[],
-        position: (q["position"] as number) ?? 0,
-      })),
-    );
+    };
+    const loadedQuestions: Question[] = (query.data.questions as Record<string, unknown>[]).map((q) => ({
+      id: q["id"] as string,
+      label: (q["label"] as string) ?? "",
+      help_text: (q["help_text"] as string) ?? "",
+      field_type: q["field_type"] as FieldType,
+      required: Boolean(q["required"]),
+      options: ((q["options"] as string[]) ?? []) as string[],
+      position: (q["position"] as number) ?? 0,
+    }));
+    setForm(loadedForm);
+    setQuestions(loadedQuestions);
+    setSavedSnapshot(editorSnapshot(loadedForm, loadedQuestions));
     setSelected((prev) => prev ?? ((query.data.questions[0] as { id?: string } | undefined)?.id ?? null));
   }, [query.data]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const publicUrl = form ? `${origin}/${form.slug}` : "";
   const current = questions.find((q) => q.id === selected) ?? null;
+
+  const dirty = isEditorDirty(editorSnapshot(form, questions), savedSnapshot);
+
+  // Intercepta fechar a aba ou recarregar a página quando houver alterações não salvas (T-34b)
+  useEffect(() => {
+    if (!dirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [dirty]);
 
   function patchQuestion(questionId: string, patch: Partial<Question>) {
     setQuestions((list) => list.map((q) => (q.id === questionId ? { ...q, ...patch } : q)));
@@ -191,15 +219,13 @@ function Editor() {
     setJustAddedId(newQuestion.id);
     setTab("pergunta");
 
-    // Grava imediatamente as novas posições de todas as perguntas que ficaram abaixo da inserida
-    const updatedBelow = nextQuestions.filter(
-      (q) => q.id !== newQuestion.id && q.position > targetPos,
-    );
+    // Grava imediatamente no banco as novas posições de todas as perguntas exceto a inserida (T-34b)
+    const updatedPositions = positionsToPersist(nextQuestions, newQuestion.id);
 
-    if (updatedBelow.length > 0) {
+    if (updatedPositions.length > 0) {
       try {
         const results = await Promise.all(
-          updatedBelow.map((q) =>
+          updatedPositions.map((q) =>
             supabase.from("questions").update({ position: q.position }).eq("id", q.id),
           ),
         );
@@ -235,6 +261,7 @@ function Editor() {
       const nextQuestions = normalizePositions(questions.filter((q) => q.id !== questionId));
       setQuestions(nextQuestions);
       if (selected === questionId) setSelected(null);
+      setJustAddedId(null);
       setQuestionToDelete(null);
 
       // Foco na pergunta seguinte, na anterior ou no botão adicionar
@@ -317,8 +344,15 @@ function Editor() {
       }
       setInitialSlug(cleanSlug);
       setSlugError(null);
-      if (nextStatus) setForm({ ...form, slug: cleanSlug, status: nextStatus });
-      else setForm({ ...form, slug: cleanSlug });
+      const updatedForm: FormState = {
+        ...form,
+        title: form.title.trim() || "Sem título",
+        slug: cleanSlug,
+        status: nextStatus ?? form.status,
+        consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
+      };
+      setForm(updatedForm);
+      setSavedSnapshot(editorSnapshot(updatedForm, questions));
       toast.success(
         nextStatus === "published"
           ? "Formulário publicado! O link já pode ser compartilhado."
@@ -332,6 +366,27 @@ function Editor() {
       setSaving(false);
     }
   }
+
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  });
+
+  // Atalho de teclado Ctrl+S ou Cmd+S para salvar (T-34b)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!saving) {
+          saveRef.current();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [saving]);
 
   if (query.isLoading || !form) {
     return <p className="text-sm text-muted-foreground">Carregando formulário...</p>;
@@ -463,13 +518,13 @@ function Editor() {
         }}
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="glass rounded-2xl p-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="glass min-w-0 rounded-2xl p-5">
           <input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             maxLength={120}
-            className="w-full bg-transparent font-display text-2xl font-semibold tracking-tight focus:outline-none"
+            className="w-full min-w-0 bg-transparent font-display text-2xl font-semibold tracking-tight focus:outline-none"
             placeholder="Título do formulário"
           />
           <textarea
@@ -481,7 +536,7 @@ function Editor() {
             aria-label="Descrição do formulário"
             aria-describedby="description-counter"
             placeholder="Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
-            className="mt-2 w-full resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 overflow-y-auto"
+            className="mt-2 w-full min-w-0 resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 overflow-y-auto"
             style={{ minHeight: "6rem", maxHeight: "24rem" }}
           />
           <div className="mt-1 flex justify-end">
@@ -497,7 +552,7 @@ function Editor() {
             </span>
           </div>
 
-          <ol className="mt-5 space-y-3">
+          <ol className="mt-5 min-w-0 space-y-3">
             {questions.map((q, index) => {
               const isSelected = selected === q.id;
               const isDragged = draggedId === q.id;
@@ -562,13 +617,13 @@ function Editor() {
                     setDropTarget(null);
                     setActiveDragId(null);
                   }}
-                  className={`rounded-xl bg-white/70 p-4 ring-1 transition-all ${
+                  className={`min-w-0 rounded-xl bg-white/70 p-4 ring-1 transition-all ${
                     isSelected ? "ring-brand/50" : "ring-black/5 hover:ring-black/10"
                   } ${isDragged ? "opacity-50" : ""} ${
                     isTargetBefore ? "border-t-2 border-brand" : ""
                   } ${isTargetAfter ? "border-b-2 border-brand" : ""}`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     {/* Alça de arrastar nativo */}
                     <button
                       type="button"
@@ -599,6 +654,7 @@ function Editor() {
                       aria-expanded={isSelected}
                       aria-controls={`question-fields-${q.id}`}
                       onClick={() => {
+                        setJustAddedId(null);
                         if (isSelected) {
                           setSelected(null);
                         } else {
@@ -606,7 +662,7 @@ function Editor() {
                           setTab("pergunta");
                         }
                       }}
-                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none"
+                      className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
                     >
                       <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-brand-soft text-xs font-semibold text-brand">
                         {index + 1}
@@ -690,6 +746,28 @@ function Editor() {
           <p className="mt-1 text-center text-xs text-muted-foreground">
             A nova pergunta entra logo abaixo da pergunta selecionada.
           </p>
+
+          {/* Barra de salvar fixa (T-34b / M-35) */}
+          <div className="sticky bottom-4 z-20 mt-4 flex items-center justify-between gap-3 glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3">
+            <p role="status" className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              {dirty ? (
+                <>
+                  <span aria-hidden="true" className="size-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>Alterações não salvas</span>
+                </>
+              ) : (
+                <span>Tudo salvo</span>
+              )}
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => save()}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
         </div>
 
         {/* Painel lateral com lg:sticky lg:top-24 */}

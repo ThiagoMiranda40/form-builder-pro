@@ -119,6 +119,27 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(pkgContent).not.toContain("sortablejs");
     expect(pkgContent).not.toContain("react-sortable");
   });
+
+  it("editor de formulários satisfaz os requisitos de T-34b (largura, barra fixa, dirty e atalhos)", () => {
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    // (a) contém minmax(0,1fr) e NÃO contém grid-cols-[1fr_360px]
+    expect(editorContent).toContain("minmax(0,1fr)");
+    expect(editorContent).not.toContain("grid-cols-[1fr_360px]");
+
+    // (b) sticky bottom-4 e os textos literais
+    expect(editorContent).toContain("sticky bottom-4");
+    expect(editorContent).toContain("Alterações não salvas");
+    expect(editorContent).toContain("Tudo salvo");
+
+    // (c) beforeunload
+    expect(editorContent).toContain("beforeunload");
+
+    // (d) metaKey e ctrlKey
+    expect(editorContent).toContain("metaKey");
+    expect(editorContent).toContain("ctrlKey");
+  });
 });
 
 

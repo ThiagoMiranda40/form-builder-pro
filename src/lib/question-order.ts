@@ -114,3 +114,21 @@ export function insertAfter<T extends Positionable>(
 export function moveAnnouncement(newIndex: number, total: number): string {
   return `Pergunta movida para a posição ${newIndex + 1} de ${total}.`;
 }
+
+/**
+ * Retorna { id, position } de todas as perguntas da lista exceto a de id `newId`,
+ * na ordem da lista e com as posições da própria lista (T-34b).
+ * Opera de forma puramente imutável.
+ */
+export function positionsToPersist<T extends Positionable>(
+  list: T[],
+  newId: string,
+): Array<{ id: string; position: number }> {
+  return list
+    .filter((item) => item.id !== newId)
+    .map((item) => ({
+      id: item.id,
+      position: item.position,
+    }));
+}
+

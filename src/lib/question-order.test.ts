@@ -6,9 +6,76 @@ import {
   insertionIndex,
   insertAfter,
   moveAnnouncement,
+  positionsToPersist,
 } from "./question-order";
 
 describe("question-order (T-34 / M-32)", () => {
+  describe("positionsToPersist (T-34b)", () => {
+    it("devolve array vazio para lista vazia", () => {
+      const input: Array<{ id: string; position: number }> = [];
+      const result = positionsToPersist(input, "new-id");
+      expect(result).toEqual([]);
+      expect(result).not.toBe(input);
+    });
+
+    it("devolve array vazio se a lista tiver apenas a nova pergunta", () => {
+      const input = [{ id: "new-id", position: 0 }];
+      const result = positionsToPersist(input, "new-id");
+      expect(result).toEqual([]);
+    });
+
+    it("devolve as de cima e as de baixo quando a nova está no meio, nunca a nova", () => {
+      const input = [
+        { id: "q1", position: 0, label: "A" },
+        { id: "new-id", position: 1, label: "Nova" },
+        { id: "q2", position: 2, label: "B" },
+        { id: "q3", position: 3, label: "C" },
+      ];
+      const result = positionsToPersist(input, "new-id");
+      expect(result).toEqual([
+        { id: "q1", position: 0 },
+        { id: "q2", position: 2 },
+        { id: "q3", position: 3 },
+      ]);
+    });
+
+    it("devolve todas as anteriores quando a nova está no fim", () => {
+      const input = [
+        { id: "q1", position: 0 },
+        { id: "q2", position: 1 },
+        { id: "new-id", position: 2 },
+      ];
+      const result = positionsToPersist(input, "new-id");
+      expect(result).toEqual([
+        { id: "q1", position: 0 },
+        { id: "q2", position: 1 },
+      ]);
+    });
+
+    it("não muta a entrada", () => {
+      const input = [
+        { id: "q1", position: 0 },
+        { id: "new-id", position: 1 },
+      ];
+      const frozenInput = Object.freeze([...input]);
+      const result = positionsToPersist(frozenInput as typeof input, "new-id");
+      expect(result).toEqual([{ id: "q1", position: 0 }]);
+      expect(input[0]!.id).toBe("q1");
+      expect(input[1]!.id).toBe("new-id");
+    });
+
+    it("devolve todas as perguntas se newId for inexistente", () => {
+      const input = [
+        { id: "q1", position: 0 },
+        { id: "q2", position: 1 },
+      ];
+      const result = positionsToPersist(input, "inexistente");
+      expect(result).toEqual([
+        { id: "q1", position: 0 },
+        { id: "q2", position: 1 },
+      ]);
+    });
+  });
   describe("normalizePositions", () => {
     it("devolve array vazio para lista vazia sem mutar", () => {
       const input: Array<{ id: string; position: number }> = [];
