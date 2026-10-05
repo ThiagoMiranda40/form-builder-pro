@@ -384,6 +384,7 @@ function Respostas() {
         }}
         row={detailRow}
         questions={questions}
+        whatsappContext={{ formTitle: form.title }}
         actions={
           detailRow ? (
             <>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/responses-table";
 import { formatAnswer } from "@/lib/answer-format";
 import { isEdited } from "@/lib/responses-view";
+import { firstNameOf, whatsappGreeting, whatsappUrl } from "@/lib/whatsapp";
 
 export interface ResponseDetailDialogProps {
   open: boolean;
@@ -19,6 +21,7 @@ export interface ResponseDetailDialogProps {
   row: TableRow | null;
   questions: TableQuestion[];
   actions?: ReactNode;
+  whatsappContext?: { formTitle: string };
 }
 
 export function ResponseDetailDialog({
@@ -27,11 +30,13 @@ export function ResponseDetailDialog({
   row,
   questions,
   actions,
+  whatsappContext,
 }: ResponseDetailDialogProps) {
   if (!row) return null;
 
   const nameQ = findNameQuestion(questions);
   const nameVal = nameQ ? row.answers?.[nameQ.id] : null;
+  const firstName = firstNameOf(nameVal);
   const nameStr =
     typeof nameVal === "string" && nameVal.trim()
       ? nameVal.trim()
@@ -84,6 +89,13 @@ export function ResponseDetailDialog({
           {questions.map((q) => {
             const rawVal = row.answers?.[q.id];
             const formatted = formatAnswer(q.field_type, rawVal);
+
+            let waUrl: string | null = null;
+            if (whatsappContext && q.field_type === "phone") {
+              const greeting = whatsappGreeting(firstName, whatsappContext.formTitle);
+              waUrl = whatsappUrl(rawVal, greeting);
+            }
+
             return (
               <div
                 key={q.id}
@@ -92,9 +104,32 @@ export function ResponseDetailDialog({
                 <span className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {q.label}
                 </span>
-                <p className="mt-1 text-sm font-medium text-foreground break-words whitespace-pre-wrap">
-                  {formatted || "—"}
-                </p>
+                {waUrl ? (
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground break-words whitespace-pre-wrap">
+                      {formatted || "—"}
+                    </p>
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={
+                        firstName
+                          ? `Abrir conversa no WhatsApp com ${firstName}`
+                          : "Abrir conversa no WhatsApp"
+                      }
+                      title="Abre o WhatsApp com uma mensagem inicial, que você pode editar antes de enviar"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 cursor-pointer"
+                    >
+                      <MessageCircle size={14} className="size-3.5" aria-hidden="true" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm font-medium text-foreground break-words whitespace-pre-wrap">
+                    {formatted || "—"}
+                  </p>
+                )}
               </div>
             );
           })}

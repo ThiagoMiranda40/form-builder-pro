@@ -218,6 +218,31 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(dialogContent).toContain("preventDefault");
     expect(dialogContent).toContain('type="checkbox"');
   });
+
+  it("respostas e ResponseDetailDialog satisfazem os requisitos de T-43 (botão WhatsApp)", () => {
+    const respostasPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id_.respostas.tsx");
+    const respostasContent = fs.readFileSync(respostasPath, "utf-8");
+    const clientPath = path.join(rootDir, "src/routes/c.$token.tsx");
+    const clientContent = fs.readFileSync(clientPath, "utf-8");
+    const dialogPath = path.join(rootDir, "src/components/ResponseDetailDialog.tsx");
+    const dialogContent = fs.readFileSync(dialogPath, "utf-8");
+    const whatsappPath = path.join(rootDir, "src/lib/whatsapp.ts");
+    const whatsappContent = fs.existsSync(whatsappPath) ? fs.readFileSync(whatsappPath, "utf-8") : "";
+
+    // (a) que a tela do administrador contém whatsappContext
+    expect(respostasContent).toContain("whatsappContext");
+
+    // (b) que c.$token.tsx NÃO contém whatsappContext nem wa.me
+    expect(clientContent).not.toContain("whatsappContext");
+    expect(clientContent).not.toContain("wa.me");
+
+    // (c) que ResponseDetailDialog.tsx contém rel="noopener noreferrer" e target="_blank"
+    expect(dialogContent).toContain('rel="noopener noreferrer"');
+    expect(dialogContent).toContain('target="_blank"');
+
+    // (d) que whatsapp.ts contém "https://wa.me/"
+    expect(whatsappContent).toContain("https://wa.me/");
+  });
 });
 
 
