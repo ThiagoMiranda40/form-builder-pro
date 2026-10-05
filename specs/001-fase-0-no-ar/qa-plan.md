@@ -392,6 +392,18 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Testes unitários e de integração:** Suíte `src/lib/clone-form.test.ts` valida geração de títulos (`buildCloneTitle`), payload do formulário (`buildCloneFormPayload`), payload das perguntas (`buildCloneQuestions`) e fluxo de duplicação assíncrono (`cloneForm`), incluindo tratamento de conflito de slug (23505), rollback com exclusão em falha de perguntas e garantia de que a tabela `responses` nunca é consultada ou copiada.
 - [ ] **Testes estáticos de rotas:** Suíte `src/lib/routes.test.ts` valida que painel e editor importam `cloneForm` de `clone-form`, contêm a mensagem literal de sucesso com recomendação de revisão e o editor contém a dica de alteração pendente *"Salve as alterações antes de duplicar"*.
 
+### 5.17 Exclusão de Formulário com Diálogo Próprio no Painel (T-42)
+- [ ] **Diálogo próprio em substituição ao confirm nativo:** O clique em "Excluir" em qualquer cartão do painel abre o componente `DeleteFormDialog` (baseado em `AlertDialog`), sem disparar o `confirm()` nativo do navegador.
+- [ ] **Foco inicial defensivo em Cancelar:** Ao abrir o diálogo, o foco inicia automaticamente no botão "Cancelar", impedindo a exclusão acidental por pressão inadvertida de Enter ou Espaço. Tecla Esc e botão "Cancelar" fecham o diálogo e devolvem o foco ao botão "Excluir" do cartão acionado.
+- [ ] **Exclusão de formulário sem respostas (rascunho):** Diálogo exibe a mensagem de confirmação com o título formatado entre aspas curvas (“ e ”), informando que o formulário e suas perguntas serão apagados, SEM exibir a caixa de seleção de ciência (Ack). Botão "Excluir" já surge habilitado.
+- [ ] **Exclusão de formulário publicado com respostas:** Diálogo exibe a contagem correta de respostas no texto de descrição ("as {n} respostas recebidas" ou "a 1 resposta recebida"), o alerta em tom âmbar informando que o formulário está aberto e que o link deixará de funcionar na hora, e exige a marcação obrigatória do checkbox de ciência para habilitar o botão "Excluir".
+- [ ] **Reset de estado do checkbox:** Ao fechar e reabrir o diálogo, o checkbox de ciência inicia sempre desmarcado.
+- [ ] **Proteção contra clique duplo e feedback pendente:** Enquanto a mutação de exclusão estiver em andamento (`pending`), o botão exibe *"Excluindo..."*, os botões "Excluir" e "Cancelar" permanecem desabilitados, e os botões "Excluir" e "Duplicar" dos cartões no painel também ficam desabilitados.
+- [ ] **Sucesso na exclusão:** O formulário é excluído do banco (junto com perguntas e respostas via cascade), exibe toast *"Formulário excluído."*, fecha o diálogo e move o foco para o botão "Novo formulário" (`#new-form-btn`).
+- [ ] **Acessibilidade e teclado:** Navegação completa por teclado (Tab, Shift+Tab, Enter, Espaço e Esc), foco preso no diálogo e fechamento limpo via Esc.
+- [ ] **Responsividade mobile:** O diálogo se adapta confortavelmente em telas de celular (360 px), sem transbordamento horizontal e com botões acessíveis ao toque.
+- [ ] **Testes unitários e estáticos:** Suíte `src/lib/delete-form-copy.test.ts` valida as funções puras de textos e estados (0, 1 e múltiplas respostas, aviso de publicado, rótulos de ack, corte de 80 caracteres em títulos longos e higienização de entradas inválidas); suíte `src/lib/routes.test.ts` valida que `_authenticated.painel.tsx` não contém chamadas a `confirm(`, importa `DeleteFormDialog` e `deleteFormCopy`, e que `DeleteFormDialog.tsx` implementa `AlertDialog`, `preventDefault` e `type="checkbox"`.
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)

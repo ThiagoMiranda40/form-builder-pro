@@ -893,10 +893,25 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Dicas (Tooltips) dos Cartões de Vagas e Prazo (Formulário Público):**
   - *Vagas:* "Vagas ainda disponíveis neste formulário. Quando restam 10 ou menos, aparece o aviso Últimas vagas."
   - *Prazo:* "Data e hora limite para enviar a inscrição, no horário de Brasília."
-- **Ações dos Cartões de Formulário no Painel (T-41):**
+- **Ações dos Cartões de Formulário no Painel (T-41 e T-42):**
   - *Botão Duplicar:* "Duplicar" (`aria-label="Duplicar o formulário {form.title}"`, posicionado entre o link "Respostas" e o botão "Excluir", cursor de mãozinha, desabilitado durante clonagem).
   - *Toast de sucesso:* "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar." (duração de 10s, redireciona para o editor do clone).
   - *Toast de erro:* "Não foi possível duplicar o formulário."
+  - *Diálogo de Exclusão de Formulário (T-42):*
+    - *Gatilho:* Botão "Excluir" em cada cartão (`type="button"`, `aria-label="Excluir o formulário {form.title}"`, abre o diálogo `DeleteFormDialog`).
+    - *Estrutura (AlertDialog):* Usa o componente acessível `AlertDialog` com título `heading` ("Excluir este formulário?") e descrição detalhada com o título entre aspas curvas “ e ”, cortado em 80 caracteres com "…" no fim se for maior.
+    - *Textos literais da descrição:*
+      - Com 0 respostas: "O formulário “{título}” e as suas perguntas serão apagados. Esta ação não pode ser desfeita."
+      - Com 1 resposta: "O formulário “{título}”, as suas perguntas e a 1 resposta recebida serão apagados. Esta ação não pode ser desfeita. Se precisar dos dados, exporte as respostas antes."
+      - Com 2 ou mais respostas: "O formulário “{título}”, as suas perguntas e as {n} respostas recebidas serão apagados. Esta ação não pode ser desfeita. Se precisar dos dados, exporte as respostas antes."
+    - *Aviso de formulário aberto:* Exibido logo abaixo da descrição quando `status === "published"` com destaque em tom âmbar: "O formulário está aberto: o link de inscrição deixará de funcionar na hora." (nulo para rascunhos ou formulários encerrados).
+    - *Caixa de confirmação de ciência (Ack):* Quando houver respostas (`responses > 0`), uma caixa de seleção nativa (`<input type="checkbox">` com `<label htmlFor>`) é exibida, sempre desmarcada ao abrir o diálogo:
+      - 1 resposta: "Entendo que a resposta recebida também será apagada"
+      - 2 ou mais respostas: "Entendo que as {n} respostas recebidas também serão apagadas"
+    - *Ações do diálogo:*
+      - Botão "Cancelar": foco inicial automático do diálogo; fecha sem excluir e devolve o foco ao botão "Excluir" do cartão; desabilitado enquanto a exclusão estiver em andamento.
+      - Botão "Excluir": estilizado em vermelho destrutivo; exibe "Excluir" (ou "Excluindo..." enquanto pending); desabilitado enquanto `requireAck` estiver ativo e a caixa de confirmação estiver desmarcada, e enquanto `pending`. Não fecha sozinho: fecha apenas após o sucesso da mutação.
+    - *Pós-exclusão:* Fecha o diálogo, exibe `toast.success("Formulário excluído.")`, invalida a consulta `["forms"]` e move o foco para o botão "Novo formulário" (`#new-form-btn`).
 
 ### 8.3 Cursor Global e Comportamento de Dicas (Tooltips)
 - **Regra de Cursor Global:**
@@ -1001,6 +1016,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 977: 20. P-NN [Tela F e Editor] Imprimir abre o mesmo PDF em nova aba, contador no singular (UX-12) e acessibilidade de rótulo no ShareLinkCard (UX-13), aprovada pelo dono (T-37).
 21. P-NN [Editor] Edição na própria pergunta, arrastar para reordenar, painel lateral fixo na rolagem (lg:sticky), adicionar pergunta logo abaixo da selecionada e exclusão com diálogo de confirmação AlertDialog, aprovada pelo dono (T-34 / M-32).
 22. P-NN [Editor] Enter nas opções sem reescrita a cada tecla, botão "+" em cada pergunta para inserção contextual direta, botão secundário "+ Adicionar pergunta" na barra fixa e painel lateral simplificado exclusivamente com abas "Aparência" e "Limites e Termos" (aba "Pergunta" removida), aprovada pelo dono (T-34c / M-36, M-37).
+23. P-NN [Painel] Exclusão de formulário com diálogo próprio AlertDialog, aviso de formulário publicado, contagem de respostas a apagar e checkbox de confirmação obrigatório quando houver respostas (T-42 / M-39), aprovada pelo dono.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
