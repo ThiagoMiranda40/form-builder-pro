@@ -178,6 +178,27 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     // (c) que o editor contém um addEventListener("dragover" em document
     expect(editorContent).toMatch(/document\.addEventListener\(\s*["']dragover["']/);
   });
+
+  it("painel e editor satisfazem os requisitos de T-41 (duplicar formulário)", () => {
+    const painelPath = path.join(rootDir, "src/routes/_authenticated.painel.tsx");
+    const painelContent = fs.readFileSync(painelPath, "utf-8");
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    const successToast = "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar.";
+    const dirtyHint = "Salve as alterações antes de duplicar";
+
+    // Painel e editor importam cloneForm de clone-form
+    expect(painelContent).toMatch(/import\s*\{[^}]*cloneForm[^}]*\}\s*from\s*["'][^"']*clone-form["']/);
+    expect(editorContent).toMatch(/import\s*\{[^}]*cloneForm[^}]*\}\s*from\s*["'][^"']*clone-form["']/);
+
+    // Contêm o texto de toast de sucesso
+    expect(painelContent).toContain(successToast);
+    expect(editorContent).toContain(successToast);
+
+    // Editor contém a dica de alterações pendentes
+    expect(editorContent).toContain(dirtyHint);
+  });
 });
 
 

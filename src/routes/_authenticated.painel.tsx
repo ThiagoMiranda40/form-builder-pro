@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { barHint, DASHBOARD_CARD_HINTS } from "@/lib/dashboard-hints";
+import { cloneForm } from "@/lib/clone-form";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -119,6 +120,21 @@ function Painel() {
       queryClient.invalidateQueries({ queryKey: ["forms"] });
     },
     onError: () => toast.error("Não foi possível excluir."),
+  });
+
+  const duplicateForm = useMutation({
+    mutationFn: async (formId: string) => {
+      return await cloneForm(supabase, user!.id, formId);
+    },
+    onSuccess: (newForm) => {
+      queryClient.invalidateQueries({ queryKey: ["forms"] });
+      toast.success(
+        "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar.",
+        { duration: 10000 },
+      );
+      navigate({ to: "/formularios/$id", params: { id: newForm.id } });
+    },
+    onError: () => toast.error("Não foi possível duplicar o formulário."),
   });
 
   const forms = formsQuery.data ?? [];
@@ -248,6 +264,15 @@ function Painel() {
                       >
                         Respostas
                       </Link>
+                      <button
+                        type="button"
+                        aria-label={`Duplicar o formulário ${form.title}`}
+                        disabled={duplicateForm.isPending}
+                        onClick={() => duplicateForm.mutate(form.id)}
+                        className="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      >
+                        Duplicar
+                      </button>
                       <button
                         onClick={() => {
                           if (confirm(`Excluir “${form.title}” e todas as respostas?`))

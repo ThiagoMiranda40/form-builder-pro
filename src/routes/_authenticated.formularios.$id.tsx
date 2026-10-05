@@ -1,8 +1,10 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { cloneForm } from "@/lib/clone-form";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
@@ -80,6 +82,27 @@ const toLocalInput = (value: string | null) =>
 
 function Editor() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id" });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const duplicateForm = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Usuário não autenticado");
+      return await cloneForm(supabase, user.id, id);
+    },
+    onSuccess: (newForm) => {
+      queryClient.invalidateQueries({ queryKey: ["forms"] });
+      toast.success(
+        "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar.",
+        { duration: 10000 },
+      );
+      navigate({ to: "/formularios/$id", params: { id: newForm.id } });
+    },
+    onError: () => {
+      toast.error("Não foi possível duplicar o formulário.");
+    },
+  });
   const [form, setForm] = useState<FormState | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -463,6 +486,16 @@ function Editor() {
           >
             Ver respostas
           </Link>
+          <button
+            type="button"
+            aria-label="Duplicar este formulário"
+            disabled={dirty || saving || duplicateForm.isPending}
+            title={dirty ? "Salve as alterações antes de duplicar" : undefined}
+            onClick={() => duplicateForm.mutate()}
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+          >
+            Duplicar
+          </button>
           <button
             onClick={() => save()}
             disabled={saving}
