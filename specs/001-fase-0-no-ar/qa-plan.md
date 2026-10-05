@@ -379,6 +379,19 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Testes unitários puros:** Suíte `src/lib/drag-autoscroll.test.ts` valida cálculo de `autoScrollSpeed` (meio da tela = 0, limites de borda, monotonicidade, simetria, saturação em `maxSpeed`, tratamento de entradas não finitas ou `viewportHeight <= 0`).
 - [ ] **Testes estáticos de rota:** Suíte `src/lib/routes.test.ts` valida que o editor importa `autoScrollSpeed`, utiliza `requestAnimationFrame`, `cancelAnimationFrame` e `window.scrollBy`, e registra `addEventListener("dragover"` no `document`.
 
+### 5.16 Duplicação de Formulário no Painel e no Editor (T-41)
+- [ ] **Duplicação a partir do painel:** Clicar no botão "Duplicar" de um formulário no painel gera um rascunho com o título `${original} (cópia)`, novo endereço, mesma descrição, tema, consentimento, mensagem de sucesso e limite de vagas, sem prazo (`closes_at: null`) e sem link do cliente (`share_token: null`), mantendo todas as perguntas na mesma ordem com tipo, ajuda, obrigatória e opções intactos.
+- [ ] **Aviso de sucesso com duração estendida:** Após a duplicação, exibe toast verde *"Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar."* (10 segundos) e navega imediatamente para a rota do editor `/formularios/$id`.
+- [ ] **Integridade do formulário original:** O formulário de origem permanece inalterado (textos, status, prazo, perguntas e respostas). A cópia recém-criada inicia rigorosamente com 0 respostas.
+- [ ] **Sufixo incremental:** Duplicar uma cópia gera título com `" (cópia 2)"`, `" (cópia 3)"`, etc., preservando o limite máximo de 120 caracteres.
+- [ ] **Endereço único:** Duplicações sucessivas geram slugs distintos e únicos via `suggestSlug` com sufixo aleatório.
+- [ ] **Botão "Duplicar" no editor:** Na barra superior de ações, ao lado de "Ver respostas", o botão "Duplicar" permite clonar o formulário diretamente do editor.
+- [ ] **Estado desabilitado com alterações pendentes:** Enquanto houver alterações locais não salvas (`dirty`), durante salvamento (`saving`) ou durante a duplicação, o botão "Duplicar" fica desabilitado; com `dirty`, exibe a dica *"Salve as alterações antes de duplicar"*.
+- [ ] **Publicação e submissão na cópia:** Publicar o rascunho duplicado e enviar uma inscrição de teste funciona normalmente, gerando resposta independente no novo endereço.
+- [ ] **Responsividade mobile:** Botão "Duplicar" visível e operável em celulares (< 1024 px) tanto no painel quanto no editor.
+- [ ] **Testes unitários e de integração:** Suíte `src/lib/clone-form.test.ts` valida geração de títulos (`buildCloneTitle`), payload do formulário (`buildCloneFormPayload`), payload das perguntas (`buildCloneQuestions`) e fluxo de duplicação assíncrono (`cloneForm`), incluindo tratamento de conflito de slug (23505), rollback com exclusão em falha de perguntas e garantia de que a tabela `responses` nunca é consultada ou copiada.
+- [ ] **Testes estáticos de rotas:** Suíte `src/lib/routes.test.ts` valida que painel e editor importam `cloneForm` de `clone-form`, contêm a mensagem literal de sucesso com recomendação de revisão e o editor contém a dica de alteração pendente *"Salve as alterações antes de duplicar"*.
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)

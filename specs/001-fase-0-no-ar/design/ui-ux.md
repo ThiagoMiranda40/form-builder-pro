@@ -162,6 +162,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Aviso: Formulário Publicado** | Bloco âmbar (`bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 rounded-lg p-3 text-xs`) visível quando `form.status === "published"` e o slug foi alterado: *"Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço."*. |
 | **Descrição do Formulário (Edição)** | Campo textarea com crescimento automático conforme o conteúdo (ref + efeito a cada mudança e no carregamento: mínimo de 4 linhas, máximo de 24rem com rolagem vertical). Aparência de campo editável: `rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none resize-none`. Acessibilidade: `aria-label="Descrição do formulário"`, placeholder explicativo e contador `"N/1000"` (`text-xs text-slate-600`, contraste >= 4,5:1, ligado por `aria-describedby`, cor âmbar escuro a partir de 900 caracteres, `maxLength={1000}`). |
 | **Abas do Editor** | Botões com texto exato sem transformação CSS (`capitalize` removido): "Aparência" e "Limites e Termos" (a aba "Pergunta" foi removida). |
+| **Duplicar Formulário (Editor)** | Na barra de ações superior, ao lado de "Ver respostas", botão secundário "Duplicar" (`aria-label="Duplicar este formulário"`, `cursor: pointer`). Fica desabilitado quando houver alterações não salvas (`dirty`), durante persistência (`saving`) e enquanto a clonagem estiver em andamento. Quando desabilitado por alterações pendentes, exibe a dica `title="Salve as alterações antes de duplicar"`. Em caso de sucesso: exibe toast verde *"Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar."* (duração de 10s) e redireciona para a rota `/formularios/$id` do novo formulário; em caso de erro: toast *"Não foi possível duplicar o formulário."*. |
 | **Salvando** | Botão "Salvar" desabilitado com texto *"Salvando..."*. |
 | **Sucesso** | Toast via Sonner com os textos já usados no código: *"Alterações salvas."* ao salvar alterações e *"Formulário publicado! O link já pode ser compartilhado."* ao publicar. |
 
@@ -202,6 +203,11 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Status de tudo salvo na barra de salvar:** "Tudo salvo"
 - **Botão salvar na barra:** "Salvar"
 - **Texto do botão enquanto salva:** "Salvando..."
+- **Botão duplicar no editor:** "Duplicar"
+- **Aria-label duplicar no editor:** "Duplicar este formulário"
+- **Dica duplicar com alterações pendentes:** "Salve as alterações antes de duplicar"
+- **Toast duplicar sucesso:** "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar."
+- **Toast duplicar erro:** "Não foi possível duplicar o formulário."
 
 ---
 
@@ -887,6 +893,10 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Dicas (Tooltips) dos Cartões de Vagas e Prazo (Formulário Público):**
   - *Vagas:* "Vagas ainda disponíveis neste formulário. Quando restam 10 ou menos, aparece o aviso Últimas vagas."
   - *Prazo:* "Data e hora limite para enviar a inscrição, no horário de Brasília."
+- **Ações dos Cartões de Formulário no Painel (T-41):**
+  - *Botão Duplicar:* "Duplicar" (`aria-label="Duplicar o formulário {form.title}"`, posicionado entre o link "Respostas" e o botão "Excluir", cursor de mãozinha, desabilitado durante clonagem).
+  - *Toast de sucesso:* "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar." (duração de 10s, redireciona para o editor do clone).
+  - *Toast de erro:* "Não foi possível duplicar o formulário."
 
 ### 8.3 Cursor Global e Comportamento de Dicas (Tooltips)
 - **Regra de Cursor Global:**
