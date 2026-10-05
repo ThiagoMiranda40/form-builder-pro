@@ -140,6 +140,28 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(editorContent).toContain("metaKey");
     expect(editorContent).toContain("ctrlKey");
   });
+
+  it("editor de formulários satisfaz os requisitos de T-34c (Enter nas opções, adicionar abaixo, painel sem aba Pergunta)", () => {
+    const qefPath = path.join(rootDir, "src/components/QuestionEditFields.tsx");
+    const qefContent = fs.readFileSync(qefPath, "utf-8");
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    // (a) que QuestionEditFields.tsx NÃO contém setText(options.join
+    expect(qefContent).not.toContain("setText(options.join");
+
+    // (b) que o editor contém "Adicionar pergunta abaixo da pergunta" e "Adicionar uma pergunta logo abaixo desta"
+    expect(editorContent).toContain("Adicionar pergunta abaixo da pergunta");
+    expect(editorContent).toContain("Adicionar uma pergunta logo abaixo desta");
+
+    // (c) que o editor NÃO contém setTab("pergunta") nem "pergunta" | "aparencia" nem tab === "pergunta"
+    expect(editorContent).not.toContain('setTab("pergunta")');
+    expect(editorContent).not.toContain('"pergunta" | "aparencia"');
+    expect(editorContent).not.toContain('tab === "pergunta"');
+
+    // (d) que o editor contém adding
+    expect(editorContent).toContain("adding");
+  });
 });
 
 

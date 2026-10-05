@@ -83,7 +83,8 @@ function Editor() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"pergunta" | "aparencia" | "limites">("pergunta");
+  const [tab, setTab] = useState<"aparencia" | "limites">("aparencia");
+  const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [initialSlug, setInitialSlug] = useState<string>("");
@@ -164,7 +165,6 @@ function Editor() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const publicUrl = form ? `${origin}/${form.slug}` : "";
-  const current = questions.find((q) => q.id === selected) ?? null;
 
   const dirty = isEditorDirty(editorSnapshot(form, questions), savedSnapshot);
 
@@ -185,67 +185,72 @@ function Editor() {
     setQuestions((list) => list.map((q) => (q.id === questionId ? { ...q, ...patch } : q)));
   }
 
-  async function addQuestion() {
-    const targetPos = insertionIndex(questions, selected);
-    const { data, error } = await supabase
-      .from("questions")
-      .insert({
-        form_id: id,
+  async function addQuestion(afterId: string | null | undefined = selected) {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const targetPos = insertionIndex(questions, afterId);
+      const { data, error } = await supabase
+        .from("questions")
+        .insert({
+          form_id: id,
+          label: "Nova pergunta",
+          field_type: "short_text",
+          position: targetPos,
+        })
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        toast.error("Não foi possível adicionar a pergunta.");
+        return;
+      }
+
+      const newQuestion: Question = {
+        id: data.id as string,
         label: "Nova pergunta",
+        help_text: "",
         field_type: "short_text",
+        required: false,
+        options: [],
         position: targetPos,
-      })
-      .select("*")
-      .single();
+      };
 
-    if (error || !data) {
-      toast.error("Não foi possível adicionar a pergunta.");
-      return;
-    }
+      const nextQuestions = insertAfter(questions, newQuestion, afterId);
+      setQuestions(nextQuestions);
+      setSelected(newQuestion.id);
+      setJustAddedId(newQuestion.id);
 
-    const newQuestion: Question = {
-      id: data.id as string,
-      label: "Nova pergunta",
-      help_text: "",
-      field_type: "short_text",
-      required: false,
-      options: [],
-      position: targetPos,
-    };
+      // Grava imediatamente no banco as novas posições de todas as perguntas exceto a inserida (T-34b)
+      const updatedPositions = positionsToPersist(nextQuestions, newQuestion.id);
 
-    const nextQuestions = insertAfter(questions, newQuestion, selected);
-    setQuestions(nextQuestions);
-    setSelected(newQuestion.id);
-    setJustAddedId(newQuestion.id);
-    setTab("pergunta");
-
-    // Grava imediatamente no banco as novas posições de todas as perguntas exceto a inserida (T-34b)
-    const updatedPositions = positionsToPersist(nextQuestions, newQuestion.id);
-
-    if (updatedPositions.length > 0) {
-      try {
-        const results = await Promise.all(
-          updatedPositions.map((q) =>
-            supabase.from("questions").update({ position: q.position }).eq("id", q.id),
-          ),
-        );
-        const hasError = results.some((r) => r.error);
-        if (hasError) {
+      if (updatedPositions.length > 0) {
+        try {
+          const results = await Promise.all(
+            updatedPositions.map((q) =>
+              supabase.from("questions").update({ position: q.position }).eq("id", q.id),
+            ),
+          );
+          const hasError = results.some((r) => r.error);
+          if (hasError) {
+            toast.error(
+              "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem.",
+            );
+          }
+        } catch {
           toast.error(
             "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem.",
           );
         }
-      } catch {
-        toast.error(
-          "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem.",
-        );
       }
-    }
 
-    requestAnimationFrame(() => {
-      const cardEl = document.getElementById(`question-card-${newQuestion.id}`);
-      cardEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    });
+      requestAnimationFrame(() => {
+        const cardEl = document.getElementById(`question-card-${newQuestion.id}`);
+        cardEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    } finally {
+      setAdding(false);
+    }
   }
 
   async function confirmRemoveQuestion() {
@@ -659,7 +664,6 @@ function Editor() {
                           setSelected(null);
                         } else {
                           setSelected(q.id);
-                          setTab("pergunta");
                         }
                       }}
                       className="flex min-w-0 flex-1 items-start gap-3 rounded-lg p-1 text-left focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
@@ -705,6 +709,18 @@ function Editor() {
                       </button>
                       <button
                         type="button"
+                        aria-label={`Adicionar pergunta abaixo da pergunta ${index + 1}`}
+                        title="Adicionar uma pergunta logo abaixo desta"
+                        disabled={adding}
+                        onClick={() => addQuestion(q.id)}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-black/5 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
+                      >
+                        <span aria-hidden="true" className="text-sm font-semibold">
+                          +
+                        </span>
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Excluir pergunta ${index + 1}`}
                         onClick={() => setQuestionToDelete({ id: q.id, index })}
                         className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
@@ -738,8 +754,9 @@ function Editor() {
           <button
             id="add-question-btn"
             type="button"
-            onClick={addQuestion}
-            className="mt-4 w-full rounded-xl border border-dashed border-brand/40 bg-white/40 py-3 text-sm font-medium text-brand hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer"
+            disabled={adding}
+            onClick={() => addQuestion()}
+            className="mt-4 w-full rounded-xl border border-dashed border-brand/40 bg-white/40 py-3 text-sm font-medium text-brand hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-brand/40 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Adicionar pergunta
           </button>
@@ -747,8 +764,8 @@ function Editor() {
             A nova pergunta entra logo abaixo da pergunta selecionada.
           </p>
 
-          {/* Barra de salvar fixa (T-34b / M-35) */}
-          <div className="sticky bottom-4 z-20 mt-4 flex items-center justify-between gap-3 glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3">
+          {/* Barra de salvar fixa (T-34b / M-35, T-34c / M-36) */}
+          <div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center justify-between gap-3 glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3">
             <p role="status" className="flex items-center gap-2 text-sm font-medium text-slate-700">
               {dirty ? (
                 <>
@@ -759,21 +776,32 @@ function Editor() {
                 <span>Tudo salvo</span>
               )}
             </p>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => save()}
-              className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? "Salvando..." : "Salvar"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={adding}
+                title="Adiciona logo abaixo da pergunta selecionada ou, se nenhuma estiver selecionada, no fim da lista"
+                onClick={() => addQuestion()}
+                className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium text-slate-800 ring-1 ring-black/10 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                + Adicionar pergunta
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => save()}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Painel lateral com lg:sticky lg:top-24 */}
         <aside className="glass rounded-2xl p-5 lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           <div className="mb-4 flex gap-1 rounded-lg bg-white/60 p-1 text-xs">
-            {(["pergunta", "aparencia", "limites"] as const).map((key) => (
+            {(["aparencia", "limites"] as const).map((key) => (
               <button
                 key={key}
                 type="button"
@@ -782,23 +810,10 @@ function Editor() {
                   tab === key ? "bg-brand text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                {key === "aparencia" ? "Aparência" : key === "limites" ? "Limites e Termos" : "Pergunta"}
+                {key === "aparencia" ? "Aparência" : "Limites e Termos"}
               </button>
             ))}
           </div>
-
-          {tab === "pergunta" &&
-            (current ? (
-              <QuestionEditFields
-                question={current}
-                onChange={(patch) => patchQuestion(current.id, patch)}
-                idPrefix="panel-"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Selecione uma pergunta para editar seus detalhes.
-              </p>
-            ))}
 
           {tab === "aparencia" && (
             <div className="space-y-4">

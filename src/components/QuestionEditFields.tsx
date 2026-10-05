@@ -44,10 +44,6 @@ export function QuestionOptionsField({
 }) {
   const [text, setText] = useState(() => options.join("\n"));
 
-  useEffect(() => {
-    setText(options.join("\n"));
-  }, [options]);
-
   const textareaId = `${idPrefix}question-options`;
 
   return (
