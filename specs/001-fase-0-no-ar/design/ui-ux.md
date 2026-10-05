@@ -49,7 +49,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 ## 2. Tela A — Editor de Formulário
 
 ### 2.1 Objetivo e Fluxo
-- **Objetivo:** Permitir ao administrador configurar endereço personalizado amigável (RF-11), texto de consentimento LGPD (RF-08), e editar perguntas diretamente na lista ou no painel lateral que acompanha a rolagem (T-34 / M-32), reordenar perguntas por arrastar nativo ou por setas acessíveis, inserir novas perguntas logo abaixo da selecionada com foco automático e texto selecionado, e excluir perguntas com diálogo de confirmação seguro.
+- **Objetivo:** Permitir ao administrador configurar endereço personalizado amigável (RF-11), texto de consentimento LGPD (RF-08), e editar perguntas diretamente no próprio cartão na lista (T-34, T-34b, T-34c), reordenar perguntas por arrastar nativo ou por setas acessíveis, inserir novas perguntas no botão "+" de cada cartão ou "+ Adicionar pergunta" contextual com foco automático no rótulo, barra fixa de salvar com atalho Ctrl+S/Cmd+S, e painel lateral com rolagem fixa (lg:sticky) simplificado com as abas "Aparência" e "Limites e Termos" (aba "Pergunta" removida).
 - **Fluxo do Administrador:**
   ```mermaid
   flowchart TD
@@ -59,14 +59,16 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
       C -->|Clica novamente na aberta| E[Recolhe a pergunta: selected = null]
       C -->|Arrasta pela alça| F[Arrasto nativo: mostra linha de inserção antes/depois e move ao soltar]
       C -->|Clica em Mover para cima/baixo| G[Move 1 posição com teclado/mouse e anuncia em aria-live]
-      C -->|Clica em '+ Adicionar pergunta'| H[Insere logo abaixo da selecionada ou no fim]
-      H --> I[Grava novas posições das perguntas abaixo e foca no rótulo com 'Nova pergunta' selecionado]
+      C -->|Clica no botão '+' do cartão| H1[Insere logo abaixo da pergunta correspondente]
+      C -->|Clica em '+ Adicionar pergunta'| H2[Insere logo abaixo da selecionada ou no fim]
+      H1 --> I[Grava posições com positionsToPersist e foca no rótulo com 'Nova pergunta' selecionado]
+      H2 --> I
       C -->|Clica em 'Excluir pergunta'| J[Abre AlertDialog: 'Excluir esta pergunta?']
       J -->|Cancelar ou Esc| K[Fecha diálogo e devolve foco ao botão de exclusão]
       J -->|Excluir| L[Exclui no banco, normaliza posições e foca na próxima pergunta]
       B --> M[Painel Lateral de Configurações]
       M --> N[Acompanha a rolagem a partir de 1024px: lg:sticky lg:top-24]
-      M --> O[Aba Pergunta sincronizada em tempo real com o cartão selecionado]
+      M --> O[Abas Aparência e Limites e Termos: configurações gerais]
   ```
 
 ### 2.2 Wireframes de Baixa Fidelidade
@@ -82,9 +84,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 +------------------------------------+
 | PERGUNTAS DO FORMULÁRIO            |
 |                                    |
-| [::] [ 1. CPF (cpf)          ] [↑][↓][✕]
+| [::] [ 1. CPF (cpf)          ] [↑][↓][+][✕]
 |                                    |
-| [::] [ 2. Nome completo (text) ] [↑][↓][✕]
+| [::] [ 2. Nome completo (text) ] [↑][↓][+][✕]
 | +--------------------------------+ |
 | | Rótulo da pergunta:            | | <- QuestionEditFields no cartão
 | | [ Nome completo              ] | |
@@ -98,10 +100,11 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | A nova pergunta entra logo abaixo  |
 | da pergunta selecionada.           |
 |                                    |
-| [● Alterações não salvas  [Salvar] ] <- Barra fixa (sticky bottom-4)
+| [● Alterações não salvas           |
+|  [+ Adicionar pergunta] [Salvar] ] | <- Barra fixa (sticky bottom-4)
 +------------------------------------+
 | CONFIGURAÇÕES (Abaixo da lista)    |
-| [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
+| [ Aparência ] [ Limites e Termos ] |
 +------------------------------------+
 ```
 
@@ -114,26 +117,26 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | Endereço: https://meudominio.com/skf-corrida-track-field                          [ Copiar link ]  |
 +----------------------------------------------------------------------------------------------------+
 | PERGUNTAS DO FORMULÁRIO (min-w-0)                 | CONFIGURAÇÕES (Acompanha a rolagem: lg:sticky)  |
-|                                                  | [ Pergunta ] [ Aparência ] [ Limites e Termos ] |
+|                                                  | [ Aparência ] [ Limites e Termos ]              |
 | <ol>                                             |                                                 |
-| <li> [::] [ 1. CPF (cpf)       ] [↑][↓][✕] </li> | Aba Pergunta: usa o mesmo QuestionEditFields   |
-|                                                  | sincronizado com a pergunta selecionada.        |
-| <li> [::] [ 2. Nome (text) ▼   ] [↑][↓][✕] </li> |                                                 |
-| +----------------------------------------------+ | Limite de respostas / vagas:                    |
-| | Rótulo: [ Nome completo                    ] | | [ 50                                          ] |
+| <li> [::] [ 1. CPF (cpf)       ] [↑][↓][+][✕] </li> | Limite de respostas / vagas:                  |
+|                                                  | [ 50                                          ] |
+| <li> [::] [ 2. Nome (text) ▼   ] [↑][↓][+][✕] </li> |                                                 |
+| +----------------------------------------------+ | Prazo final (data e hora):                      |
+| | Rótulo: [ Nome completo                    ] | | [ 15/10/2026, 23:59                           ] |
 | | Ajuda:  [ Opcional                         ] | |                                                 |
-| | Tipo:   [ Texto curto                      ] | | Prazo final (data e hora):                      |
-| | [x] Resposta obrigatória                     | | [ 15/10/2026, 23:59                           ] |
-| +----------------------------------------------+ |                                                 |
-|                                                  | Texto de consentimento (LGPD):                  |
-| <li> [::] [ 3. Modalidade      ] [↑][↓][✕] </li> | +---------------------------------------------+ |
-| </ol>                                            | | Declaro que concordo com o regulamento...   | |
+| | Tipo:   [ Texto curto                      ] | | Texto de consentimento (LGPD):                  |
+| | [x] Resposta obrigatória                     | | +---------------------------------------------+ |
+| +----------------------------------------------+ | | Declaro que concordo com o regulamento...   | |
 |                                                  | +---------------------------------------------+ |
-| [ + Adicionar pergunta                       ] | Opcional. Se preenchido, o aceite é             |
-| A nova pergunta entra logo abaixo da pergunta    | obrigatório para concluir a inscrição.          |
+| <li> [::] [ 3. Modalidade      ] [↑][↓][+][✕] </li> | Opcional. Se preenchido, o aceite é           |
+| </ol>                                            | obrigatório para concluir a inscrição.          |
+|                                                  |                                                 |
+| [ + Adicionar pergunta                       ] |                                                 |
+| A nova pergunta entra logo abaixo da pergunta    |                                                 |
 | selecionada.                                     |                                                 |
 |                                                  |                                                 |
-| [● Alterações não salvas               [Salvar]] | <- Barra de salvar fixa (sticky bottom-4 z-20)  |
+| [● Alterações não salvas  [+ Adicionar pergunta] [Salvar]] | <- Barra de salvar fixa               |
 +----------------------------------------------------------------------------------------------------+
 ```
 
@@ -141,14 +144,14 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | Estado | Elemento Visual / Comportamento |
 |---|---|
 | **Padrão / Carregado** | Prefixo `${window.location.origin}/` exibido como bloco não editável (`bg-white/60 text-muted-foreground text-xs px-3 py-2 rounded-l-lg`); campo de slug com valor atual (`inputClass`). Lista de perguntas em `<ol>` com botões acessíveis e alça de arrasto. Layout com grade `lg:grid-cols-[minmax(0,1fr)_360px]`, coluna esquerda com `min-w-0`, `<ol>` e `<li>` com `min-w-0`, cabeçalhos flexíveis com `truncate` e campos de texto `w-full min-w-0`, prevenindo qualquer rolagem horizontal da página mesmo com rótulos ou ajudas longas (até 200 caracteres sem espaço). |
-| **Pergunta Recolhida** | Item `<li>` exibindo botão de cabeçalho (`aria-expanded="false"`) com número, rótulo, tipo e texto de ajuda com truncamento visual de linha única, acompanhado dos botões independentes de arrastar ("Arrastar pergunta {n}"), mover para cima ("Mover pergunta {n} para cima"), mover para baixo ("Mover pergunta {n} para baixo") e excluir ("Excluir pergunta {n}"). Mover para cima fica desabilitado no primeiro item; mover para baixo no último. Alça com `cursor-grab`; botões com cursor pointer e alvo mínimo de 32 px. |
-| **Pergunta Selecionada / Aberta** | Botão de cabeçalho com `aria-expanded="true"` e `aria-controls`. Dentro do cartão da pergunta surge o componente `QuestionEditFields` (rótulo com maxLength 200, texto de ajuda com maxLength 200 e placeholder "Opcional", tipo de campo, caixa "Resposta obrigatória" e, para tipos de escolha, gerenciamento de opções). A edição no cartão reflete imediatamente na aba "Pergunta" do painel lateral e vice-versa. Clicar novamente no cabeçalho fecha a edição (`selected = null`). Reabrir a mesma pergunta posteriormente não foca nem seleciona o texto do rótulo (proteção contra sobrescrita acidental). |
+| **Pergunta Recolhida** | Item `<li>` exibindo botão de cabeçalho (`aria-expanded="false"`) com número, rótulo, tipo e texto de ajuda com truncamento visual de linha única, acompanhado dos botões independentes de arrastar ("Arrastar pergunta {n}"), mover para cima ("Mover pergunta {n} para cima"), mover para baixo ("Mover pergunta {n} para baixo"), adicionar pergunta abaixo ("Adicionar pergunta abaixo da pergunta {n}") e excluir ("Excluir pergunta {n}"). Mover para cima fica desabilitado no primeiro item; mover para baixo no último. Alça com `cursor-grab`; botões com cursor pointer e alvo mínimo de 32 px. |
+| **Pergunta Selecionada / Aberta** | Botão de cabeçalho com `aria-expanded="true"` e `aria-controls`. Dentro do cartão da pergunta surge o componente `QuestionEditFields` (rótulo com maxLength 200, texto de ajuda com maxLength 200 e placeholder "Opcional", tipo de campo, caixa "Resposta obrigatória" e, para tipos de escolha, gerenciamento de opções). No campo de opções (múltipla e única escolha), a tecla Enter abre nova linha no fim do texto sem resetar a digitação (sem `useEffect` sobrescrevendo o texto); a normalização das opções ocorre ao sair do campo (`onBlur`). Clicar novamente no cabeçalho fecha a edição (`selected = null`). Reabrir a mesma pergunta posteriormente não foca nem seleciona o texto do rótulo (proteção contra sobrescrita acidental). |
 | **Arrastando Pergunta (DND Nativo)** | Acionado exclusivamente ao pressionar a alça de arrasto (`pointerdown` ativa `draggable` no `<li>`). No `dragstart`: `effectAllowed = "move"` e transferência de id via `text/plain`. Item arrastado exibe opacidade reduzida. Nos itens sobre os quais se passa o mouse (`dragover`), calcula se o cursor está na metade superior ou inferior e exibe linha visual de inserção antes ou depois. No `drop`, reposiciona via `moveToIndex`. Ao final (`dragend` / `pointerup`), limpa estados de arrasto e anuncia via `aria-live="polite"` ("Pergunta movida para a posição {n} de {total}."). As novas posições alteram o snapshot local e ativam o status de alterações não salvas. |
-| **Painel Lateral com Rolagem (Desktop)** | A partir de 1024 px (`lg:`), o painel lateral `<aside>` acompanha a rolagem da página: `lg:sticky lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:top-24`, sem ser obstruído pelo cabeçalho fixo do `AppShell` (`z-30`) e mantendo-se perfeitamente visível à direita sem que textos longos o empurrem para fora da tela. Em telas menores (< 1024 px), permanece no fluxo normal abaixo da lista. |
-| **Barra de Salvar Fixa (Sticky Bottom)** | Na base da coluna esquerda, após a dica de adicionar pergunta, barra `sticky bottom-4 z-20 mt-4` com acabamento `glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3`. À esquerda exibe `<p role="status">` com "Alterações não salvas" (precedido por ponto âmbar `aria-hidden`) quando o editor está modificado, ou "Tudo salvo" quando o estado reflete o último salvamento. À direita, botão "Salvar" (mesmo estilo primário do topo), com texto "Salvando..." e desabilitado durante persistência. Fica sempre visível na rolagem e não cobre o botão de adicionar pergunta ao chegar no fim. |
+| **Painel Lateral com Rolagem (Desktop)** | A partir de 1024 px (`lg:`), o painel lateral `<aside>` acompanha a rolagem da página: `lg:sticky lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:top-24`, sem ser obstruído pelo cabeçalho fixo do `AppShell` (`z-30`) e mantendo-se perfeitamente visível à direita sem que textos longos o empurrem para fora da tela. O painel lateral possui apenas duas abas: "Aparência" e "Limites e Termos", abrindo por padrão em "Aparência" (a aba "Pergunta" foi removida, já que a edição é realizada no próprio cartão). Em telas menores (< 1024 px), permanece no fluxo normal abaixo da lista. |
+| **Barra de Salvar Fixa (Sticky Bottom)** | Na base da coluna esquerda, após a dica de adicionar pergunta, barra `sticky bottom-4 z-20 mt-4` com acabamento `glass-strong rounded-xl ring-1 ring-black/10 px-4 py-3`. À esquerda exibe `<p role="status">` com "Alterações não salvas" (precedido por ponto âmbar `aria-hidden`) quando o editor está modificado, ou "Tudo salvo" quando o estado reflete o último salvamento. À direita, grupo com quebra de linha flexível (`flex-wrap`) contendo o botão secundário "+ Adicionar pergunta" (`title="Adiciona logo abaixo da pergunta selecionada ou, se nenhuma estiver selecionada, no fim da lista"`) e o botão primário "Salvar" (com texto "Salvando..." e desabilitado durante persistência). Fica sempre visível na rolagem e não cobre o botão de adicionar pergunta ao chegar no fim. |
 | **Aviso ao Fechar/Recarregar (beforeunload)** | Enquanto houver alterações locais não salvas (`isEditorDirty === true`), o editor intercepta tentativas de recarregar a página ou fechar a aba disparando a confirmação padrão do navegador (`beforeunload`). O estado limpo é restaurado após salvar com sucesso ou quando modificações são revertidas (ex.: mover pergunta e devolvê-la à posição original). |
 | **Atalho de Teclado (Ctrl+S / Cmd+S)** | Pressionar Ctrl+S (no Windows/Linux) ou Cmd+S (no macOS) executa imediatamente a função `save()`, prevenindo o comportamento padrão do navegador e salvando todas as configurações e perguntas sem necessidade de cliques. |
-| **Adicionar Pergunta** | O botão "+ Adicionar pergunta" insere a nova pergunta logo abaixo da pergunta selecionada (ou no fim da lista se nenhuma estiver selecionada). Todas as demais perguntas da lista têm suas posições atualizadas imediatamente no banco via `positionsToPersist`, garantindo que mesmo recarregando sem clicar em Salvar a ordem da tela é rigorosamente preservada no banco. Em caso de falha de rede na atualização das posições, exibe alerta *"Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."*. A nova pergunta fica selecionada, aberta, com rolagem suave até ela (`scrollIntoView({ block: "nearest" })`), foco no campo de rótulo e o texto padrão "Nova pergunta" selecionado para substituição imediata apenas no momento da criação. Abaixo do botão há a dica: *"A nova pergunta entra logo abaixo da pergunta selecionada."*. |
+| **Adicionar Pergunta** | A inserção de pergunta pode ser feita em três locais: (1) no botão "+" do cabeçalho de cada cartão (adiciona logo abaixo daquela pergunta específica com `addQuestion(q.id)`); (2) no botão secundário "+ Adicionar pergunta" da barra fixa (adiciona logo abaixo da selecionada ou no fim); (3) no botão tracejado "+ Adicionar pergunta" do fim da lista. Todas as ações usam o estado `adding` para desabilitar os botões e impedir duplo clique. Todas as demais perguntas da lista têm suas posições atualizadas imediatamente no banco via `positionsToPersist`, garantindo que mesmo recarregando sem clicar em Salvar a ordem da tela é rigorosamente preservada no banco. Em caso de falha de rede na atualização das posições, exibe alerta *"Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."*. A nova pergunta fica selecionada, aberta, com rolagem suave até ela (`scrollIntoView({ block: "nearest" })`), foco no campo de rótulo e o texto padrão "Nova pergunta" selecionado para substituição imediata apenas no momento da criação. Abaixo do botão do fim há a dica: *"A nova pergunta entra logo abaixo da pergunta selecionada."*. |
 | **Excluir com Confirmação (AlertDialog)** | O botão "Excluir pergunta {n}" abre diálogo modal `AlertDialog` com título *"Excluir esta pergunta?"*, descrição *"As respostas já enviadas a ela deixam de aparecer na tabela e nas exportações. Esta ação não pode ser desfeita."*, foco inicial em *"Cancelar"* e botão destrutivo *"Excluir"*. Ao cancelar ou pressionar Esc, o foco retorna ao botão de exclusão de origem. Ao confirmar, exclui no banco, normaliza as posições locais e move o foco para o cabeçalho da próxima pergunta (ou anterior, ou botão de adicionar). Sem uso de `window.confirm`. |
 | **Digitando Slug** | Execução de `sanitizeSlugInput`: converte acentos para letras simples, maiúsculas para minúsculas, caracteres especiais e espaços viram hífen único. Mantém hífen final temporário para digitação contínua. |
 | **Blur do Slug** | Disparo de `trimSlugEdges`: remove hífen residual do início ou fim. |
@@ -158,7 +161,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Erro do Banco ao Salvar (23505)** | Conflito de unicidade retornado no save: *"Esse endereço já está em uso."*. |
 | **Aviso: Formulário Publicado** | Bloco âmbar (`bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 rounded-lg p-3 text-xs`) visível quando `form.status === "published"` e o slug foi alterado: *"Atenção: como este formulário já está publicado, links já compartilhados deixarão de funcionar se você alterar o endereço."*. |
 | **Descrição do Formulário (Edição)** | Campo textarea com crescimento automático conforme o conteúdo (ref + efeito a cada mudança e no carregamento: mínimo de 4 linhas, máximo de 24rem com rolagem vertical). Aparência de campo editável: `rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none resize-none`. Acessibilidade: `aria-label="Descrição do formulário"`, placeholder explicativo e contador `"N/1000"` (`text-xs text-slate-600`, contraste >= 4,5:1, ligado por `aria-describedby`, cor âmbar escuro a partir de 900 caracteres, `maxLength={1000}`). |
-| **Abas do Editor** | Botões com texto exato sem transformação CSS (`capitalize` removido): "Pergunta", "Aparência" e "Limites e Termos" (evita que a aba apareça como "Limites E Termos"). |
+| **Abas do Editor** | Botões com texto exato sem transformação CSS (`capitalize` removido): "Aparência" e "Limites e Termos" (a aba "Pergunta" foi removida). |
 | **Salvando** | Botão "Salvar" desabilitado com texto *"Salvando..."*. |
 | **Sucesso** | Toast via Sonner com os textos já usados no código: *"Alterações salvas."* ao salvar alterações e *"Formulário publicado! O link já pode ser compartilhado."* ao publicar. |
 
@@ -185,6 +188,9 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Aria-label da alça de arrasto:** "Arrastar pergunta {n}"
 - **Aria-label mover para cima:** "Mover pergunta {n} para cima"
 - **Aria-label mover para baixo:** "Mover pergunta {n} para baixo"
+- **Aria-label adicionar pergunta abaixo:** "Adicionar pergunta abaixo da pergunta {n}"
+- **Título do botão adicionar abaixo na pergunta:** "Adicionar uma pergunta logo abaixo desta"
+- **Título do botão adicionar na barra fixa:** "Adiciona logo abaixo da pergunta selecionada ou, se nenhuma estiver selecionada, no fim da lista"
 - **Aria-label excluir pergunta:** "Excluir pergunta {n}"
 - **Anúncio de movimento (aria-live):** "Pergunta movida para a posição {n} de {total}."
 - **Aviso de falha na reordenação automática:** "Não foi possível reordenar as perguntas. Clique em Salvar para corrigir a ordem."
@@ -984,6 +990,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 976: 19. P-NN [Editor e Tela F] link do cliente somente leitura, aprovado pelo dono.
 977: 20. P-NN [Tela F e Editor] Imprimir abre o mesmo PDF em nova aba, contador no singular (UX-12) e acessibilidade de rótulo no ShareLinkCard (UX-13), aprovada pelo dono (T-37).
 21. P-NN [Editor] Edição na própria pergunta, arrastar para reordenar, painel lateral fixo na rolagem (lg:sticky), adicionar pergunta logo abaixo da selecionada e exclusão com diálogo de confirmação AlertDialog, aprovada pelo dono (T-34 / M-32).
+22. P-NN [Editor] Enter nas opções sem reescrita a cada tecla, botão "+" em cada pergunta para inserção contextual direta, botão secundário "+ Adicionar pergunta" na barra fixa e painel lateral simplificado exclusivamente com abas "Aparência" e "Limites e Termos" (aba "Pergunta" removida), aprovada pelo dono (T-34c / M-36, M-37).
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.

@@ -355,6 +355,18 @@ Roteiro para percorrer manualmente em **computador** e em **celular** antes de l
 - [ ] **Responsividade da barra no mobile:** Em telas < 1024 px, a barra de salvar fixa permanece visível e funcional.
 - [ ] **Testes automatizados de regressão e pureza:** Suítes `question-order.test.ts` (`positionsToPersist`), `editor-dirty.test.ts` (`editorSnapshot`, `isEditorDirty`) e `routes.test.ts` (verificação estática de `minmax(0,1fr)`, ausência de `grid-cols-[1fr_360px]`, `sticky bottom-4`, textos e atalhos).
 
+### 5.14 Editor: Enter nas Opções, Adicionar Abaixo na Pergunta e Painel sem Aba Pergunta (T-34c)
+- [ ] **Enter nas opções de escolha múltipla e única:** Digitar uma opção e apertar Enter abre uma linha nova vazia sem apagar o que foi digitado; repetir 3 vezes; ao sair do campo (`onBlur`) as linhas vazias são limpas e as opções normalizadas. Pressionar Enter no meio do texto continua funcionando.
+- [ ] **Botão "+" contextual em cada pergunta:** Em cada pergunta há um botão "+" com dica "Adicionar uma pergunta logo abaixo desta" e `aria-label` "Adicionar pergunta abaixo da pergunta {n}". Clicar na pergunta 1, sem rolar até o fim, cria a nova logo abaixo dela, aberta, com o cursor no rótulo; clicar no "+" da última pergunta cria a nova no fim da lista.
+- [ ] **Adicionar pergunta na barra fixa:** Na barra fixa de salvar, clicar no botão secundário "+ Adicionar pergunta" adiciona logo abaixo da pergunta selecionada ou, sem nenhuma selecionada, no fim, sem rolar a página.
+- [ ] **Proteção contra clique duplo:** Dar dois cliques rápidos no botão "+" aciona o estado `adding` e cria apenas uma única pergunta.
+- [ ] **Painel lateral sem a aba Pergunta:** O painel lateral tem exclusivamente as abas "Aparência" e "Limites e Termos" e abre por padrão em "Aparência". Ambas as abas continuam funcionando normalmente (troca de cor, limite de vagas, encerramento, consentimento e salvamento).
+- [ ] **Edição direta no cartão preservada:** A edição dos dados da pergunta continua funcionando diretamente no cartão aberto (rótulo, ajuda, tipo, obrigatória e opções).
+- [ ] **Responsividade da barra e botões em 360 px:** Em telas estreitas (< 1024 px e celular em 360 px), a barra fixa exibe os dois botões (adicionar e salvar) em `flex-wrap` sem cortar nada, e o painel lateral fica abaixo da lista de perguntas.
+- [ ] **Inspeção visual do formulário real da SKF:** Abrir o formulário da SKF na prévia só para olhar (sem salvar, sem adicionar e sem excluir): o layout permanece contido na largura e sem a aba "Pergunta" no painel.
+- [ ] **Verificação de largura com textos longos (reteste T-34b):** Pergunta com rótulo de 200 caracteres e texto de ajuda de 200 caracteres (inclusive letras sem espaço) não cria rolagem horizontal na página.
+- [ ] **Testes automatizados estáticos:** Suíte `src/lib/routes.test.ts` valida que `QuestionEditFields.tsx` não contém `setText(options.join`, que o editor contém "Adicionar pergunta abaixo da pergunta" e "Adicionar uma pergunta logo abaixo desta", que o editor não contém `setTab("pergunta")`, `"pergunta" | "aparencia"` nem `tab === "pergunta"`, e que o editor contém o estado `adding`.
+
 ---
 
 ## 6. Roteiro do Teste Ponta a Ponta com Gravação de Tela (5 Cenários-Chave)
