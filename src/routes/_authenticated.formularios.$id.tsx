@@ -15,6 +15,7 @@ import {
   moveAnnouncement,
   positionsToPersist,
 } from "@/lib/question-order";
+import { autoScrollSpeed } from "@/lib/drag-autoscroll";
 import { editorSnapshot, isEditorDirty } from "@/lib/editor-dirty";
 import {
   QuestionEditFields,
@@ -96,6 +97,51 @@ function Editor() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: "before" | "after" } | null>(null);
   const [liveAnnouncement, setLiveAnnouncement] = useState<string>("");
+  const dragClientYRef = useRef<number | null>(null);
+
+  // Rolagem automática ao arrastar pergunta próximo às bordas da janela (T-34d)
+  useEffect(() => {
+    if (!draggedId) {
+      dragClientYRef.current = null;
+      return;
+    }
+
+    const handleDragOver = (e: DragEvent) => {
+      dragClientYRef.current = e.clientY;
+    };
+
+    const handleDragEndOrDrop = () => {
+      dragClientYRef.current = null;
+      setDraggedId(null);
+      setDropTarget(null);
+      setActiveDragId(null);
+    };
+
+    document.addEventListener("dragover", handleDragOver);
+    document.addEventListener("dragend", handleDragEndOrDrop);
+    document.addEventListener("drop", handleDragEndOrDrop);
+
+    let rafId: number;
+    const scrollLoop = () => {
+      const clientY = dragClientYRef.current;
+      if (typeof window !== "undefined" && clientY !== null) {
+        const speed = autoScrollSpeed(clientY, window.innerHeight);
+        if (speed !== 0) {
+          window.scrollBy(0, speed);
+        }
+      }
+      rafId = requestAnimationFrame(scrollLoop);
+    };
+    rafId = requestAnimationFrame(scrollLoop);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener("dragover", handleDragOver);
+      document.removeEventListener("dragend", handleDragEndOrDrop);
+      document.removeEventListener("drop", handleDragEndOrDrop);
+      dragClientYRef.current = null;
+    };
+  }, [draggedId]);
 
   // Estado de exclusão com confirmação (AlertDialog)
   const [questionToDelete, setQuestionToDelete] = useState<{ id: string; index: number } | null>(null);

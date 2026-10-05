@@ -162,6 +162,22 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     // (d) que o editor contém adding
     expect(editorContent).toContain("adding");
   });
+
+  it("editor de formulários satisfaz os requisitos de T-34d (rolagem automática ao arrastar pergunta)", () => {
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    // (a) que o editor importa autoScrollSpeed de drag-autoscroll
+    expect(editorContent).toMatch(/import\s*\{[^}]*autoScrollSpeed[^}]*\}\s*from\s*["'][^"']*drag-autoscroll["']/);
+
+    // (b) que contém requestAnimationFrame, cancelAnimationFrame e window.scrollBy
+    expect(editorContent).toContain("requestAnimationFrame");
+    expect(editorContent).toContain("cancelAnimationFrame");
+    expect(editorContent).toContain("window.scrollBy");
+
+    // (c) que o editor contém um addEventListener("dragover" em document
+    expect(editorContent).toMatch(/document\.addEventListener\(\s*["']dragover["']/);
+  });
 });
 
 
