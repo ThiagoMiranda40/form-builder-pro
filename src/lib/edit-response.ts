@@ -365,7 +365,12 @@ export async function handleUpdate(
 
       if (recipientEmail && isSafeRecipient(recipientEmail) && apiKey && from && editUrl) {
         const emailContent = buildConfirmationEmail({
-          form: { title: form.title },
+          form: {
+            title: form.title,
+            event_date: form.event_date,
+            event_time: form.event_time,
+            event_location: form.event_location,
+          },
           questions,
           answers: cleanAnswers,
           editUrl,

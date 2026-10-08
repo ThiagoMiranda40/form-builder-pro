@@ -425,7 +425,7 @@ describe("T-09: Servidor de inscrição via banco", () => {
       hp: "",
     };
 
-    it("honeypot preenchido responde sucesso sem gravar e sem chamar rpc", async () => {
+    it("honeypot preenchido retorna erro recuperável, não grava e registra HONEYPOT sem dados pessoais (T-24d, SEC-29)", async () => {
       const deps = createMockDeps();
       const res = await handleSubmission(deps, {
         ...validSubmission,
@@ -433,13 +433,67 @@ describe("T-09: Servidor de inscrição via banco", () => {
       });
 
       expect(res).toEqual({
-        ok: true,
-        message: "Inscrição confirmada!",
-        emailSent: false,
+        ok: false,
+        error: "Não foi possível enviar. Recarregue a página e tente novamente.",
       });
       expect(deps.loadFormAndQuestions).not.toHaveBeenCalled();
       expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
       expect(deps.fetchFn).not.toHaveBeenCalled();
+      expect(deps.logError).toHaveBeenCalledWith("HONEYPOT", "corrida-skf");
+    });
+
+    it("honeypot vazio ou somente com espaços segue o fluxo normal (T-24d)", async () => {
+      const deps = createMockDeps();
+      const res1 = await handleSubmission(deps, { ...validSubmission, hp: "" });
+      expect(res1.ok).toBe(true);
+
+      const deps2 = createMockDeps();
+      const res2 = await handleSubmission(deps2, { ...validSubmission, hp: "   " });
+      expect(res2.ok).toBe(true);
+    });
+
+    it("envia e-mail de confirmação contendo a linha do evento completa quando event_date está preenchido (T-24d)", async () => {
+      const deps = createMockDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: {
+            ...mockForm,
+            event_date: "2026-11-16",
+            event_time: "08:00",
+            event_location: "Parque X",
+          },
+          questions: mockQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, validSubmission);
+      expect(res.ok).toBe(true);
+      expect(deps.fetchFn).toHaveBeenCalled();
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.text).toContain("Evento: 16/11/2026 às 08:00 · Parque X");
+      expect(body.html).toContain("Evento: 16/11/2026 às 08:00 · Parque X");
+    });
+
+    it("não inclui linha de evento no e-mail quando event_date não está preenchido (T-24d)", async () => {
+      const deps = createMockDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: {
+            ...mockForm,
+            event_date: null,
+            event_time: null,
+            event_location: null,
+          },
+          questions: mockQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, validSubmission);
+      expect(res.ok).toBe(true);
+      expect(deps.fetchFn).toHaveBeenCalled();
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.text).not.toContain("Evento:");
+      expect(body.html).not.toContain("Evento:");
     });
 
     it("valida respostas e retorna erro por campo se inválido sem chamar rpc", async () => {

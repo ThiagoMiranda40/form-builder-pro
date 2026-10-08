@@ -278,6 +278,31 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(migrationContent).toContain("event_location");
     expect(migrationContent).toContain("settings");
   });
+
+  it("honeypot em $slug.tsx possui atributos anti-autofill, sem label e nome opaco (T-24d, SEC-29)", () => {
+    const slugPath = path.join(rootDir, "src/routes/$slug.tsx");
+    const content = fs.readFileSync(slugPath, "utf-8");
+
+    // O input NÃO tem name="hp"
+    expect(content).not.toMatch(/<input[^>]*name=["']hp["']/);
+    // Tem name="zq_trap_7f3" e id="zq_trap_7f3"
+    expect(content).toContain('name="zq_trap_7f3"');
+    expect(content).toContain('id="zq_trap_7f3"');
+    // Tem atributos anti-autofill
+    expect(content).toContain('autoComplete="off"');
+    expect(content).toContain('data-1p-ignore="true"');
+    expect(content).toContain('data-lpignore="true"');
+    expect(content).toContain('data-form-type="other"');
+    expect(content).toContain('autoCapitalize="off"');
+    expect(content).toContain('autoCorrect="off"');
+    expect(content).toContain("spellCheck={false}");
+    // Sem <label associado
+    expect(content).not.toContain('htmlFor="zq_trap_7f3"');
+    // Form possui noValidate
+    expect(content).toMatch(/<form[^>]*noValidate/);
+    // Payload continua enviando a chave hp
+    expect(content).toContain("data: { slug, answers, consent, hp }");
+  });
 });
 
 

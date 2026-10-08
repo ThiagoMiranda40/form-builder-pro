@@ -11,6 +11,7 @@ import {
   validateBirthdateAge,
   resolveAgeReferenceDate,
   birthdateWindow,
+  validateBirthdateInline,
 } from "./birthdate";
 
 describe("birthdate (T-24)", () => {
@@ -60,15 +61,15 @@ describe("birthdate (T-24)", () => {
       expect(validateBirthdate("2026-10-01", fixedNow)).toBeNull();
     });
 
-    it("hoje -> mensagem de hoje/futura", () => {
+    it("hoje -> mensagem válida", () => {
       expect(validateBirthdate("2026-10-02", fixedNow)).toBe(
-        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
-    it("amanhã -> mensagem de hoje/futura", () => {
+    it("amanhã -> mensagem válida", () => {
       expect(validateBirthdate("2026-10-03", fixedNow)).toBe(
-        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
@@ -78,29 +79,29 @@ describe("birthdate (T-24)", () => {
 
     it("1899-12-31 -> inválida", () => {
       expect(validateBirthdate("1899-12-31", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
     it("2026-02-30 -> inválida", () => {
       expect(validateBirthdate("2026-02-30", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
     it("abc e vazio -> inválida", () => {
       expect(validateBirthdate("abc", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
       expect(validateBirthdate("", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
     it("com now = 2026-10-03T02:00:00Z (ainda 02/10 em SP), 2026-10-02 é HOJE -> erro", () => {
       const now1 = new Date("2026-10-03T02:00:00Z");
       expect(validateBirthdate("2026-10-02", now1)).toBe(
-        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+        "Informe uma data de nascimento válida.",
       );
     });
 
@@ -202,10 +203,10 @@ describe("birthdate (T-24)", () => {
           "Este evento aceita participantes de 18 a 60 anos.",
         );
         expect(ageLimitMessage({ minAge: 18, maxAge: null })).toBe(
-          "Este evento aceita participantes a partir de 18 anos.",
+          "Este evento só aceita participantes com 18 anos ou mais.",
         );
         expect(ageLimitMessage({ minAge: null, maxAge: 60 })).toBe(
-          "Este evento aceita participantes de até 60 anos.",
+          "Este evento só aceita participantes de até 60 anos.",
         );
       });
     });
@@ -236,13 +237,69 @@ describe("birthdate (T-24)", () => {
         expect(validateBirthdateAge("2008-11-05", min18, eventDate)).toBeNull();
         // Nascido em 11/11/2008 tem 17 anos e falha
         expect(validateBirthdateAge("2008-11-11", min18, eventDate)).toBe(
-          "Este evento aceita participantes a partir de 18 anos.",
+          "Este evento só aceita participantes com 18 anos ou mais.",
         );
       });
 
       it("retorna null se sem limites ou se data dentro da faixa", () => {
         expect(validateBirthdateAge("2000-01-01", { minAge: null, maxAge: null }, ref)).toBeNull();
         expect(validateBirthdateAge("2000-01-01", limits, ref)).toBeNull();
+      });
+    });
+
+    describe("validateBirthdateInline (T-24d)", () => {
+      const fixedNow = new Date("2026-10-02T15:00:00-03:00"); // hoje em SP = 2026-10-02
+      const eventDate = "2026-11-10";
+      const min18 = { minAge: 18, maxAge: null };
+      const range = { minAge: 18, maxAge: 60 };
+
+      it("data completa fora da janela -> mensagem de idade", () => {
+        // Nascido em 11/11/2008 tem 17 anos no evento (10/11/2026) -> erro
+        expect(validateBirthdateInline("2008-11-11", min18, eventDate, fixedNow)).toBe(
+          "Este evento só aceita participantes com 18 anos ou mais.",
+        );
+        expect(validateBirthdateInline("1965-10-10", range, "2026-10-10", fixedNow)).toBe(
+          "Este evento aceita participantes de 18 a 60 anos.",
+        );
+        expect(validateBirthdateInline("1950-01-01", { minAge: null, maxAge: 50 }, "2026-10-10", fixedNow)).toBe(
+          "Este evento só aceita participantes de até 50 anos.",
+        );
+      });
+
+      it("data completa dentro da janela -> null", () => {
+        expect(validateBirthdateInline("2008-11-05", min18, eventDate, fixedNow)).toBeNull();
+        expect(validateBirthdateInline("1990-05-15", range, eventDate, fixedNow)).toBeNull();
+      });
+
+      it("incompleta ou vazia -> null (sem erro até blur)", () => {
+        expect(validateBirthdateInline("", min18, eventDate, fixedNow)).toBeNull();
+        expect(validateBirthdateInline("2008", min18, eventDate, fixedNow)).toBeNull();
+        expect(validateBirthdateInline("2008-11", min18, eventDate, fixedNow)).toBeNull();
+        expect(validateBirthdateInline("2008-11-", min18, eventDate, fixedNow)).toBeNull();
+      });
+
+      it("futura ou hoje -> 'Informe uma data de nascimento válida.'", () => {
+        expect(validateBirthdateInline("2026-10-02", min18, eventDate, fixedNow)).toBe(
+          "Informe uma data de nascimento válida.",
+        );
+        expect(validateBirthdateInline("2026-10-03", min18, eventDate, fixedNow)).toBe(
+          "Informe uma data de nascimento válida.",
+        );
+      });
+
+      it("mais de 120 anos ou anterior a 1900 -> 'Informe uma data de nascimento válida.'", () => {
+        expect(validateBirthdateInline("1899-12-31", min18, eventDate, fixedNow)).toBe(
+          "Informe uma data de nascimento válida.",
+        );
+        expect(validateBirthdateInline("1900-01-01", null, eventDate, fixedNow)).toBe(
+          "Informe uma data de nascimento válida.",
+        ); // Em 2026, nascido em 1900 tem 126 anos (> 120)
+      });
+
+      it("data impossível no calendário -> 'Informe uma data de nascimento válida.'", () => {
+        expect(validateBirthdateInline("2026-02-30", min18, eventDate, fixedNow)).toBe(
+          "Informe uma data de nascimento válida.",
+        );
       });
     });
 

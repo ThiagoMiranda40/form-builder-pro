@@ -1097,6 +1097,108 @@ describe("T-11: Edição pelo link", () => {
           expect(res.error).toBe("Nascimento: Este evento aceita participantes de 18 a 60 anos.");
         }
       });
+
+      it("envia e-mail de confirmação contendo a linha do evento completa quando event_date está preenchido (T-24d)", async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "email-1" }),
+        } as Response);
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-nome": "Maria",
+                "q-email": "maria@teste.com",
+                "q-dist": "5 km",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(1700000000000 - 700000).toISOString(),
+            },
+            form: {
+              ...baseForm,
+              event_date: "2026-11-16",
+              event_time: "08:00",
+              event_location: "Parque X",
+            },
+            questions: [
+              { id: "q-nome", label: "Nome", field_type: "short_text", required: true, options: [], position: 0 },
+              { id: "q-email", label: "E-mail", field_type: "email", required: true, options: [], position: 1 },
+              { id: "q-dist", label: "Distância", field_type: "single_choice", required: true, options: ["5 km", "10 km"], position: 2 },
+            ],
+          }),
+          fetchFn: fetchMock,
+        });
+
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-nome": "Maria Silva",
+            "q-email": "maria@teste.com",
+            "q-dist": "10 km",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(fetchMock).toHaveBeenCalled();
+        const fetchCall = fetchMock.mock.calls[0];
+        const body = JSON.parse(fetchCall?.[1]?.body as string);
+        expect(body.text).toContain("Evento: 16/11/2026 às 08:00 · Parque X");
+        expect(body.html).toContain("Evento: 16/11/2026 às 08:00 · Parque X");
+      });
+
+      it("não inclui linha de evento no e-mail de edição quando event_date não está preenchido (T-24d)", async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "email-1" }),
+        } as Response);
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-nome": "Maria",
+                "q-email": "maria@teste.com",
+                "q-dist": "5 km",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(1700000000000 - 700000).toISOString(),
+            },
+            form: {
+              ...baseForm,
+              event_date: null,
+              event_time: null,
+              event_location: null,
+            },
+            questions: [
+              { id: "q-nome", label: "Nome", field_type: "short_text", required: true, options: [], position: 0 },
+              { id: "q-email", label: "E-mail", field_type: "email", required: true, options: [], position: 1 },
+              { id: "q-dist", label: "Distância", field_type: "single_choice", required: true, options: ["5 km", "10 km"], position: 2 },
+            ],
+          }),
+          fetchFn: fetchMock,
+        });
+
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-nome": "Maria Silva",
+            "q-email": "maria@teste.com",
+            "q-dist": "10 km",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+        expect(fetchMock).toHaveBeenCalled();
+        const fetchCall = fetchMock.mock.calls[0];
+        const body = JSON.parse(fetchCall?.[1]?.body as string);
+        expect(body.text).not.toContain("Evento:");
+        expect(body.html).not.toContain("Evento:");
+      });
     });
   });
 });

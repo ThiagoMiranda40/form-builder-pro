@@ -302,12 +302,12 @@ export async function handleSubmission(
   }
   const data = parsed.data;
 
-  // 1. Honeypot (RF-09): responde sucesso sem gravar e sem chamar o rpc
+  // 1. Honeypot (RF-09, SEC-09): responde erro recuperável sem gravar e sem chamar o rpc
   if (isHoneypotFilled(data.hp)) {
+    deps.logError("HONEYPOT", data.slug);
     return {
-      ok: true,
-      message: "Inscrição confirmada!",
-      emailSent: false,
+      ok: false,
+      error: "Não foi possível enviar. Recarregue a página e tente novamente.",
     };
   }
 
@@ -414,7 +414,12 @@ export async function handleSubmission(
 
   if (recipientEmail && isSafeRecipient(recipientEmail) && apiKey && from && editUrl) {
     const emailContent = buildConfirmationEmail({
-      form: { title: form.title },
+      form: {
+        title: form.title,
+        event_date: form.event_date,
+        event_time: form.event_time,
+        event_location: form.event_location,
+      },
       questions,
       answers: cleanAnswers,
       editUrl,

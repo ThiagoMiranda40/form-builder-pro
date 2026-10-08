@@ -46,7 +46,7 @@ export async function loadResponseForEditByToken(
 
   const { data: form, error: formError } = await supabase
     .from("forms")
-    .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text")
+    .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text, event_date, event_time, event_location")
     .eq("id", response.form_id)
     .maybeSingle();
 
@@ -60,7 +60,7 @@ export async function loadResponseForEditByToken(
 
   const { data: questions, error: questionsError } = await supabase
     .from("questions")
-    .select("id, label, help_text, field_type, required, options, position")
+    .select("id, label, help_text, field_type, required, options, position, settings")
     .eq("form_id", form.id)
     .order("position", { ascending: true });
 
@@ -83,6 +83,9 @@ export async function loadResponseForEditByToken(
     },
     success_message: form.success_message,
     consent_text: (form.consent_text as string | null) ?? null,
+    event_date: (form.event_date as string | null) ?? null,
+    event_time: (form.event_time as string | null) ?? null,
+    event_location: (form.event_location as string | null) ?? null,
   };
 
   const normalizedQuestions: EditQuestion[] = (questions ?? []).map((q: any) => ({
@@ -93,6 +96,7 @@ export async function loadResponseForEditByToken(
     required: Boolean(q.required),
     options: Array.isArray(q.options) ? (q.options as string[]) : [],
     position: q.position,
+    settings: q.settings,
   }));
 
   const normalizedResponse: EditResponseRecord = {

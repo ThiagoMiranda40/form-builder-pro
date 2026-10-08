@@ -40,14 +40,14 @@ export interface QuestionSummaryEmail {
 export interface BuildConfirmationEmailParams {
   form: {
     title: string;
-    event_date?: string | null;
-    event_time?: string | null;
-    event_location?: string | null;
+    event_date?: string | null | undefined;
+    event_time?: string | null | undefined;
+    event_location?: string | null | undefined;
   };
   questions: QuestionSummaryEmail[];
   answers: Record<string, unknown>;
   editUrl: string;
-  kind?: "confirmada" | "atualizada";
+  kind?: "confirmada" | "atualizada" | undefined;
 }
 
 export interface BuiltEmail {

@@ -861,5 +861,149 @@ describe("admin-response.functions (T-23, SEC-22, SEC-23)", () => {
         }),
       );
     });
+
+    it("reenvia e-mail com linha do evento completa quando event_date está preenchido (T-24d)", async () => {
+      mockSendConfirmationEmail.mockResolvedValueOnce(true);
+
+      mockSupabaseAdmin.from.mockImplementation((table: string) => {
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: RESPONSE_ID,
+                    form_id: FORM_ID,
+                    answers: { "q-email": "maria@teste.com" },
+                    edit_token: "token123",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "forms") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: FORM_ID,
+                    owner_id: "owner-123",
+                    title: "Formulário de Corrida",
+                    event_date: "2026-11-16",
+                    event_time: "08:00",
+                    event_location: "Parque X",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "questions") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "q-email", label: "E-mail", field_type: "email", position: 0 },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const res = await (resendEditLink as any)({
+        data: { responseId: RESPONSE_ID },
+        context: { userId: "owner-123" },
+      });
+
+      expect(res.sent).toBe(true);
+      expect(mockSendConfirmationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "maria@teste.com",
+          html: expect.stringContaining("Evento: 16/11/2026 às 08:00 · Parque X"),
+          text: expect.stringContaining("Evento: 16/11/2026 às 08:00 · Parque X"),
+        }),
+      );
+    });
+
+    it("não inclui linha do evento no reenvio quando event_date não está preenchido (T-24d)", async () => {
+      mockSendConfirmationEmail.mockResolvedValueOnce(true);
+
+      mockSupabaseAdmin.from.mockImplementation((table: string) => {
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: RESPONSE_ID,
+                    form_id: FORM_ID,
+                    answers: { "q-email": "maria@teste.com" },
+                    edit_token: "token123",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "forms") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: FORM_ID,
+                    owner_id: "owner-123",
+                    title: "Formulário de Corrida",
+                    event_date: null,
+                    event_time: null,
+                    event_location: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "questions") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [
+                    { id: "q-email", label: "E-mail", field_type: "email", position: 0 },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const res = await (resendEditLink as any)({
+        data: { responseId: RESPONSE_ID },
+        context: { userId: "owner-123" },
+      });
+
+      expect(res.sent).toBe(true);
+      expect(mockSendConfirmationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "maria@teste.com",
+          html: expect.not.stringContaining("Evento:"),
+          text: expect.not.stringContaining("Evento:"),
+        }),
+      );
+    });
   });
 });

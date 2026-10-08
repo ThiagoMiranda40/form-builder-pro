@@ -4,6 +4,7 @@ import {
   validateBirthdate,
   validateBirthdateAge,
 } from "./birthdate";
+import { VALID_BRAZIL_DDDS } from "./whatsapp";
 
 export type FieldType =
   | "short_text"
@@ -64,9 +65,14 @@ export function isValidRG(value: string): boolean {
 export function isValidPhoneBR(value: string): boolean {
   const p = onlyDigits(value);
   if (p.length !== 10 && p.length !== 11) return false;
-  const ddd = Number(p.slice(0, 2));
-  if (ddd < 11 || ddd > 99) return false;
-  if (p.length === 11 && p[2] !== "9") return false;
+  const ddd = p.slice(0, 2);
+  if (!VALID_BRAZIL_DDDS.has(ddd)) return false;
+  if (p.length === 11) {
+    if (p[2] !== "9") return false;
+  } else {
+    const third = p[2];
+    if (!third || third < "2" || third > "5") return false;
+  }
   return true;
 }
 
@@ -145,7 +151,9 @@ export function validateAnswer(
     case "rg":
       return isValidRG(value) ? null : "RG inválido — use de 7 a 10 caracteres.";
     case "phone":
-      return isValidPhoneBR(value) ? null : "Telefone inválido — informe DDD + número.";
+      return isValidPhoneBR(value)
+        ? null
+        : "Telefone inválido — celular com DDD tem 11 dígitos (ex.: (11) 98765-4321) e fixo tem 10 dígitos.";
     case "email":
       return isValidEmail(value) ? null : "E-mail inválido.";
     case "number":

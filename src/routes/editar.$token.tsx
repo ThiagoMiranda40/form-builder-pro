@@ -6,7 +6,11 @@ import { getResponseForEdit, updateResponseByToken } from "@/lib/edit-response.f
 import { QuestionField } from "@/components/QuestionField";
 import { validateAnswer } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
-import { normalizeAgeLimits, resolveAgeReferenceDate } from "@/lib/birthdate";
+import {
+  normalizeAgeLimits,
+  resolveAgeReferenceDate,
+  validateBirthdateInline,
+} from "@/lib/birthdate";
 import type { EditQuestion } from "@/lib/edit-response";
 
 export const Route = createFileRoute("/editar/$token")({
@@ -257,7 +261,39 @@ function EditFormPage() {
                 referenceDate={form.event_date ?? undefined}
                 onChange={(val: string | string[]) => {
                   setAnswers((prev) => ({ ...prev, [q.id]: val }));
-                  setErrors((prev) => ({ ...prev, [q.id]: "" }));
+                  if (q.field_type === "birthdate" && typeof val === "string") {
+                    const originalVal = query.data?.answers?.[q.id];
+                    const skipAgeLimits = Boolean(originalVal !== undefined && originalVal === val);
+                    if (val.length === 10) {
+                      if (skipAgeLimits) {
+                        setErrors((prev) => ({ ...prev, [q.id]: "" }));
+                      } else {
+                        const limits = normalizeAgeLimits(q.settings);
+                        const refDate = resolveAgeReferenceDate(form.event_date, new Date());
+                        const inlineErr = validateBirthdateInline(val, limits, refDate, new Date());
+                        setErrors((prev) => ({ ...prev, [q.id]: inlineErr ?? "" }));
+                      }
+                    } else {
+                      setErrors((prev) => ({ ...prev, [q.id]: "" }));
+                    }
+                  } else {
+                    setErrors((prev) => ({ ...prev, [q.id]: "" }));
+                  }
+                }}
+                onBlur={() => {
+                  if (q.field_type === "birthdate") {
+                    const currentVal = answers[q.id];
+                    const originalVal = query.data?.answers?.[q.id];
+                    const skipAgeLimits = Boolean(originalVal !== undefined && originalVal === currentVal);
+                    const answerCtx = {
+                      ageLimits: normalizeAgeLimits(q.settings),
+                      refDate: resolveAgeReferenceDate(form.event_date, new Date()),
+                      skipAgeLimits,
+                      now: new Date(),
+                    };
+                    const err = validateAnswer(q.field_type, q.required, currentVal, answerCtx);
+                    setErrors((prev) => ({ ...prev, [q.id]: err ?? "" }));
+                  }
                 }}
               />
             );

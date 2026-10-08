@@ -27,16 +27,44 @@ describe("validators (caracterização T-01)", () => {
   describe("Telefone", () => {
     it("deve validar celular e fixo válidos", () => {
       expect(isValidPhoneBR("(11) 91234-5678")).toBe(true);
-      expect(isValidPhoneBR("(11) 1234-5678")).toBe(true);
-      expect(validateAnswer("phone", true, "(11) 91234-5678")).toBeNull();
-      expect(validateAnswer("phone", true, "(11) 1234-5678")).toBeNull();
+      expect(isValidPhoneBR("(11) 98695-5568")).toBe(true);
+      expect(isValidPhoneBR("(11) 3456-7890")).toBe(true);
+      expect(validateAnswer("phone", true, "(11) 98695-5568")).toBeNull();
+      expect(validateAnswer("phone", true, "(11) 3456-7890")).toBeNull();
     });
 
-    it("deve rejeitar celular de 11 dígitos sem o 9 inicial e DDD inválido 00", () => {
-      expect(isValidPhoneBR("(11) 81234-5678")).toBe(false);
+    it("deve rejeitar celular de 10 dígitos com dígito faltando, fixo iniciando fora de 2-5, 9 dígitos e DDD inválido", () => {
+      expect(isValidPhoneBR("(11) 9869-5568")).toBe(false); // celular com dígito faltando (10 dígitos começando com 9)
+      expect(isValidPhoneBR("(11) 9456-7890")).toBe(false); // 10 dígitos começando com 9
+      expect(isValidPhoneBR("(11) 8456-7890")).toBe(false); // 10 dígitos começando com 8
+      expect(isValidPhoneBR("(11) 1234-5678")).toBe(false); // 10 dígitos começando com 1
+      expect(isValidPhoneBR("(11) 9876-543")).toBe(false); // 9 dígitos
+      expect(isValidPhoneBR("(10) 98765-4321")).toBe(false); // DDD 10 inexistente
       expect(isValidPhoneBR("(00) 91234-5678")).toBe(false);
-      expect(validateAnswer("phone", true, "(11) 81234-5678")).not.toBeNull();
-      expect(validateAnswer("phone", true, "(00) 91234-5678")).not.toBeNull();
+      expect(isValidPhoneBR("(11) 81234-5678")).toBe(false); // 11 dígitos começando com 8
+    });
+
+    it("deve retornar mensagem literal exata de erro para telefone inválido", () => {
+      const msg = "Telefone inválido — celular com DDD tem 11 dígitos (ex.: (11) 98765-4321) e fixo tem 10 dígitos.";
+      expect(validateAnswer("phone", true, "(11) 9869-5568")).toBe(msg);
+      expect(validateAnswer("phone", true, "(11) 8456-7890")).toBe(msg);
+      expect(validateAnswer("phone", true, "123")).toBe(msg);
+    });
+
+    it("garante coerência com parseBrazilMobile: todo celular de 11 dígitos aceito pelo validador é reconhecido", async () => {
+      const { parseBrazilMobile } = await import("./whatsapp");
+      const validMobiles = [
+        "(11) 98695-5568",
+        "(21) 99876-5432",
+        "(31) 98888-7777",
+        "(85) 98765-4321",
+      ];
+      for (const phone of validMobiles) {
+        expect(isValidPhoneBR(phone)).toBe(true);
+        const parsed = parseBrazilMobile(phone);
+        expect(parsed).not.toBeNull();
+        expect(parsed?.ddd).toBe(phone.replace(/\D/g, "").slice(0, 2));
+      }
     });
   });
 
@@ -99,16 +127,16 @@ describe("validators (caracterização T-01)", () => {
       expect(validateAnswer("birthdate", false, null, fixedNow)).toBeNull();
       expect(validateAnswer("birthdate", true, "", fixedNow)).toBe("Este campo é obrigatório.");
       expect(validateAnswer("birthdate", true, "2026-10-02", fixedNow)).toBe(
-        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+        "Informe uma data de nascimento válida.",
       );
       expect(validateAnswer("birthdate", true, "2026-10-03", fixedNow)).toBe(
-        "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.",
+        "Informe uma data de nascimento válida.",
       );
       expect(validateAnswer("birthdate", true, "1899-12-31", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
       expect(validateAnswer("birthdate", true, "2026-02-30", fixedNow)).toBe(
-        "Data de nascimento inválida.",
+        "Informe uma data de nascimento válida.",
       );
     });
 

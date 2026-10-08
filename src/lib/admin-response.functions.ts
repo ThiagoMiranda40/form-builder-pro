@@ -59,7 +59,7 @@ export const adminUpdateResponse = createServerFn({ method: "POST" })
 
       const { data: form, error: formError } = await supabaseAdmin
         .from("forms")
-        .select("id, owner_id, title, status, closes_at, event_date")
+        .select("id, owner_id, title, status, closes_at, event_date, event_time, event_location")
         .eq("id", response.form_id)
         .maybeSingle();
 

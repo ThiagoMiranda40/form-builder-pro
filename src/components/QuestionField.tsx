@@ -36,6 +36,7 @@ export interface QuestionFieldProps {
   readOnlyNotice?: string | undefined;
   referenceDate?: string | undefined;
   onChange?: ((val: string | string[]) => void) | undefined;
+  onBlur?: (() => void) | undefined;
 }
 
 export function QuestionField({
@@ -47,6 +48,7 @@ export function QuestionField({
   readOnlyNotice,
   referenceDate,
   onChange,
+  onBlur,
 }: QuestionFieldProps) {
   const type = question.field_type;
   const fieldId = `field-${question.id}`;
@@ -131,6 +133,7 @@ export function QuestionField({
           rows={4}
           value={(value as string) ?? ""}
           onChange={(e) => handleChange(e.target.value)}
+          onBlur={onBlur}
           maxLength={2000}
           className={fieldClass}
           aria-invalid={Boolean(error)}
@@ -208,6 +211,7 @@ export function QuestionField({
           autoComplete="bday"
           value={(value as string) ?? ""}
           onChange={(e) => handleChange(e.target.value)}
+          onBlur={onBlur}
           maxLength={255}
           className={fieldClass}
           aria-invalid={Boolean(error)}
@@ -222,6 +226,7 @@ export function QuestionField({
           }
           value={(value as string) ?? ""}
           onChange={(e) => handleChange(e.target.value)}
+          onBlur={onBlur}
           maxLength={255}
           placeholder={placeholders[type]}
           className={fieldClass}

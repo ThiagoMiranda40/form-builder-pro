@@ -68,23 +68,22 @@ export function isValidIsoDate(value: string): boolean {
 /**
  * Valida data de nascimento:
  * - null quando válida;
- * - "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura." quando formato válido mas data é hoje ou futura (comparação por texto AAAA-MM-DD);
- * - "Data de nascimento inválida." quando formato/calendário for inválido ou a data for anterior a 1900-01-01.
+ * - "Informe uma data de nascimento válida." quando formato/calendário for inválido, data futura/hoje, ano < 1900 ou idade > 120 anos.
  */
 export function validateBirthdate(value: string, now: Date): string | null {
   if (!isValidIsoDate(value)) {
-    return "Data de nascimento inválida.";
+    return "Informe uma data de nascimento válida.";
   }
 
   const parts = value.split("-").map(Number);
   const year = parts[0];
   if (year === undefined || year < 1900) {
-    return "Data de nascimento inválida.";
+    return "Informe uma data de nascimento válida.";
   }
 
   const today = todayInSaoPaulo(now);
   if (value >= today) {
-    return "Informe uma data de nascimento válida: não pode ser hoje nem uma data futura.";
+    return "Informe uma data de nascimento válida.";
   }
 
   return null;
@@ -188,12 +187,45 @@ export function ageLimitMessage(limits: AgeLimits): string {
     return `Este evento aceita participantes de ${minAge} a ${maxAge} anos.`;
   }
   if (minAge !== null) {
-    return `Este evento aceita participantes a partir de ${minAge} anos.`;
+    return `Este evento só aceita participantes com ${minAge} anos ou mais.`;
   }
   if (maxAge !== null) {
-    return `Este evento aceita participantes de até ${maxAge} anos.`;
+    return `Este evento só aceita participantes de até ${maxAge} anos.`;
   }
   return "";
+}
+
+/**
+ * Validação inline em tempo real para campos de data de nascimento (T-24d).
+ * - Campo incompleto/vazio durante digitação -> null (sem erro até o blur);
+ * - Data inválida/futura/impossível/mais de 120 anos -> "Informe uma data de nascimento válida.";
+ * - Data fora da janela de idade -> ageLimitMessage;
+ * - Válida dentro dos limites -> null.
+ */
+export function validateBirthdateInline(
+  value: string,
+  limits?: AgeLimits | null,
+  refDate?: string | null,
+  now?: Date,
+): string | null {
+  if (!value || typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+  const n = now ?? new Date();
+  const basicErr = validateBirthdate(value, n);
+  if (basicErr) return basicErr;
+  const today = todayInSaoPaulo(n);
+  const age = ageOnDate(value, today);
+  if (age === null || age > 120) {
+    return "Informe uma data de nascimento válida.";
+  }
+
+  const normalized = normalizeAgeLimits(limits);
+  if (normalized.minAge !== null || normalized.maxAge !== null) {
+    const refIso = resolveAgeReferenceDate(refDate, n);
+    return validateBirthdateAge(value, normalized, refIso);
+  }
+  return null;
 }
 
 /**

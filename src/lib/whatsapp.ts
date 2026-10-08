@@ -1,4 +1,4 @@
-const VALID_BRAZIL_DDDS = new Set([
+export const VALID_BRAZIL_DDDS = new Set([
   // SP
   "11", "12", "13", "14", "15", "16", "17", "18", "19",
   // RJ / ES

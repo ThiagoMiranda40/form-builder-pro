@@ -20,6 +20,7 @@ import {
   dateInputAttrs,
   normalizeAgeLimits,
   resolveAgeReferenceDate,
+  validateBirthdateInline,
 } from "@/lib/birthdate";
 import {
   Tooltip,
@@ -348,6 +349,7 @@ function PublicForm() {
       setSending(true);
       const result = await send({ data: { slug, answers, consent, hp } });
       if (!result.ok) {
+        setHp("");
         const isKnownField =
           Boolean(result.field) &&
           (result.field === "__consent" || questions.some((q) => q.id === result.field));
@@ -511,16 +513,23 @@ function PublicForm() {
           </TooltipProvider>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          {/* Campo invisível armadilha anti-robô (RF-09, SEC-09, T-10) */}
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
+          {/* Campo invisível armadilha anti-robô (RF-09, SEC-09, T-10, T-24d) */}
           <input
             type="text"
-            name="hp"
+            name="zq_trap_7f3"
+            id="zq_trap_7f3"
             value={hp}
             onChange={(e) => setHp(e.target.value)}
             tabIndex={-1}
             autoComplete="off"
             aria-hidden="true"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             style={{
               position: "absolute",
               left: "-9999px",
@@ -664,12 +673,31 @@ function PublicForm() {
                       setValue(q.id, type, e.target.value);
                       if (type === "email") {
                         setEmailSuggestions((prev) => ({ ...prev, [q.id]: null }));
+                      } else if (type === "birthdate") {
+                        const val = e.target.value;
+                        if (val.length === 10) {
+                          const limits = normalizeAgeLimits((q as any).settings);
+                          const refDate = resolveAgeReferenceDate(form.event_date, new Date());
+                          const inlineErr = validateBirthdateInline(val, limits, refDate, new Date());
+                          setErrors((prev) => ({ ...prev, [q.id]: inlineErr ?? "" }));
+                        } else {
+                          setErrors((prev) => ({ ...prev, [q.id]: "" }));
+                        }
                       }
                     }}
                     onBlur={(e) => {
                       if (type === "email") {
                         const hint = suggestEmail(e.target.value);
                         setEmailSuggestions((prev) => ({ ...prev, [q.id]: hint }));
+                      } else if (type === "birthdate") {
+                        const val = e.target.value;
+                        const answerCtx = {
+                          ageLimits: normalizeAgeLimits((q as any).settings),
+                          refDate: resolveAgeReferenceDate(form.event_date, new Date()),
+                          now: new Date(),
+                        };
+                        const err = validateAnswer("birthdate", q.required, val, answerCtx);
+                        setErrors((prev) => ({ ...prev, [q.id]: err ?? "" }));
                       }
                     }}
                     maxLength={255}
