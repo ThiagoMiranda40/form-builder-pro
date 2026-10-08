@@ -519,3 +519,49 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 - Testes automatizados de carga com k6 simulando centenas de participantes simultâneos.
 - Substituição da biblioteca `xlsx 0.18.5` por exportador leve e nativo.
 - Mecanismo automatizado de recuperação de link de edição pelo próprio participante com reenvio para o e-mail cadastrado.
+
+---
+
+## 11. Plano de Testes — T-24c (Data do Evento e Limites de Idade na Data de Nascimento)
+
+### 11.1 Testes Automatizados Novos (Camada 1 e Camada 3)
+- **`birthdate.test.ts`:**
+  - `ageOnDate`: cálculo exato de anos completos no dia do aniversário, na véspera, em ano bissexto (29/02) e virada de ano;
+  - `normalizeAgeLimits`: tolerância com lixo, valores negativos, > 120, decimais, strings, objeto nulo e caso minAge > maxAge devolvendo nulos;
+  - `ageLimitMessage`: validação das três mensagens literais (faixa de min a max, a partir de min, até max);
+  - `validateBirthdateAge`: validação estrita nas bordas (exatamente minAge e maxAge passam; véspera de completar minAge falha; dia posterior a maxAge falha);
+  - Cálculo de idade com data de evento futura versus data atual;
+  - Teste de consistência de limites: garantia de que toda data dentro de `birthdateWindow` cumpre os limites etários e as datas adjacentes ficam fora;
+- **`validators.test.ts`:**
+  - `validateAnswer` com e sem contexto `ctx` (retrocompatibilidade mantida);
+  - Validação de `birthdate` com `ageLimits` e com a flag `skipAgeLimits`;
+- **`submit-response.test.ts`:**
+  - Validação e limpeza com `opts.eventDate` e perguntas com `settings`; recusa de inscrição fora da janela etária;
+- **`edit-response.test.ts`:**
+  - Validação de edição pelo link com `previousAnswers`: inscrição que NÃO altera a data de nascimento passa mesmo com limites apertados; alteração para data fora da janela é recusada;
+- **`admin-response.functions.test.ts`:**
+  - Edição de respostas pelo painel administrativo respeitando a preservação de respostas inalteradas (`skipAgeLimits`);
+- **`public-forms.functions.test.ts`:**
+  - Retorno das novas colunas `event_date, event_time, event_location` do formulário e `settings` das perguntas nas consultas públicas e de edição;
+- **`confirmation-email.test.ts`:**
+  - Inclusão da linha `Evento: ...` (com data, horário e local escapados) no e-mail quando `event_date` estiver presente, e e-mail idêntico ao original quando ausente;
+- **`editor-dirty.test.ts`:**
+  - Detecção de alterações para os novos campos `event_date`, `event_time`, `event_location` e `settings` das perguntas;
+- **`clone-form.test.ts`:**
+  - Cópia profunda de `settings` nas perguntas e campos de evento nulos no formulário duplicado;
+- **`routes.test.ts`:**
+  - Asserções estáticas garantindo textos literais no editor, presença de "Evento: " em `$slug.tsx` e colunas na migração SQL.
+
+### 11.2 Roteiro de Validação Manual (Dono na Prévia)
+*(O banco da prévia é o mesmo da produção; utilize exclusivamente formulários de teste e descarte-os ao final)*
+0. **Migração no Supabase SQL Editor:** Executar a migração uma vez e conferir as 4 colunas em `information_schema.columns` (`forms.event_date`, `forms.event_time`, `forms.event_location`, `questions.settings`).
+1. **Produção intacta:** Abrir o formulário da SKF e o painel de produção para confirmar retrocompatibilidade visual e funcional.
+2. **Edição de evento na prévia:** Em "Limites e Termos", preencher "Data do evento", "Horário (opcional)" e "Local (opcional)", verificar "Alterações não salvas", salvar, recarregar e testar "Limpar data".
+3. **Exibição pública:** Conferir que formulário com data de evento exibe `Evento: dd/mm/aaaa às HH:MM · Local`; sem data a linha não aparece.
+4. **E-mail de confirmação:** Inscrição de teste recebe e-mail com a linha `Evento: ...`; sem data do evento, e-mail permanece idêntico ao anterior.
+5. **Configuração de limites de idade:** Na pergunta de nascimento, definir mínima 18 e máxima 60; conferir restrição no calendário e mensagem "Este evento aceita participantes de 18 a 60 anos."; testar os três botões atalhos ("Só maiores de 18", "Só menores de 18", "Sem limite") e erro "A idade mínima não pode ser maior que a máxima." bloqueando salvamento.
+6. **Data de referência do evento:** Com data do evento no futuro, conferir que a idade é calculada em relação a essa data (e não à data de inscrição).
+7. **Edição pelo link e painel sem alteração de nascimento:** Com limite estreitado após a inscrição, editar outro campo e verificar que salva sem erro; alterar nascimento para fora do limite é recusado.
+8. **Formulários antigos:** Formulários sem data de evento e sem limites funcionam normalmente.
+9. **Duplicação de formulário:** Duplicar copia os limites de idade nas perguntas mas não copia data, horário e local do evento.
+10. **Responsividade mobile (360 px):** Seção "Evento" e campos de idade no editor sem rolagem horizontal.

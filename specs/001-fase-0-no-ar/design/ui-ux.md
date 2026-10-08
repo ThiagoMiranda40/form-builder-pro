@@ -208,6 +208,18 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Dica duplicar com alterações pendentes:** "Salve as alterações antes de duplicar"
 - **Toast duplicar sucesso:** "Formulário duplicado como rascunho. Revise a descrição, a data, o prazo e as vagas antes de publicar."
 - **Toast duplicar erro:** "Não foi possível duplicar o formulário."
+- **Seção Evento (aba Limites e Termos):** Título da seção "Evento"
+- **Rótulo Data do evento:** "Data do evento"
+- **Rótulo Horário:** "Horário (opcional)"
+- **Rótulo Local:** "Local (opcional)" (máximo 120 caracteres)
+- **Botão Limpar data do evento:** "Limpar data" (visível apenas quando há data do evento preenchida)
+- **Rótulo Idade mínima (Editor):** "Idade mínima"
+- **Rótulo Idade máxima (Editor):** "Idade máxima"
+- **Atalho maiores de 18 (Editor):** "Só maiores de 18" (preenche mínima 18 e máxima vazia)
+- **Atalho menores de 18 (Editor):** "Só menores de 18" (preenche mínima vazia e máxima 17)
+- **Atalho sem limites de idade (Editor):** "Sem limite" (limpa mínima e máxima)
+- **Texto de ajuda limites de idade (Editor):** "A idade é contada na data do evento, se o formulário tiver uma, ou na data da inscrição."
+- **Erro de validação limites de idade (Editor):** "A idade mínima não pode ser maior que a máxima." (bloqueia o salvamento)
 
 ---
 
@@ -415,12 +427,18 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição e do rodapé legal. |
 | **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."* e do rodapé legal. |
 | **Sucesso (sem pergunta de e-mail)** | Cartão do link de edição sem nenhuma menção a e-mail, seguido do rodapé legal. |
-| **Campo Data de nascimento** | `<input type="date">` com `autoComplete="bday"` e limites no seletor (`min="1900-01-01"` e `max` igual ao dia anterior a hoje em São Paulo via `birthdateBounds(now)`). |
+| **Campo Data de nascimento** | `<input type="date">` com `autoComplete="bday"` e limites no seletor (`min="1900-01-01"` e `max` igual ao dia anterior a hoje em São Paulo via `birthdateBounds(now)`), estreitados por `birthdateWindow` quando houver limites de idade configurados. |
+| **Linha do Evento** | Abaixo do título e perto de vagas e prazo, exibe `Evento: ${dd/mm/aaaa}` seguida de ` às ${HH:MM}` se houver horário e de ` · ${local}` se houver local. Sem `event_date`, a linha NÃO aparece (horário e local sozinhos não aparecem). O mesmo formato é replicado no e-mail de confirmação. |
 | **Erro: Data de nascimento (hoje/futura)** | Mensagem vermelha abaixo do campo: *"Informe uma data de nascimento válida: não pode ser hoje nem uma data futura."*. |
 | **Erro: Data de nascimento (inválida)** | Mensagem vermelha abaixo do campo: *"Data de nascimento inválida."* (quando formato/calendário for inválido ou a data for anterior a 1900-01-01). |
+| **Erro: Limite de idade** | Mensagens de idade fora da janela permitida: *"Este evento aceita participantes de ${min} a ${max} anos."*, *"Este evento aceita participantes a partir de ${min} anos."* ou *"Este evento aceita participantes de até ${max} anos."*. |
 | **Vagas Esgotadas / Encerrado** | Telas estáticas em `Frame`: *"Vagas esgotadas"* ou *"Inscrições encerradas"*, com rodapé legal abaixo do cartão. |
 
 ### 3.4 Textos Exatos da Interface
+- **Linha do evento pública e e-mail:** "Evento: " (seguido de dd/mm/aaaa, opcionalmente " às " + HH:MM e " · " + local)
+- **Mensagem limite de idade (min e max):** "Este evento aceita participantes de " + min + " a " + max + " anos."
+- **Mensagem limite de idade (só min):** "Este evento aceita participantes a partir de " + min + " anos."
+- **Mensagem limite de idade (só max):** "Este evento aceita participantes de até " + max + " anos."
 - **Botão de envio:** "Enviar inscrição"
 - **Rótulo confirmação de e-mail:** "Confirme seu e-mail"
 - **Erro divergência de e-mail:** "Os e-mails não são iguais."
@@ -1025,6 +1043,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 22. P-NN [Editor] Enter nas opções sem reescrita a cada tecla, botão "+" em cada pergunta para inserção contextual direta, botão secundário "+ Adicionar pergunta" na barra fixa e painel lateral simplificado exclusivamente com abas "Aparência" e "Limites e Termos" (aba "Pergunta" removida), aprovada pelo dono (T-34c / M-36, M-37).
 23. P-NN [Painel] Exclusão de formulário com diálogo próprio AlertDialog, aviso de formulário publicado, contagem de respostas a apagar e checkbox de confirmação obrigatório quando houver respostas (T-42 / M-39), aprovada pelo dono.
 24. P-NN [Respostas / Card de Detalhes] Botão WhatsApp ao lado do celular no card de detalhes do administrador com saudação pré-preenchida e restrito a celulares brasileiros (T-43 / M-40), aprovada pelo dono.
+25. P-NN [Editor, Formulário Público e E-mail] Seção Evento na aba "Limites e Termos" (Data do evento, Horário (opcional), Local (opcional) e Limpar data), limites de idade na Data de nascimento (Idade mínima, Idade máxima, atalhos "Só maiores de 18", "Só menores de 18", "Sem limite" e aviso de bloqueio "A idade mínima não pode ser maior que a máxima."), linha "Evento: ..." no formulário público e no e-mail de confirmação, e validação no servidor (T-24c / M-33, M-30), aprovada pelo dono.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.

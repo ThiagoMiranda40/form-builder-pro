@@ -181,3 +181,13 @@ Copie e cole estas perguntas diretamente no prompt do seu assistente de IA duran
    > *"Antes de chamar a API do Resend, a função `isSafeRecipient` confere se o endereço de e-mail contém vírgulas, ponto-e-vírgula ou caracteres de controle?"*
    - ✅ **Resposta segura:** "Sim, a função isSafeRecipient rejeita e-mails com caracteres como vírgula, ponto-e-vírgula, colchetes angulares ou aspas antes de enviar."
    - 🚩 **Alerta:** "O endereço é passado diretamente para o Resend apenas com a validação padrão de e-mail."
+
+---
+
+## 7. Nota Informativa de Segurança — T-24c (Data do Evento e Limites de Idade)
+
+- **Dados Públicos e Ausência de Dados Pessoais:** As colunas `event_date`, `event_time`, `event_location` na tabela `forms` e `settings` na tabela `questions` constituem metadados de configuração pública do formulário e não armazenam dados pessoais de participantes.
+- **Migração Aditiva e RLS Existente:** A migração adiciona apenas colunas com valores anuláveis ou padrão (`DEFAULT '{}'::jsonb`), sendo 100% aditiva e retrocompatível. As políticas de segurança em nível de linha (RLS) existentes já cobrem as novas colunas sem necessidade de novas políticas ou privilégios adicionais.
+- **Validação de Negócio no Servidor:** A regra de idade é executada e conferida no servidor em todos os três caminhos de gravação (inscrição pública via `submit-response`, edição pelo link via `edit-response` e edição administrativa pelo painel via `admin-response.functions`).
+- **Preservação de Inscrições Existentes:** Na edição de inscrições já gravadas, o limite etário só é exigido caso a data de nascimento seja efetivamente alterada em relação ao valor anteriormente gravado (`previousAnswers`), prevenindo invalidação indevida de cadastros prévios por alterações em outros campos.
+
