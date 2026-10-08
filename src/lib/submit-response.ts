@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { validateAnswer } from "./validators";
+import { normalizeAgeLimits, resolveAgeReferenceDate } from "./birthdate";
 import {
   findEmailQuestion,
   findIdentifierQuestion,
@@ -89,6 +90,9 @@ export interface SubmissionForm {
   max_responses: number | null;
   success_message: string;
   consent_text: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  event_location?: string | null;
 }
 
 export interface SubmissionQuestion {
@@ -98,6 +102,7 @@ export interface SubmissionQuestion {
   required: boolean;
   options: string[];
   position: number;
+  settings?: unknown;
 }
 
 export interface SubmissionDeps {
@@ -148,9 +153,16 @@ export function createTimedFetch(
  * - Valida contra options cadastradas para single_choice e multi_choice (SEC-11);
  * - Ignora opções não-texto e compara strings aparadas.
  */
+export interface ValidateAnswersOptions {
+  eventDate?: string | null | undefined;
+  now?: Date | undefined;
+  previousAnswers?: Record<string, unknown> | undefined;
+}
+
 export function validateAndCleanAnswers(
   questions: SubmissionQuestion[],
   answers: Record<string, unknown>,
+  opts?: ValidateAnswersOptions,
 ):
   | { ok: true; cleanAnswers: Record<string, unknown> }
   | { ok: false; error: string; field: string } {
@@ -198,7 +210,27 @@ export function validateAndCleanAnswers(
       (typeof trimmed === "string" && trimmed === "") ||
       (Array.isArray(trimmed) && trimmed.length === 0);
 
-    const error = validateAnswer(q.field_type, q.required, trimmed);
+    let answerCtx:
+      | {
+          now?: Date;
+          ageLimits?: { minAge: number | null; maxAge: number | null };
+          refDate?: string;
+          skipAgeLimits?: boolean;
+        }
+      | undefined;
+
+    if (q.field_type === "birthdate") {
+      const now = opts?.now ?? new Date();
+      const ageLimits = normalizeAgeLimits(q.settings);
+      const refDate = resolveAgeReferenceDate(opts?.eventDate, now);
+      const prevVal = opts?.previousAnswers?.[q.id];
+      const skipAgeLimits = Boolean(
+        opts?.previousAnswers && (prevVal === trimmed || prevVal === raw),
+      );
+      answerCtx = { now, ageLimits, refDate, skipAgeLimits };
+    }
+
+    const error = validateAnswer(q.field_type, q.required, trimmed, answerCtx ?? opts?.now);
     if (error) {
       return {
         ok: false,
@@ -302,7 +334,9 @@ export async function handleSubmission(
   }
 
   // 3. Valida e limpa cada resposta com validateAndCleanAnswers (SEC-11, SEC-12, QA-GAP-05, Reuso)
-  const validationResult = validateAndCleanAnswers(questions, data.answers);
+  const validationResult = validateAndCleanAnswers(questions, data.answers, {
+    eventDate: form.event_date,
+  });
   if (!validationResult.ok) {
     return {
       ok: false,

@@ -6,6 +6,7 @@ import { getResponseForEdit, updateResponseByToken } from "@/lib/edit-response.f
 import { QuestionField } from "@/components/QuestionField";
 import { validateAnswer } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
+import { normalizeAgeLimits, resolveAgeReferenceDate } from "@/lib/birthdate";
 import type { EditQuestion } from "@/lib/edit-response";
 
 export const Route = createFileRoute("/editar/$token")({
@@ -138,7 +139,19 @@ function EditFormPage() {
     const newErrors: Record<string, string> = {};
     for (const q of questions) {
       if (q.field_type === "cpf") continue; // CPF é somente leitura
-      const err = validateAnswer(q.field_type, q.required, answers[q.id]);
+      const prevVal = query.data?.answers?.[q.id];
+      const currentVal = answers[q.id];
+      const skipAgeLimits = Boolean(prevVal !== undefined && prevVal === currentVal);
+      const answerCtx =
+        q.field_type === "birthdate"
+          ? {
+              ageLimits: normalizeAgeLimits((q as any).settings),
+              refDate: resolveAgeReferenceDate(form.event_date, new Date()),
+              skipAgeLimits,
+              now: new Date(),
+            }
+          : undefined;
+      const err = validateAnswer(q.field_type, q.required, answers[q.id], answerCtx);
       if (err) {
         newErrors[q.id] = err;
       }
@@ -241,6 +254,7 @@ function EditFormPage() {
                 accent={accent}
                 readOnly={isCpf}
                 readOnlyNotice={isCpf ? "O CPF não pode ser alterado." : undefined}
+                referenceDate={form.event_date ?? undefined}
                 onChange={(val: string | string[]) => {
                   setAnswers((prev) => ({ ...prev, [q.id]: val }));
                   setErrors((prev) => ({ ...prev, [q.id]: "" }));

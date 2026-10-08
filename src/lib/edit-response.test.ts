@@ -992,6 +992,111 @@ describe("T-11: Edição pelo link", () => {
         const rpcPayload = rpcMock.mock.calls[0]![0];
         expect(rpcPayload.answers["q-cpf"]).toBe("529.982.247-25");
       });
+
+      it("T-24c: edição que NÃO altera data de nascimento passa mesmo com data fora da nova janela", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-nasc": "2008-10-15", // 17 anos no evento
+                "q-nome": "Nome Antigo",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: {
+              ...baseForm,
+              event_date: "2026-10-10",
+            },
+            questions: [
+              {
+                id: "q-nasc",
+                label: "Nascimento",
+                field_type: "birthdate",
+                required: true,
+                options: [],
+                position: 1,
+                settings: { minAge: 18, maxAge: 60 },
+              },
+              {
+                id: "q-nome",
+                label: "Nome",
+                field_type: "short_text",
+                required: true,
+                options: [],
+                position: 2,
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        // Altera apenas o nome, mantém a data de nascimento
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-nasc": "2008-10-15",
+            "q-nome": "Nome Novo",
+          },
+        });
+
+        expect(res.ok).toBe(true);
+      });
+
+      it("T-24c: edição que ALTERA data de nascimento para fora da janela é recusada", async () => {
+        const rpcMock = vi.fn().mockResolvedValue({
+          data: { status: "ok", success_message: "Alterações salvas!", response_id: "resp-1" },
+          error: null,
+        });
+
+        const deps = createMockDeps({
+          loadByToken: async () => ({
+            response: {
+              id: "resp-1",
+              answers: {
+                "q-nasc": "2000-01-01",
+              },
+              identifier: "52998224725",
+              updated_at: new Date(Date.now() - 700000).toISOString(),
+            },
+            form: {
+              ...baseForm,
+              event_date: "2026-10-10",
+            },
+            questions: [
+              {
+                id: "q-nasc",
+                label: "Nascimento",
+                field_type: "birthdate",
+                required: true,
+                options: [],
+                position: 1,
+                settings: { minAge: 18, maxAge: 60 },
+              },
+            ],
+          }),
+          rpcUpdateResponse: rpcMock,
+        });
+
+        // Altera data de nascimento para fora da janela
+        const res = await handleUpdate(deps, {
+          token: VALID_TOKEN,
+          answers: {
+            "q-nasc": "2008-10-15",
+          },
+        });
+
+        expect(res.ok).toBe(false);
+        if (!res.ok) {
+          expect(res.error).toBe("Nascimento: Este evento aceita participantes de 18 a 60 anos.");
+        }
+      });
     });
   });
 });

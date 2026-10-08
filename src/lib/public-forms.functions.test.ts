@@ -209,6 +209,81 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
       expect((res.form as any)?.share_token).toBeUndefined();
       expect((res.form as any)?.edit_window_hours).toBeUndefined();
     });
+
+    it("T-24c: getPublicForm inclui event_date, event_time, event_location e settings das perguntas", async () => {
+      let formCols = "";
+      let questionCols = "";
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockImplementation((cols: string) => {
+            formCols = cols;
+            return {
+              eq: vi.fn().mockReturnValueOnce({
+                maybeSingle: vi.fn().mockResolvedValueOnce({
+                  data: {
+                    id: "f-1",
+                    title: "Form",
+                    description: "Desc",
+                    status: "published",
+                    closes_at: null,
+                    max_responses: null,
+                    success_message: "Sucesso",
+                    consent_text: null,
+                    theme: {},
+                    event_date: "2026-10-10",
+                    event_time: "07:30",
+                    event_location: "Parque",
+                  },
+                  error: null,
+                }),
+              }),
+            };
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({
+              count: 0,
+              error: null,
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockImplementation((cols: string) => {
+            questionCols = cols;
+            return {
+              eq: vi.fn().mockReturnValueOnce({
+                order: vi.fn().mockResolvedValueOnce({
+                  data: [
+                    {
+                      id: "q-1",
+                      label: "Nasc",
+                      help_text: "",
+                      field_type: "birthdate",
+                      required: true,
+                      options: [],
+                      position: 0,
+                      settings: { minAge: 18, maxAge: null },
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            };
+          }),
+        });
+
+      const res = await getPublicForm({ data: { slug: "corrida-2026" } });
+      expect(formCols).toContain("event_date");
+      expect(formCols).toContain("event_time");
+      expect(formCols).toContain("event_location");
+      expect(questionCols).toContain("settings");
+
+      expect(res.form?.event_date).toBe("2026-10-10");
+      expect(res.form?.event_time).toBe("07:30");
+      expect(res.form?.event_location).toBe("Parque");
+      expect(res.questions?.[0]?.settings).toEqual({ minAge: 18, maxAge: null });
+    });
   });
 
   describe("loadPublicFormAndQuestions - tratamento de erros na submissão (SEC-19)", () => {

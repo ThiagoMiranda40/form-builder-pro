@@ -15,7 +15,12 @@ import { buildFormMeta } from "@/lib/site-meta";
 import { normalizeDescription } from "@/lib/description";
 import { Calendar, Users } from "lucide-react";
 import { buildAvailability } from "@/lib/availability";
-import { dateInputAttrs } from "@/lib/birthdate";
+import {
+  birthdateWindow,
+  dateInputAttrs,
+  normalizeAgeLimits,
+  resolveAgeReferenceDate,
+} from "@/lib/birthdate";
 import {
   Tooltip,
   TooltipContent,
@@ -23,6 +28,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PUBLIC_FORM_HINTS } from "@/lib/dashboard-hints";
+
+function formatEventLine(
+  eventDate?: string | null,
+  eventTime?: string | null,
+  eventLocation?: string | null,
+): string | null {
+  if (!eventDate) return null;
+  const parts = eventDate.split("-");
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts;
+  let text = `Evento: ${d}/${m}/${y}`;
+  if (eventTime && eventTime.trim()) {
+    text += ` às ${eventTime.trim()}`;
+  }
+  if (eventLocation && eventLocation.trim()) {
+    text += ` · ${eventLocation.trim()}`;
+  }
+  return text;
+}
 
 
 export const Route = createFileRoute("/$slug")({
@@ -279,7 +303,20 @@ function PublicForm() {
     try {
       const nextErrors: Record<string, string> = {};
       for (const q of questions) {
-        const message = validateAnswer(q.field_type as FieldType, q.required, answers[q.id]);
+        const answerCtx =
+          q.field_type === "birthdate"
+            ? {
+                ageLimits: normalizeAgeLimits((q as any).settings),
+                refDate: resolveAgeReferenceDate(form.event_date, new Date()),
+                now: new Date(),
+              }
+            : undefined;
+        const message = validateAnswer(
+          q.field_type as FieldType,
+          q.required,
+          answers[q.id],
+          answerCtx,
+        );
         if (message) nextErrors[q.id] = message;
 
         if (q.field_type === "email") {
@@ -364,6 +401,11 @@ function PublicForm() {
         <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
           {form.title}
         </h1>
+        {form.event_date && (
+          <p className="mt-2 text-sm font-medium text-slate-700">
+            {formatEventLine(form.event_date, form.event_time, form.event_location)}
+          </p>
+        )}
         {description && (
           <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
             {description}
@@ -497,7 +539,23 @@ function PublicForm() {
             const errorId = `error-${q.id}`;
             const labelId = `label-${q.id}`;
             const isChoice = type === "single_choice" || type === "multi_choice";
-            const dateAttrs = dateInputAttrs(type, new Date());
+            const bdayWindow =
+              type === "birthdate"
+                ? birthdateWindow(
+                    normalizeAgeLimits((q as any).settings),
+                    resolveAgeReferenceDate(form.event_date, new Date()),
+                    new Date(),
+                  )
+                : null;
+            const dateAttrs =
+              type === "birthdate"
+                ? {
+                    type: "date",
+                    min: bdayWindow?.min,
+                    max: bdayWindow?.max,
+                    autoComplete: "bday",
+                  }
+                : dateInputAttrs(type, new Date());
 
             return (
 

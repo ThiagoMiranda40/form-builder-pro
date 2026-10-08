@@ -243,6 +243,41 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     // (d) que whatsapp.ts contém "https://wa.me/"
     expect(whatsappContent).toContain("https://wa.me/");
   });
+
+  it("editor, formulário público e migração satisfazem os requisitos de T-24c (data do evento e limites de idade)", () => {
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const questionFieldsPath = path.join(rootDir, "src/components/QuestionEditFields.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+    const questionFieldsContent = fs.readFileSync(questionFieldsPath, "utf-8");
+    const fullEditorText = editorContent + "\n" + questionFieldsContent;
+
+    // Confirme que o editor contém "Data do evento", "Horário (opcional)", "Local (opcional)", "Limpar data", "Só maiores de 18", "Só menores de 18", "Sem limite" e "A idade mínima não pode ser maior que a máxima."
+    expect(fullEditorText).toContain("Data do evento");
+    expect(fullEditorText).toContain("Horário (opcional)");
+    expect(fullEditorText).toContain("Local (opcional)");
+    expect(fullEditorText).toContain("Limpar data");
+    expect(fullEditorText).toContain("Só maiores de 18");
+    expect(fullEditorText).toContain("Só menores de 18");
+    expect(fullEditorText).toContain("Sem limite");
+    expect(fullEditorText).toContain("A idade mínima não pode ser maior que a máxima.");
+
+    // Que $slug.tsx contém "Evento: "
+    const slugPath = path.join(rootDir, "src/routes/$slug.tsx");
+    const slugContent = fs.readFileSync(slugPath, "utf-8");
+    expect(slugContent).toContain("Evento: ");
+
+    // Que a migração contém event_date, event_time, event_location e settings
+    const migrationPath = path.join(
+      rootDir,
+      "supabase/migrations/20261007120000_data_do_evento_e_limites_de_idade.sql"
+    );
+    expect(fs.existsSync(migrationPath)).toBe(true);
+    const migrationContent = fs.readFileSync(migrationPath, "utf-8");
+    expect(migrationContent).toContain("event_date");
+    expect(migrationContent).toContain("event_time");
+    expect(migrationContent).toContain("event_location");
+    expect(migrationContent).toContain("settings");
+  });
 });
 
 

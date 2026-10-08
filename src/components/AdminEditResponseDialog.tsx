@@ -27,6 +27,7 @@ export interface AdminEditResponseDialogProps {
     required?: boolean;
     options?: string[];
     help_text?: string | null;
+    settings?: unknown;
   }[];
   onSuccess: () => void;
 }
@@ -253,6 +254,7 @@ export function AdminEditResponseDialog({
                       field_type: q.field_type ?? "text",
                       required: Boolean(q.required),
                       options: q.options ?? [],
+                      settings: q.settings,
                     }}
                     value={answers[q.id]}
                     error={fieldErrors[q.id]}

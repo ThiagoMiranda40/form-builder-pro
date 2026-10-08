@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { answersSchema, createTimedFetch, getOrigin, validateAndCleanAnswers } from "./submit-response";
 import { findEmailQuestion, findIdentifierQuestion, hideDocument } from "./inscricao";
 import { applyMask } from "./validators";
@@ -54,6 +55,9 @@ export interface EditForm {
   };
   success_message?: string;
   consent_text?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  event_location?: string | null;
 }
 
 export interface EditQuestion {
@@ -64,6 +68,7 @@ export interface EditQuestion {
   required: boolean;
   options: string[];
   position: number;
+  settings?: Json;
 }
 
 export interface EditResponseRecord {
@@ -283,7 +288,10 @@ export async function handleUpdate(
       isCpfQuestion(q) ? { ...q, required: false } : q,
     );
 
-    const validationResult = validateAndCleanAnswers(questionsForValidation, finalAnswers);
+    const validationResult = validateAndCleanAnswers(questionsForValidation, finalAnswers, {
+      eventDate: form.event_date ?? null,
+      previousAnswers: (response.answers as Record<string, unknown>) ?? undefined,
+    });
     if (!validationResult.ok) {
       return {
         ok: false,

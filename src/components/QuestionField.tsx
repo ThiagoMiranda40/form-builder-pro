@@ -1,6 +1,10 @@
 import React from "react";
 import { applyMask } from "@/lib/validators";
-import { birthdateBounds } from "@/lib/birthdate";
+import {
+  birthdateWindow,
+  normalizeAgeLimits,
+  resolveAgeReferenceDate,
+} from "@/lib/birthdate";
 
 export const fieldClass =
   "w-full rounded-lg bg-white/80 px-3 py-2.5 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none";
@@ -20,6 +24,7 @@ export interface QuestionData {
   required: boolean;
   options?: string[];
   position?: number;
+  settings?: unknown;
 }
 
 export interface QuestionFieldProps {
@@ -29,6 +34,7 @@ export interface QuestionFieldProps {
   accent?: string | undefined;
   readOnly?: boolean | undefined;
   readOnlyNotice?: string | undefined;
+  referenceDate?: string | undefined;
   onChange?: ((val: string | string[]) => void) | undefined;
 }
 
@@ -39,6 +45,7 @@ export function QuestionField({
   accent = "#4f46e5",
   readOnly = false,
   readOnlyNotice,
+  referenceDate,
   onChange,
 }: QuestionFieldProps) {
   const type = question.field_type;
@@ -184,8 +191,20 @@ export function QuestionField({
         <input
           id={fieldId}
           type="date"
-          min={birthdateBounds(new Date()).min}
-          max={birthdateBounds(new Date()).max}
+          min={
+            birthdateWindow(
+              normalizeAgeLimits(question.settings),
+              referenceDate ?? resolveAgeReferenceDate(null, new Date()),
+              new Date(),
+            ).min
+          }
+          max={
+            birthdateWindow(
+              normalizeAgeLimits(question.settings),
+              referenceDate ?? resolveAgeReferenceDate(null, new Date()),
+              new Date(),
+            ).max
+          }
           autoComplete="bday"
           value={(value as string) ?? ""}
           onChange={(e) => handleChange(e.target.value)}

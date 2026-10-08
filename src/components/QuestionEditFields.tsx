@@ -77,6 +77,7 @@ export interface EditableQuestion {
   required: boolean;
   options: string[];
   position?: number;
+  settings?: Record<string, unknown> | null;
 }
 
 export interface QuestionEditFieldsProps {
@@ -116,6 +117,23 @@ export function QuestionEditFields({
   const helpTextId = `${idPrefix}question-help-text-${question.id}`;
   const fieldTypeId = `${idPrefix}question-field-type-${question.id}`;
   const requiredId = `${idPrefix}question-required-${question.id}`;
+  const minAgeId = `${idPrefix}question-min-age-${question.id}`;
+  const maxAgeId = `${idPrefix}question-max-age-${question.id}`;
+
+  const currentSettings =
+    question.settings && typeof question.settings === "object" ? question.settings : {};
+  const rawMinAge = currentSettings["minAge"];
+  const rawMaxAge = currentSettings["maxAge"];
+  const minAgeVal =
+    rawMinAge !== null && rawMinAge !== undefined && rawMinAge !== ""
+      ? Number(rawMinAge)
+      : null;
+  const maxAgeVal =
+    rawMaxAge !== null && rawMaxAge !== undefined && rawMaxAge !== ""
+      ? Number(rawMaxAge)
+      : null;
+  const isInvalidAgeOrder =
+    minAgeVal !== null && maxAgeVal !== null && minAgeVal > maxAgeVal;
 
   return (
     <div className="space-y-4">
@@ -145,7 +163,13 @@ export function QuestionEditFields({
         <select
           id={fieldTypeId}
           value={question.field_type}
-          onChange={(e) => onChange({ field_type: e.target.value as FieldType })}
+          onChange={(e) => {
+            const nextType = e.target.value as FieldType;
+            onChange({
+              field_type: nextType,
+              settings: {},
+            });
+          }}
           className={inputClass}
         >
           {FIELD_TYPES.map((t) => (
@@ -166,6 +190,112 @@ export function QuestionEditFields({
         />
         Resposta obrigatória
       </label>
+
+      {question.field_type === "birthdate" && (
+        <div className="space-y-3 rounded-xl bg-slate-50/80 p-3 ring-1 ring-black/5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Idade mínima" htmlFor={minAgeId}>
+              <input
+                id={minAgeId}
+                type="number"
+                min={0}
+                max={120}
+                value={minAgeVal ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? null : Math.max(0, Math.min(120, Number(e.target.value)));
+                  onChange({
+                    settings: {
+                      ...currentSettings,
+                      minAge: val,
+                    },
+                  });
+                }}
+                placeholder="Sem limite"
+                className={inputClass}
+              />
+            </Field>
+
+            <Field label="Idade máxima" htmlFor={maxAgeId}>
+              <input
+                id={maxAgeId}
+                type="number"
+                min={0}
+                max={120}
+                value={maxAgeVal ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? null : Math.max(0, Math.min(120, Number(e.target.value)));
+                  onChange({
+                    settings: {
+                      ...currentSettings,
+                      maxAge: val,
+                    },
+                  });
+                }}
+                placeholder="Sem limite"
+                className={inputClass}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  settings: {
+                    ...currentSettings,
+                    minAge: 18,
+                    maxAge: null,
+                  },
+                })
+              }
+              className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/10 hover:bg-slate-100 cursor-pointer"
+            >
+              Só maiores de 18
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  settings: {
+                    ...currentSettings,
+                    minAge: null,
+                    maxAge: 17,
+                  },
+                })
+              }
+              className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/10 hover:bg-slate-100 cursor-pointer"
+            >
+              Só menores de 18
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  settings: {
+                    ...currentSettings,
+                    minAge: null,
+                    maxAge: null,
+                  },
+                })
+              }
+              className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-black/10 hover:bg-slate-100 cursor-pointer"
+            >
+              Sem limite
+            </button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            A idade é contada na data do evento, se o formulário tiver uma, ou na data da inscrição.
+          </p>
+
+          {isInvalidAgeOrder && (
+            <p className="text-xs font-medium text-destructive">
+              A idade mínima não pode ser maior que a máxima.
+            </p>
+          )}
+        </div>
+      )}
 
       {(question.field_type === "single_choice" || question.field_type === "multi_choice") && (
         <QuestionOptionsField

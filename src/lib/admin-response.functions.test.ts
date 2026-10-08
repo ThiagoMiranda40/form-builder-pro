@@ -449,6 +449,176 @@ describe("admin-response.functions (T-23, SEC-22, SEC-23)", () => {
       expect(allLogs).not.toContain("529.982.247-25");
       expect(allLogs).not.toContain("secreto@teste.com");
     });
+
+    it("T-24c: adminUpdateResponse passa quando data de nascimento não foi alterada mesmo fora da janela", async () => {
+      mockSupabaseAdmin.from.mockImplementation((table: string) => {
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: RESPONSE_ID,
+                    form_id: FORM_ID,
+                    answers: { "q-nasc": "2008-10-15", "q-nome": "Fulano" },
+                    identifier: "52998224725",
+                    updated_at: "2026-10-01T10:00:00Z",
+                    edit_token: "token123",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "forms") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: FORM_ID,
+                    owner_id: "owner-123",
+                    title: "Formulário",
+                    status: "published",
+                    closes_at: null,
+                    event_date: "2026-10-10",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "questions") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: "q-nasc",
+                      label: "Nascimento",
+                      field_type: "birthdate",
+                      required: true,
+                      options: [],
+                      position: 0,
+                      settings: { minAge: 18, maxAge: 60 },
+                    },
+                    {
+                      id: "q-nome",
+                      label: "Nome",
+                      field_type: "short_text",
+                      required: true,
+                      options: [],
+                      position: 1,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const res = await (adminUpdateResponse as any)({
+        data: {
+          responseId: RESPONSE_ID,
+          answers: { "q-nasc": "2008-10-15", "q-nome": "Fulano Editado" },
+        },
+        context: { userId: "owner-123" },
+      });
+
+      expect(res.ok).toBe(true);
+    });
+
+    it("T-24c: adminUpdateResponse recusa quando data de nascimento foi alterada para fora da janela", async () => {
+      mockSupabaseAdmin.from.mockImplementation((table: string) => {
+        if (table === "responses") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: RESPONSE_ID,
+                    form_id: FORM_ID,
+                    answers: { "q-nasc": "2000-01-01", "q-nome": "Fulano" },
+                    identifier: "52998224725",
+                    updated_at: "2026-10-01T10:00:00Z",
+                    edit_token: "token123",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "forms") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: FORM_ID,
+                    owner_id: "owner-123",
+                    title: "Formulário",
+                    status: "published",
+                    closes_at: null,
+                    event_date: "2026-10-10",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "questions") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: "q-nasc",
+                      label: "Nascimento",
+                      field_type: "birthdate",
+                      required: true,
+                      options: [],
+                      position: 0,
+                      settings: { minAge: 18, maxAge: 60 },
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const res = await (adminUpdateResponse as any)({
+        data: {
+          responseId: RESPONSE_ID,
+          answers: { "q-nasc": "2008-10-15" },
+        },
+        context: { userId: "owner-123" },
+      });
+
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe("Nascimento: Este evento aceita participantes de 18 a 60 anos.");
+      }
+    });
   });
 
   describe("resendEditLink", () => {

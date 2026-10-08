@@ -21,6 +21,7 @@ export type PublicQuestion = {
   required: boolean;
   options: string[];
   position: number;
+  settings?: Json;
 };
 
 export type PublicFormPayload = {
@@ -35,6 +36,9 @@ export type PublicFormPayload = {
     success_message: string;
     consent_text: string | null;
     responses_count: number;
+    event_date?: string | null;
+    event_time?: string | null;
+    event_location?: string | null;
   };
   questions?: PublicQuestion[];
 };
@@ -57,12 +61,15 @@ export async function loadPublicFormAndQuestions(
     max_responses: number | null;
     success_message: string;
     consent_text: string | null;
+    event_date?: string | null;
+    event_time?: string | null;
+    event_location?: string | null;
   } | null;
   questions: PublicQuestion[];
 }> {
   const { data: form, error: formError } = await supabase
     .from("forms")
-    .select("id, title, status, closes_at, max_responses, success_message, consent_text")
+    .select("id, title, status, closes_at, max_responses, success_message, consent_text, event_date, event_time, event_location")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -74,7 +81,7 @@ export async function loadPublicFormAndQuestions(
 
   const { data: questions, error: questionsError } = await supabase
     .from("questions")
-    .select("id, label, help_text, field_type, required, options, position")
+    .select("id, label, help_text, field_type, required, options, position, settings")
     .eq("form_id", form.id)
     .order("position", { ascending: true });
 
@@ -91,6 +98,9 @@ export async function loadPublicFormAndQuestions(
       max_responses: form.max_responses,
       success_message: form.success_message,
       consent_text: (form.consent_text as string | null) ?? null,
+      event_date: (form.event_date as string | null) ?? null,
+      event_time: (form.event_time as string | null) ?? null,
+      event_location: (form.event_location as string | null) ?? null,
     },
     questions: (questions ?? []).map((q: any) => ({
       id: q.id,
@@ -100,6 +110,7 @@ export async function loadPublicFormAndQuestions(
       required: Boolean(q.required),
       options: Array.isArray(q.options) ? (q.options as string[]) : [],
       position: q.position,
+      settings: q.settings,
     })),
   };
 }
@@ -111,7 +122,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
 
     const { data: form, error: formError } = await supabaseAdmin
       .from("forms")
-      .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text")
+      .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text, event_date, event_time, event_location")
       .eq("slug", data.slug)
       .maybeSingle();
 
@@ -138,7 +149,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
 
     const { data: questions, error: questionsError } = await supabaseAdmin
       .from("questions")
-      .select("id,label,help_text,field_type,required,options,position")
+      .select("id,label,help_text,field_type,required,options,position,settings")
       .eq("form_id", form.id)
       .order("position", { ascending: true });
 
@@ -164,10 +175,14 @@ export const getPublicForm = createServerFn({ method: "GET" })
         success_message: form.success_message,
         consent_text: (form.consent_text as string | null) ?? null,
         responses_count: responsesCount,
+        event_date: (form.event_date as string | null) ?? null,
+        event_time: (form.event_time as string | null) ?? null,
+        event_location: (form.event_location as string | null) ?? null,
       },
-      questions: (questions ?? []).map((q) => ({
+      questions: (questions ?? []).map((q: any) => ({
         ...q,
         options: Array.isArray(q.options) ? (q.options as string[]) : [],
+        settings: q.settings,
       })),
     };
   });

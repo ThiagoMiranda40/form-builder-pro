@@ -839,4 +839,117 @@ describe("T-09: Servidor de inscrição via banco", () => {
       expect(opts?.signal).toBeInstanceOf(AbortSignal);
     });
   });
+
+  describe("T-24c: validateAndCleanAnswers com limites de idade", () => {
+    const fixedNow = new Date("2026-10-08T15:00:00-03:00");
+    const birthQuestion: SubmissionQuestion = {
+      id: "q_nasc",
+      label: "Data de nascimento",
+      field_type: "birthdate",
+      required: true,
+      options: [],
+      position: 1,
+      settings: { minAge: 18, maxAge: 60 },
+    };
+
+    it("recusa com mensagem exata quando fora da janela (menor de 18 anos)", () => {
+      // Evento em 2026-10-10. Nascido em 2008-10-11 tem 17 anos no evento.
+      const res = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-11" },
+        { eventDate: "2026-10-10", now: fixedNow },
+      );
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe(
+          "Data de nascimento: Este evento aceita participantes de 18 a 60 anos.",
+        );
+        expect(res.field).toBe("q_nasc");
+      }
+    });
+
+    it("aceita dentro da janela", () => {
+      // Nascido em 2008-10-10 tem 18 anos no evento em 2026-10-10.
+      const res = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-10" },
+        { eventDate: "2026-10-10", now: fixedNow },
+      );
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.cleanAnswers["q_nasc"]).toBe("2008-10-10");
+      }
+    });
+
+    it("edição que NÃO altera a data de nascimento passa mesmo fora da janela quando previousAnswers tem o mesmo valor", () => {
+      const res = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-11" },
+        {
+          eventDate: "2026-10-10",
+          now: fixedNow,
+          previousAnswers: { q_nasc: "2008-10-11" },
+        },
+      );
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.cleanAnswers["q_nasc"]).toBe("2008-10-11");
+      }
+    });
+
+    it("edição que ALTERA para fora da janela é recusada", () => {
+      const res = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-11" },
+        {
+          eventDate: "2026-10-10",
+          now: fixedNow,
+          previousAnswers: { q_nasc: "2000-01-01" }, // valor anterior era diferente
+        },
+      );
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe(
+          "Data de nascimento: Este evento aceita participantes de 18 a 60 anos.",
+        );
+      }
+    });
+
+    it("formulário sem event_date conta na data de inscrição (todayInSaoPaulo)", () => {
+      // fixedNow é 2026-10-08 em SP. Nascido em 2008-10-09 tem 17 anos hoje -> recusa
+      const res1 = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-09" },
+        { now: fixedNow },
+      );
+      expect(res1.ok).toBe(false);
+
+      // Nascido em 2008-10-08 tem 18 anos hoje -> aceita
+      const res2 = validateAndCleanAnswers(
+        [birthQuestion],
+        { q_nasc: "2008-10-08" },
+        { now: fixedNow },
+      );
+      expect(res2.ok).toBe(true);
+    });
+
+    it("pergunta sem settings (formulários antigos) não muda em nada", () => {
+      const oldQuestion: SubmissionQuestion = {
+        id: "q_old",
+        label: "Data de nascimento",
+        field_type: "birthdate",
+        required: true,
+        options: [],
+        position: 1,
+      };
+      // Sem settings, qualquer idade válida passa
+      const res = validateAndCleanAnswers(
+        [oldQuestion],
+        { q_old: "2015-05-05" },
+        { eventDate: "2026-10-10", now: fixedNow },
+      );
+      expect(res.ok).toBe(true);
+    });
+  });
 });
+

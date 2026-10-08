@@ -13,6 +13,9 @@ export interface FormSnapshotInput {
   consent_text?: string | null;
   success_message?: string | null;
   status?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  event_location?: string | null;
   [key: string]: unknown;
 }
 
@@ -24,6 +27,7 @@ export interface QuestionSnapshotInput {
   required?: boolean | null;
   options?: unknown;
   position?: number | null;
+  settings?: unknown;
   [key: string]: unknown;
 }
 
@@ -48,8 +52,8 @@ function stableSort(value: unknown): unknown {
 
 /**
  * Devolve uma string JSON estável contendo SÓ o que o save() grava:
- * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status
- * - de cada pergunta, na ordem da lista: id, label, help_text, field_type, required, options, position
+ * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location
+ * - de cada pergunta, na ordem da lista: id, label, help_text, field_type, required, options, position, settings
  */
 export function editorSnapshot(
   form: FormSnapshotInput | null | undefined,
@@ -68,6 +72,9 @@ export function editorSnapshot(
       consent_text: form.consent_text ?? null,
       success_message: form.success_message ?? null,
       status: form.status ?? "",
+      event_date: form.event_date ?? null,
+      event_time: form.event_time ?? null,
+      event_location: form.event_location ?? null,
     },
     questions: (questions ?? []).map((q) => ({
       id: q.id,
@@ -77,6 +84,7 @@ export function editorSnapshot(
       required: Boolean(q.required),
       options: Array.isArray(q.options) ? q.options : [],
       position: q.position ?? 0,
+      settings: q.settings ?? {},
     })),
   };
 

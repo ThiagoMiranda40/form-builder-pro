@@ -5,8 +5,13 @@ import {
   isValidIsoDate,
   validateBirthdate,
   dateInputAttrs,
+  ageOnDate,
+  normalizeAgeLimits,
+  ageLimitMessage,
+  validateBirthdateAge,
+  resolveAgeReferenceDate,
+  birthdateWindow,
 } from "./birthdate";
-
 
 describe("birthdate (T-24)", () => {
   describe("isValidIsoDate", () => {
@@ -120,7 +125,6 @@ describe("birthdate (T-24)", () => {
     });
 
     it("retorna atributos completos para birthdate nos dois horários de teste", () => {
-      // 2026-10-03T02:00:00Z -> hoje em SP é 2026-10-02, max = 2026-10-01
       const now1 = new Date("2026-10-03T02:00:00Z");
       expect(dateInputAttrs("birthdate", now1)).toEqual({
         type: "date",
@@ -129,7 +133,6 @@ describe("birthdate (T-24)", () => {
         autoComplete: "bday",
       });
 
-      // 2026-10-03T03:30:00Z -> hoje em SP é 2026-10-03, max = 2026-10-02
       const now2 = new Date("2026-10-03T03:30:00Z");
       expect(dateInputAttrs("birthdate", now2)).toEqual({
         type: "date",
@@ -139,5 +142,192 @@ describe("birthdate (T-24)", () => {
       });
     });
   });
+
+  describe("limites de idade na data de nascimento (T-24c)", () => {
+    describe("ageOnDate", () => {
+      it("calcula no dia do aniversário, na véspera e no dia seguinte", () => {
+        expect(ageOnDate("2000-05-10", "2018-05-10")).toBe(18); // dia do aniversário
+        expect(ageOnDate("2000-05-10", "2018-05-09")).toBe(17); // véspera
+        expect(ageOnDate("2000-05-10", "2018-05-11")).toBe(18); // dia seguinte
+      });
+
+      it("trata 29/02 em anos bissextos e não bissextos", () => {
+        expect(ageOnDate("2004-02-29", "2005-02-28")).toBe(0);
+        expect(ageOnDate("2004-02-29", "2005-03-01")).toBe(1);
+        expect(ageOnDate("2004-02-29", "2008-02-28")).toBe(3);
+        expect(ageOnDate("2004-02-29", "2008-02-29")).toBe(4);
+      });
+
+      it("trata virada de ano", () => {
+        expect(ageOnDate("2000-12-31", "2001-01-01")).toBe(0);
+        expect(ageOnDate("2000-12-31", "2001-12-30")).toBe(0);
+        expect(ageOnDate("2000-12-31", "2001-12-31")).toBe(1);
+      });
+
+      it("devolve null para datas inválidas", () => {
+        expect(ageOnDate("abc", "2026-10-10")).toBeNull();
+        expect(ageOnDate("2026-10-10", "2026-02-30")).toBeNull();
+        expect(ageOnDate("2026-10-10", "abc")).toBeNull();
+      });
+    });
+
+    describe("normalizeAgeLimits", () => {
+      it("aceita inteiros de 0 a 120 e devolve valores limpos", () => {
+        expect(normalizeAgeLimits({ minAge: 18, maxAge: 60 })).toEqual({ minAge: 18, maxAge: 60 });
+        expect(normalizeAgeLimits({ minAge: 0, maxAge: 120 })).toEqual({ minAge: 0, maxAge: 120 });
+        expect(normalizeAgeLimits({ minAge: 18 })).toEqual({ minAge: 18, maxAge: null });
+        expect(normalizeAgeLimits({ maxAge: 60 })).toEqual({ minAge: null, maxAge: 60 });
+        expect(normalizeAgeLimits({})).toEqual({ minAge: null, maxAge: null });
+      });
+
+      it("rejeita lixo, negativos, 121, decimais, texto e objeto nulo", () => {
+        expect(normalizeAgeLimits(null)).toEqual({ minAge: null, maxAge: null });
+        expect(normalizeAgeLimits(undefined)).toEqual({ minAge: null, maxAge: null });
+        expect(normalizeAgeLimits("lixo")).toEqual({ minAge: null, maxAge: null });
+        expect(normalizeAgeLimits([18, 60])).toEqual({ minAge: null, maxAge: null });
+        expect(normalizeAgeLimits({ minAge: -1, maxAge: 50 })).toEqual({ minAge: null, maxAge: 50 });
+        expect(normalizeAgeLimits({ minAge: 18, maxAge: 121 })).toEqual({ minAge: 18, maxAge: null });
+        expect(normalizeAgeLimits({ minAge: 18.5, maxAge: 60 })).toEqual({ minAge: null, maxAge: 60 });
+        expect(normalizeAgeLimits({ minAge: "18", maxAge: "60" })).toEqual({ minAge: null, maxAge: null });
+      });
+
+      it("devolve os dois nulos quando minAge > maxAge", () => {
+        expect(normalizeAgeLimits({ minAge: 30, maxAge: 20 })).toEqual({ minAge: null, maxAge: null });
+      });
+    });
+
+    describe("ageLimitMessage", () => {
+      it("retorna as três mensagens literais exatas", () => {
+        expect(ageLimitMessage({ minAge: 18, maxAge: 60 })).toBe(
+          "Este evento aceita participantes de 18 a 60 anos.",
+        );
+        expect(ageLimitMessage({ minAge: 18, maxAge: null })).toBe(
+          "Este evento aceita participantes a partir de 18 anos.",
+        );
+        expect(ageLimitMessage({ minAge: null, maxAge: 60 })).toBe(
+          "Este evento aceita participantes de até 60 anos.",
+        );
+      });
+    });
+
+    describe("validateBirthdateAge", () => {
+      const ref = "2026-10-10";
+      const limits = { minAge: 18, maxAge: 60 };
+
+      it("passa exatamente em minAge e maxAge", () => {
+        expect(validateBirthdateAge("2008-10-10", limits, ref)).toBeNull(); // exatamente 18
+        expect(validateBirthdateAge("1966-10-10", limits, ref)).toBeNull(); // exatamente 60
+        expect(validateBirthdateAge("1965-10-11", limits, ref)).toBeNull(); // véspera de 61 (tem 60 anos)
+      });
+
+      it("falha um dia antes de completar minAge e um dia depois de passar de maxAge", () => {
+        expect(validateBirthdateAge("2008-10-11", limits, ref)).toBe(
+          "Este evento aceita participantes de 18 a 60 anos.",
+        );
+        expect(validateBirthdateAge("1965-10-10", limits, ref)).toBe(
+          "Este evento aceita participantes de 18 a 60 anos.",
+        );
+      });
+
+      it("data do evento no futuro contra hoje (exemplo da especificação)", () => {
+        const eventDate = "2026-11-10";
+        const min18 = { minAge: 18, maxAge: null };
+        // Nascido em 05/11/2008 com evento em 10/11/2026 tem 18 anos e passa em minAge 18
+        expect(validateBirthdateAge("2008-11-05", min18, eventDate)).toBeNull();
+        // Nascido em 11/11/2008 tem 17 anos e falha
+        expect(validateBirthdateAge("2008-11-11", min18, eventDate)).toBe(
+          "Este evento aceita participantes a partir de 18 anos.",
+        );
+      });
+
+      it("retorna null se sem limites ou se data dentro da faixa", () => {
+        expect(validateBirthdateAge("2000-01-01", { minAge: null, maxAge: null }, ref)).toBeNull();
+        expect(validateBirthdateAge("2000-01-01", limits, ref)).toBeNull();
+      });
+    });
+
+    describe("resolveAgeReferenceDate", () => {
+      const fixedNow = new Date("2026-10-02T15:00:00-03:00");
+
+      it("devolve eventDate quando for data ISO válida", () => {
+        expect(resolveAgeReferenceDate("2026-11-10", fixedNow)).toBe("2026-11-10");
+      });
+
+      it("devolve todayInSaoPaulo quando eventDate for nulo, indefinido ou inválido", () => {
+        expect(resolveAgeReferenceDate(null, fixedNow)).toBe("2026-10-02");
+        expect(resolveAgeReferenceDate(undefined, fixedNow)).toBe("2026-10-02");
+        expect(resolveAgeReferenceDate("data-invalida", fixedNow)).toBe("2026-10-02");
+      });
+    });
+
+    describe("birthdateWindow e TESTE DE CONSISTÊNCIA", () => {
+      const fixedNow = new Date("2026-10-02T15:00:00-03:00"); // hoje em SP = 2026-10-02, ontem = 2026-10-01
+
+      it("sem limites devolve a janela padrão", () => {
+        expect(birthdateWindow({ minAge: null, maxAge: null }, "2026-10-10", fixedNow)).toEqual({
+          min: "1900-01-01",
+          max: "2026-10-01",
+        });
+      });
+
+      it("TESTE DE CONSISTÊNCIA: em múltiplas datas de referência e limites, bordas cumprem a idade e adjacentes ficam fora", () => {
+        const testRefDates = ["2026-10-10", "2028-02-29", "2024-02-29", "2026-01-01", "2026-12-31"];
+        const addOneDay = (iso: string) => {
+          const [y, m, d] = iso.split("-").map(Number);
+          const dt = new Date(Date.UTC(y!, m! - 1, d! + 1));
+          return dt.toISOString().slice(0, 10);
+        };
+        const subOneDay = (iso: string) => {
+          const [y, m, d] = iso.split("-").map(Number);
+          const dt = new Date(Date.UTC(y!, m! - 1, d! - 1));
+          return dt.toISOString().slice(0, 10);
+        };
+
+        for (const ref of testRefDates) {
+          const limitsList = [
+            { minAge: 18, maxAge: 60 },
+            { minAge: 18, maxAge: null },
+            { minAge: null, maxAge: 60 },
+            { minAge: 16, maxAge: 25 },
+            { minAge: 0, maxAge: 100 },
+          ];
+
+          for (const lim of limitsList) {
+            const w = birthdateWindow(lim, ref, fixedNow);
+
+            const baseBounds = birthdateBounds(fixedNow);
+            if (lim.minAge !== null) {
+              const ageMax = ageOnDate(w.max, ref);
+              expect(ageMax).toBeGreaterThanOrEqual(lim.minAge);
+              const dayAfterMax = addOneDay(w.max);
+              if (w.max < baseBounds.max) {
+                const ageAfterMax = ageOnDate(dayAfterMax, ref);
+                if (ageAfterMax !== null) {
+                  expect(ageAfterMax).toBeLessThan(lim.minAge);
+                }
+              } else {
+                expect(dayAfterMax > baseBounds.max).toBe(true);
+              }
+            }
+
+            if (lim.maxAge !== null) {
+              const ageMin = ageOnDate(w.min, ref);
+              expect(ageMin).toBeLessThanOrEqual(lim.maxAge);
+              const dayBeforeMin = subOneDay(w.min);
+              if (w.min > "1900-01-01") {
+                const ageBeforeMin = ageOnDate(dayBeforeMin, ref);
+                if (ageBeforeMin !== null) {
+                  expect(ageBeforeMin).toBeGreaterThan(lim.maxAge);
+                }
+              } else {
+                expect(dayBeforeMin < "1900-01-01").toBe(true);
+              }
+            }
+          }
+        }
+      });
+    });
+  });
 });
+
 

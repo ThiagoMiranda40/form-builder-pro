@@ -58,11 +58,14 @@ describe("buildCloneFormPayload (T-41)", () => {
       closes_at: "2026-12-31T23:59:59Z",
       share_token: "token-secreto-compartilhado",
       edit_window_hours: 24,
+      event_date: "2026-11-10",
+      event_time: "08:00",
+      event_location: "Parque Ibirapuera",
     };
 
     const payload = buildCloneFormPayload(source, "owner-abc", "xyz123");
 
-    // Somente as chaves permitidas
+    // Somente as chaves permitidas (T-41 e T-24c)
     const allowedKeys = [
       "owner_id",
       "title",
@@ -76,6 +79,9 @@ describe("buildCloneFormPayload (T-41)", () => {
       "closes_at",
       "share_token",
       "edit_window_hours",
+      "event_date",
+      "event_time",
+      "event_location",
     ].sort();
 
     expect(Object.keys(payload).sort()).toEqual(allowedKeys);
@@ -91,6 +97,10 @@ describe("buildCloneFormPayload (T-41)", () => {
     expect(payload.closes_at).toBeNull();
     expect(payload.share_token).toBeNull();
     expect(payload.edit_window_hours).toBeNull();
+    // T-24c: não copia data do evento, horário nem local
+    expect(payload.event_date).toBeNull();
+    expect(payload.event_time).toBeNull();
+    expect(payload.event_location).toBeNull();
 
     // Theme é cópia profunda (não a mesma referência)
     expect(payload.theme).toEqual(originalTheme);
@@ -103,9 +113,10 @@ describe("buildCloneFormPayload (T-41)", () => {
   });
 });
 
-describe("buildCloneQuestions (T-41)", () => {
-  it("ordena por position mesmo com entrada embaralhada, gera posições sequenciais 0..n-1 e copia opções por valor", () => {
+describe("buildCloneQuestions (T-41, T-24c)", () => {
+  it("ordena por position mesmo com entrada embaralhada, gera posições sequenciais 0..n-1 e copia opções e settings por valor", () => {
     const originalOptions = ["Opção 1", "Opção 2", "Opção 3"];
+    const originalSettings = { minAge: 18, maxAge: 60 };
     const input = [
       {
         id: "q3",
@@ -117,6 +128,7 @@ describe("buildCloneQuestions (T-41)", () => {
         required: false,
         options: [],
         position: 10,
+        settings: {},
       },
       {
         id: "q1",
@@ -124,10 +136,11 @@ describe("buildCloneQuestions (T-41)", () => {
         created_at: "2026-01-01",
         label: "Pergunta 1",
         help_text: "Ajuda 1",
-        field_type: "multi_choice" as const,
+        field_type: "birthdate" as const,
         required: true,
         options: originalOptions,
         position: 2,
+        settings: originalSettings,
       },
       {
         id: "q2",
@@ -156,10 +169,13 @@ describe("buildCloneQuestions (T-41)", () => {
     expect(cloned[0]!.form_id).toBe("new-form-id");
     expect(cloned[0]!.options).toEqual(originalOptions);
     expect(cloned[0]!.options).not.toBe(originalOptions); // cópia profunda
+    expect(cloned[0]!.settings).toEqual(originalSettings);
+    expect(cloned[0]!.settings).not.toBe(originalSettings); // cópia profunda de settings (T-24c)
 
     expect(cloned[1]!.label).toBe("Pergunta 2");
     expect(cloned[1]!.position).toBe(1);
     expect(cloned[1]!.form_id).toBe("new-form-id");
+    expect(cloned[1]!.settings).toEqual({});
 
     expect(cloned[2]!.label).toBe("Pergunta 3");
     expect(cloned[2]!.position).toBe(2);

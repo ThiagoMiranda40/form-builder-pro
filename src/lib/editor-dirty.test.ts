@@ -152,4 +152,33 @@ describe("editor-dirty (T-34b / M-32 / M-35)", () => {
     expect(snap1).toBe(snap2);
     expect(isEditorDirty(snap1, snap2)).toBe(false);
   });
+
+  describe("T-24c: novos campos de evento e limites de idade sujam o editor", () => {
+    it("mudar event_date suja", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = { ...baseForm, event_date: "2026-11-10" };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mudar event_time suja", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = { ...baseForm, event_time: "07:30" };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mudar event_location suja", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = { ...baseForm, event_location: "Parque Ibirapuera" };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mudar settings de limites de idade na pergunta suja", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modifiedQuestions = [
+        { ...baseQuestions[0]!, settings: { minAge: 18, maxAge: 60 } },
+        baseQuestions[1]!,
+      ];
+      expect(isEditorDirty(editorSnapshot(baseForm, modifiedQuestions), saved)).toBe(true);
+    });
+  });
 });

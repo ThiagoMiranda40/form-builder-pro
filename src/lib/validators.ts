@@ -1,4 +1,9 @@
-import { isValidIsoDate, validateBirthdate } from "./birthdate";
+import {
+  isValidIsoDate,
+  resolveAgeReferenceDate,
+  validateBirthdate,
+  validateBirthdateAge,
+} from "./birthdate";
 
 export type FieldType =
   | "short_text"
@@ -96,13 +101,23 @@ export function applyMask(type: string, value: string) {
   return value;
 }
 
+export interface ValidateAnswerContext {
+  now?: Date;
+  ageLimits?: { minAge: number | null; maxAge: number | null };
+  refDate?: string;
+  skipAgeLimits?: boolean;
+}
+
 /** Returns an error message in pt-BR, or null when the answer is acceptable. */
 export function validateAnswer(
   type: string,
   required: boolean,
   raw: unknown,
-  now: Date = new Date(),
+  ctx?: Date | ValidateAnswerContext,
 ): string | null {
+  const context: ValidateAnswerContext = ctx instanceof Date ? { now: ctx } : (ctx ?? {});
+  const now = context.now ?? new Date();
+
   const isEmpty =
     raw === undefined ||
     raw === null ||
@@ -114,8 +129,15 @@ export function validateAnswer(
   const value = Array.isArray(raw) ? raw.join(", ") : String(raw);
 
   switch (type) {
-    case "birthdate":
-      return validateBirthdate(value, now);
+    case "birthdate": {
+      const basicError = validateBirthdate(value, now);
+      if (basicError) return basicError;
+      if (context.ageLimits && !context.skipAgeLimits) {
+        const ref = context.refDate ?? resolveAgeReferenceDate(null, now);
+        return validateBirthdateAge(value, context.ageLimits, ref);
+      }
+      return null;
+    }
     case "date":
       return isValidIsoDate(value) ? null : "Data inválida.";
     case "cpf":

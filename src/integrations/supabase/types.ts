@@ -21,6 +21,9 @@ export type Database = {
           created_at: string
           description: string
           edit_window_hours: number | null
+          event_date: string | null
+          event_time: string | null
+          event_location: string | null
           id: string
           max_responses: number | null
           owner_id: string
@@ -38,6 +41,9 @@ export type Database = {
           created_at?: string
           description?: string
           edit_window_hours?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_location?: string | null
           id?: string
           max_responses?: number | null
           owner_id: string
@@ -55,6 +61,9 @@ export type Database = {
           created_at?: string
           description?: string
           edit_window_hours?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_location?: string | null
           id?: string
           max_responses?: number | null
           owner_id?: string
@@ -100,6 +109,7 @@ export type Database = {
           options: Json
           position: number
           required: boolean
+          settings: Json
         }
         Insert: {
           created_at?: string
@@ -111,6 +121,7 @@ export type Database = {
           options?: Json
           position?: number
           required?: boolean
+          settings?: Json
         }
         Update: {
           created_at?: string
@@ -122,6 +133,7 @@ export type Database = {
           options?: Json
           position?: number
           required?: boolean
+          settings?: Json
         }
         Relationships: [
           {

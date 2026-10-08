@@ -61,6 +61,9 @@ export function buildCloneFormPayload(
     closes_at: null,
     share_token: null,
     edit_window_hours: null,
+    event_date: null,
+    event_time: null,
+    event_location: null,
   };
 }
 
@@ -90,6 +93,10 @@ export function buildCloneQuestions(
         ? JSON.parse(JSON.stringify(q.options))
         : null,
     position: index,
+    settings:
+      q.settings !== undefined && q.settings !== null
+        ? JSON.parse(JSON.stringify(q.settings))
+        : {},
   }));
 }
 

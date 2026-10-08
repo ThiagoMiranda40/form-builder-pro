@@ -59,7 +59,7 @@ export const adminUpdateResponse = createServerFn({ method: "POST" })
 
       const { data: form, error: formError } = await supabaseAdmin
         .from("forms")
-        .select("id, owner_id, title, status, closes_at")
+        .select("id, owner_id, title, status, closes_at, event_date")
         .eq("id", response.form_id)
         .maybeSingle();
 
@@ -76,7 +76,7 @@ export const adminUpdateResponse = createServerFn({ method: "POST" })
       // 2. Carrega perguntas
       const { data: questions, error: questionsError } = await supabaseAdmin
         .from("questions")
-        .select("id, label, field_type, required, options, position")
+        .select("id, label, field_type, required, options, position, settings")
         .eq("form_id", form.id)
         .order("position", { ascending: true });
 
@@ -146,9 +146,13 @@ export const adminUpdateResponse = createServerFn({ method: "POST" })
         required: Boolean(q.required),
         options: Array.isArray(q.options) ? (q.options as string[]) : [],
         position: q.position,
+        settings: (q as any).settings,
       }));
 
-      const validationResult = validateAndCleanAnswers(normalizedQuestions, inputAnswers);
+      const validationResult = validateAndCleanAnswers(normalizedQuestions, inputAnswers, {
+        eventDate: (form as any).event_date,
+        previousAnswers: (response.answers as Record<string, unknown>) ?? undefined,
+      });
       if (!validationResult.ok) {
         return {
           ok: false,
@@ -236,7 +240,7 @@ export const resendEditLink = createServerFn({ method: "POST" })
 
       const { data: form, error: formError } = await supabaseAdmin
         .from("forms")
-        .select("id, owner_id, title")
+        .select("id, owner_id, title, event_date, event_time, event_location")
         .eq("id", response.form_id)
         .maybeSingle();
 
@@ -278,7 +282,12 @@ export const resendEditLink = createServerFn({ method: "POST" })
 
       const editUrl = `${ALLOWED_ORIGINS[0]}/editar/${response.edit_token}`;
       const emailContent = buildConfirmationEmail({
-        form: { title: form.title },
+        form: {
+          title: form.title,
+          event_date: form.event_date,
+          event_time: form.event_time,
+          event_location: form.event_location,
+        },
         questions: questions.map((q) => ({
           id: q.id,
           label: q.label,

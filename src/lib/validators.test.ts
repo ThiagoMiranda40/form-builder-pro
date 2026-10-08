@@ -111,6 +111,39 @@ describe("validators (caracterização T-01)", () => {
         "Data de nascimento inválida.",
       );
     });
+
+    it("birthdate respeita context com ageLimits e skipAgeLimits", () => {
+      // sem contexto = comportamento atual
+      expect(validateAnswer("birthdate", true, "2000-01-01")).toBeNull();
+
+      // com limites (18 a 60 anos em refDate 2026-10-10)
+      const limits = { minAge: 18, maxAge: 60 };
+      const ctx = { ageLimits: limits, refDate: "2026-10-10", now: fixedNow };
+
+      // Nascido em 2008-10-10 completa 18 anos em 2026-10-10 -> válido
+      expect(validateAnswer("birthdate", true, "2008-10-10", ctx)).toBeNull();
+
+      // Nascido em 2008-10-11 tem 17 anos -> inválido
+      expect(validateAnswer("birthdate", true, "2008-10-11", ctx)).toBe(
+        "Este evento aceita participantes de 18 a 60 anos.",
+      );
+
+      // Nascido em 1966-10-11 tem 59 anos -> válido
+      expect(validateAnswer("birthdate", true, "1966-10-11", ctx)).toBeNull();
+
+      // Nascido em 1965-10-09 tem 61 anos -> inválido
+      expect(validateAnswer("birthdate", true, "1965-10-09", ctx)).toBe(
+        "Este evento aceita participantes de 18 a 60 anos.",
+      );
+
+      // Com skipAgeLimits: true -> passa mesmo com idade fora do limite
+      expect(
+        validateAnswer("birthdate", true, "2008-10-11", {
+          ...ctx,
+          skipAgeLimits: true,
+        }),
+      ).toBeNull();
+    });
   });
 });
 

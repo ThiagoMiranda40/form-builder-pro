@@ -38,7 +38,12 @@ export interface QuestionSummaryEmail {
 }
 
 export interface BuildConfirmationEmailParams {
-  form: { title: string };
+  form: {
+    title: string;
+    event_date?: string | null;
+    event_time?: string | null;
+    event_location?: string | null;
+  };
   questions: QuestionSummaryEmail[];
   answers: Record<string, unknown>;
   editUrl: string;
@@ -64,6 +69,21 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
   const cleanTitle = (params.form.title || "Formulário").replace(/[\r\n]+/g, " ").trim();
   const subjectPrefix = isUpdate ? "Inscrição atualizada" : "Inscrição confirmada";
   const subject = `${subjectPrefix} — ${cleanTitle}`;
+
+  let eventLine: string | null = null;
+  if (params.form.event_date) {
+    const parts = params.form.event_date.split("-");
+    const formattedDate =
+      parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : params.form.event_date;
+    let line = `Evento: ${formattedDate}`;
+    if (params.form.event_time && params.form.event_time.trim()) {
+      line += ` às ${params.form.event_time.trim()}`;
+    }
+    if (params.form.event_location && params.form.event_location.trim()) {
+      line += ` · ${params.form.event_location.trim()}`;
+    }
+    eventLine = line;
+  }
 
   const introText = isUpdate
     ? "Suas respostas foram atualizadas."
@@ -113,6 +133,9 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
     .join("\n");
 
   const safeEditUrl = escapeHtml(params.editUrl);
+  const eventLineHtml = eventLine
+    ? `\n    <p style="font-size: 14px; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #374151;">${escapeHtml(eventLine)}</p>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -123,7 +146,7 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #111827;">
   <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 24px;">
-    <h1 style="font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 12px; color: #111827;">${escapeHtml(cleanTitle)}</h1>
+    <h1 style="font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 12px; color: #111827;">${escapeHtml(cleanTitle)}</h1>${eventLineHtml}
     <p style="font-size: 15px; margin-top: 0; margin-bottom: 20px; color: #4b5563;">${escapeHtml(introText)}</p>
     
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
@@ -147,7 +170,9 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
     .map((item) => `- ${item.label}: ${item.valueFormatted}`)
     .join("\n");
 
-  const text = `${cleanTitle}
+  const eventLineText = eventLine ? `\n${eventLine}` : "";
+
+  const text = `${cleanTitle}${eventLineText}
 ${introText}
 
 Resumo dos dados enviados:

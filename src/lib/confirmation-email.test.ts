@@ -134,6 +134,42 @@ describe("confirmation-email (T-08)", () => {
       expect(email.html).not.toContain("2026-10-02");
       expect(email.text).not.toContain("2026-10-02");
     });
+
+    it("T-24c: inclui linha Evento: ... quando event_date está preenchido e escapa dados no HTML", () => {
+      const email = buildConfirmationEmail({
+        form: {
+          title: "Corrida Noturna",
+          event_date: "2026-11-10",
+          event_time: "06:30",
+          event_location: "Shopping <Teste> & Cia",
+        },
+        questions: [{ id: "q1", label: "Nome", field_type: "short_text", position: 1 }],
+        answers: { q1: "Atleta" },
+        editUrl: "https://triade.app.br/editar/token123",
+      });
+
+      // Texto puro
+      expect(email.text).toContain("Evento: 10/11/2026 às 06:30 · Shopping <Teste> & Cia");
+
+      // HTML escapado
+      expect(email.html).toContain("Evento: 10/11/2026 às 06:30 · Shopping &lt;Teste&gt; &amp; Cia");
+    });
+
+    it("T-24c: sem event_date o e-mail fica IDÊNTICO ao anterior sem linha de evento", () => {
+      const email = buildConfirmationEmail({
+        form: {
+          title: "Corrida Noturna",
+          event_time: "06:30",
+          event_location: "Shopping Teste",
+        },
+        questions: [{ id: "q1", label: "Nome", field_type: "short_text", position: 1 }],
+        answers: { q1: "Atleta" },
+        editUrl: "https://triade.app.br/editar/token123",
+      });
+
+      expect(email.text).not.toContain("Evento:");
+      expect(email.html).not.toContain("Evento:");
+    });
   });
 
 

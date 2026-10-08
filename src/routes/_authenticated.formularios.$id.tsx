@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { cloneForm } from "@/lib/clone-form";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
@@ -60,6 +61,7 @@ type Question = {
   required: boolean;
   options: string[];
   position: number;
+  settings?: Record<string, unknown> | null;
 };
 
 type Theme = { color: string; font: string; logo_url: string | null };
@@ -75,6 +77,9 @@ type FormState = {
   consent_text: string | null;
   success_message: string;
   share_token: string | null;
+  event_date: string | null;
+  event_time: string | null;
+  event_location: string | null;
 };
 
 const toLocalInput = (value: string | null) =>
@@ -216,6 +221,9 @@ function Editor() {
       consent_text: (f["consent_text"] as string | null) ?? null,
       success_message: (f["success_message"] as string) ?? "",
       share_token: (f["share_token"] as string | null) ?? null,
+      event_date: (f["event_date"] as string | null) ?? null,
+      event_time: (f["event_time"] as string | null) ?? null,
+      event_location: (f["event_location"] as string | null) ?? null,
     };
     const loadedQuestions: Question[] = (query.data.questions as Record<string, unknown>[]).map((q) => ({
       id: q["id"] as string,
@@ -225,6 +233,7 @@ function Editor() {
       required: Boolean(q["required"]),
       options: ((q["options"] as string[]) ?? []) as string[],
       position: (q["position"] as number) ?? 0,
+      settings: (q["settings"] as Record<string, unknown> | null) ?? {},
     }));
     setForm(loadedForm);
     setQuestions(loadedQuestions);
@@ -266,6 +275,7 @@ function Editor() {
           label: "Nova pergunta",
           field_type: "short_text",
           position: targetPos,
+          settings: {},
         })
         .select("*")
         .single();
@@ -283,6 +293,7 @@ function Editor() {
         required: false,
         options: [],
         position: targetPos,
+        settings: {},
       };
 
       const nextQuestions = insertAfter(questions, newQuestion, afterId);
@@ -364,8 +375,22 @@ function Editor() {
     }
   }
 
+  const hasInvalidAgeLimits = questions.some((q) => {
+    if (q.field_type !== "birthdate" || !q.settings) return false;
+    const s = q.settings as Record<string, unknown>;
+    const rawMin = s["minAge"];
+    const rawMax = s["maxAge"];
+    const min = rawMin !== null && rawMin !== undefined && rawMin !== "" ? Number(rawMin) : null;
+    const max = rawMax !== null && rawMax !== undefined && rawMax !== "" ? Number(rawMax) : null;
+    return min !== null && max !== null && min > max;
+  });
+
   async function save(nextStatus?: string) {
     if (!form) return;
+    if (hasInvalidAgeLimits) {
+      toast.error("A idade mínima não pode ser maior que a máxima.");
+      return;
+    }
     const cleanSlug = trimSlugEdges(form.slug);
     const validationError = validateSlug(cleanSlug);
     if (validationError) {
@@ -390,6 +415,9 @@ function Editor() {
           consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
           success_message: form.success_message,
           status: nextStatus ?? form.status,
+          event_date: form.event_date || null,
+          event_time: form.event_time || null,
+          event_location: form.event_location?.trim() ? form.event_location.trim() : null,
         })
         .eq("id", id);
       if (error) {
@@ -412,6 +440,7 @@ function Editor() {
             required: q.required,
             options: q.options,
             position: q.position,
+            settings: (q.settings ?? {}) as Json,
           })
           .eq("id", q.id);
         if (qError) throw qError;
@@ -424,6 +453,9 @@ function Editor() {
         slug: cleanSlug,
         status: nextStatus ?? form.status,
         consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
+        event_date: form.event_date || null,
+        event_time: form.event_time || null,
+        event_location: form.event_location?.trim() ? form.event_location.trim() : null,
       };
       setForm(updatedForm);
       setSavedSnapshot(editorSnapshot(updatedForm, questions));
@@ -498,22 +530,27 @@ function Editor() {
           </button>
           <button
             onClick={() => save()}
-            disabled={saving}
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60"
+            disabled={saving || hasInvalidAgeLimits}
+            title={hasInvalidAgeLimits ? "A idade mínima não pode ser maior que a máxima." : undefined}
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
           {form.status === "published" ? (
             <button
               onClick={() => save("closed")}
-              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white"
+              disabled={saving || hasInvalidAgeLimits}
+              title={hasInvalidAgeLimits ? "A idade mínima não pode ser maior que a máxima." : undefined}
+              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
             >
               Encerrar
             </button>
           ) : (
             <button
               onClick={() => save("published")}
-              className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90"
+              disabled={saving || hasInvalidAgeLimits}
+              title={hasInvalidAgeLimits ? "A idade mínima não pode ser maior que a máxima." : undefined}
+              className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
             >
               Publicar
             </button>
@@ -855,6 +892,11 @@ function Editor() {
                 <span>Tudo salvo</span>
               )}
             </p>
+            {hasInvalidAgeLimits && (
+              <p className="text-xs font-medium text-destructive">
+                A idade mínima não pode ser maior que a máxima.
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -867,9 +909,10 @@ function Editor() {
               </button>
               <button
                 type="button"
-                disabled={saving}
+                disabled={saving || hasInvalidAgeLimits}
+                title={hasInvalidAgeLimits ? "A idade mínima não pode ser maior que a máxima." : undefined}
                 onClick={() => save()}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {saving ? "Salvando..." : "Salvar"}
               </button>
@@ -947,6 +990,55 @@ function Editor() {
 
           {tab === "limites" && (
             <div className="space-y-4">
+              <div className="space-y-3 rounded-xl bg-slate-50/80 p-3 ring-1 ring-black/5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Evento
+                </h3>
+                <Field label="Data do evento">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="date"
+                      value={form.event_date ?? ""}
+                      onChange={(e) =>
+                        setForm({ ...form, event_date: e.target.value || null })
+                      }
+                      className={inputClass}
+                    />
+                    {form.event_date && (
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, event_date: null })}
+                        className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-black/10 hover:bg-white cursor-pointer"
+                      >
+                        Limpar data
+                      </button>
+                    )}
+                  </div>
+                </Field>
+                <Field label="Horário (opcional)">
+                  <input
+                    type="time"
+                    value={form.event_time ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, event_time: e.target.value || null })
+                    }
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="Local (opcional)">
+                  <input
+                    type="text"
+                    maxLength={120}
+                    value={form.event_location ?? ""}
+                    onChange={(e) =>
+                      setForm({ ...form, event_location: e.target.value || null })
+                    }
+                    placeholder="Ex.: Auditório Principal"
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+
               <Field label="Limite de respostas / vagas">
                 <input
                   type="number"
