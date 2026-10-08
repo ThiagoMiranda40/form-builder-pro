@@ -565,3 +565,25 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 8. **Formulários antigos:** Formulários sem data de evento e sem limites funcionam normalmente.
 9. **Duplicação de formulário:** Duplicar copia os limites de idade nas perguntas mas não copia data, horário e local do evento.
 10. **Responsividade mobile (360 px):** Seção "Evento" e campos de idade no editor sem rolagem horizontal.
+
+---
+
+## 12. Plano de Testes — T-24d (Correções do Reteste do T-24c: Honeypot, Telefone, E-mail, Idade)
+
+### 12.1 Casos de Teste Automatizados e Manuais
+
+| ID | Descrição do Teste | Tipo | Resultado Esperado |
+|---|---|---|---|
+| **QA-24d-01** | Autofill completo do navegador em formulário público | E2E / Manual | O preenchimento automático de campos do usuário não aciona o honeypot; a inscrição é gravada no banco com sucesso e a tela exibe o link de edição e a mensagem de sucesso. |
+| **QA-24d-02** | Honeypot preenchido forçadamente via DevTools ou robô | Integração / Unitário | Servidor recusa o envio com status `ok: false` e mensagem `"Não foi possível enviar. Recarregue a página e tente novamente."`; `rpcSubmitResponse` NÃO é chamado; log de segurança registra `"HONEYPOT"` e o slug (sem dados pessoais); tela limpa o campo `hp` preservando as respostas preenchidas. |
+| **QA-24d-03** | Telefone com 10 dígitos iniciando com 9 após o DDD (ex.: `(11) 9869-5568`) | Unitário | `isValidPhoneBR` retorna `false` e `validateAnswer` acusa `"Telefone inválido — celular com DDD tem 11 dígitos (ex.: (11) 98765-4321) e fixo tem 10 dígitos."`. |
+| **QA-24d-04** | Telefone fixo válido com 10 dígitos (ex.: `(11) 3456-7890`) e celular válido com 11 dígitos (ex.: `(11) 98695-5568`) | Unitário | `isValidPhoneBR` aceita ambos como válidos; telefones com 3º dígito fora da faixa de fixo (6, 7, 8, 0, 1) em 10 dígitos são recusados. |
+| **QA-24d-05** | Linha do evento no e-mail de confirmação da inscrição | Unitário / E2E | `buildConfirmationEmail` chamado com `event_date="2026-11-16"`, `event_time="08:00"`, `event_location="Parque X"` inclui `Evento: 16/11/2026 às 08:00 · Parque X` no HTML e no texto simples. Sem data do evento, a linha não aparece. |
+| **QA-24d-06** | Linha do evento no e-mail de confirmação de edição pelo link | Unitário / E2E | Edição pelo link do inscrito (`edit-response.ts`) repassa dados de evento e gera a linha `Evento: ...` no e-mail de atualização. |
+| **QA-24d-07** | Linha do evento no e-mail de reenvio administrativo | Unitário / E2E | Reenvio manual disparado pelo painel (`admin-response.functions.ts`) busca `event_time` e `event_location` e inclui a linha `Evento: ...` no e-mail. |
+| **QA-24d-08** | Mensagem de limite de idade apenas com idade mínima | Unitário | `ageLimitMessage({ minAge: 18, maxAge: null })` devolve `"Este evento só aceita participantes com 18 anos ou mais."`. |
+| **QA-24d-09** | Mensagem de limite de idade apenas com idade máxima | Unitário | `ageLimitMessage({ minAge: null, maxAge: 17 })` devolve `"Este evento só aceita participantes de até 17 anos."`. |
+| **QA-24d-10** | Mensagem de limite de idade com faixa completa (mínimo e máximo) | Unitário | `ageLimitMessage({ minAge: 18, maxAge: 60 })` devolve `"Este evento aceita participantes de 18 a 60 anos."`. |
+| **QA-24d-11** | Validação inline de data de nascimento ao completar formato AAAA-MM-DD e no blur | Componente / Unitário | Função `validateBirthdateInline` identifica data completa fora da janela ou futura e exibe imediatamente a mensagem de erro abaixo do campo; limpa o erro ao corrigir; não exibe erro enquanto a data estiver incompleta durante a digitação. |
+| **QA-24d-12** | Desativação de balões nativos do navegador (`noValidate`) | Componente | Formulário possui atributo `noValidate`, impedindo que balões nativos em português truncado do navegador sobreponham a UI customizada. |
+| **QA-24d-13** | Edição de inscrição sem alterar data de nascimento | Unitário / Integração | Ao editar outro campo em inscrição existente, limites de idade não são cobrados se a data de nascimento permanecer inalterada. |

@@ -755,6 +755,45 @@ Parte MANUAL (dono; O BANCO DA PRÉVIA É O MESMO DA PRODUÇÃO; use SÓ formul�
 
 ---
 
+## T-24d — Correções do reteste do T-24c (inscrição perdida com autofill, telefone, e-mail, idade)
+
+Dependência: T-24c (concluída).
+
+Contexto e decisões do dono:
+1. **Honeypot anti-robô que não perde inscrição legítima (CRÍTICO):** O campo invisível anti-robô `hp` vinha sendo preenchido pelo autofill de navegadores/gerenciadores de credenciais, fazendo o servidor simular sucesso sem gravar a inscrição nem devolver link de edição. Solução:
+   - No cliente (`src/routes/$slug.tsx`), renomear o input para `name="zq_trap_7f3"` e `id="zq_trap_7f3"`. Manter envio no payload sob a chave `hp`. Atributos: `type="text"`, `tabIndex={-1}`, `aria-hidden`, `autoComplete="off"`, `data-lpignore="true"`, `data-1p-ignore="true"`, `data-form-type="other"`, `autoCapitalize="off"`, `autoCorrect="off"`, `spellCheck={false}`, sem `<label>`, mantido fora da tela.
+   - No servidor (`src/lib/submit-response.ts`), quando `hp` vier preenchido (não vazio e não só espaços): NÃO devolver sucesso. Devolver `{ ok: false, error: "Não foi possível enviar. Recarregue a página e tente novamente." }` sem chamar `rpcSubmitResponse`. Registrar log de segurança com código `"HONEYPOT"` e slug/id do formulário (sem respostas, CPF ou dados pessoais, conforme SEC-03).
+   - No cliente, se o servidor devolver esse erro, exibir o texto no alerta geral de erro no topo do formulário e limpar o estado local de `hp`, preservando intactas todas as respostas já preenchidas pelo participante para que ele consiga reenviar. Não limpar `hp` antes do envio.
+2. **Telefone estrito e consistente:** Em `src/lib/validators.ts` (`isValidPhoneBR`):
+   - Celular com DDD (11 dígitos): DDD 11–99 e 3º dígito obrigatoriamente 9.
+   - Telefone fixo com DDD (10 dígitos): DDD 11–99 e 3º dígito obrigatoriamente entre 2 e 5. Números de 10 dígitos cujo 3º dígito seja 9 (celular com dígito faltando) ou 6, 7, 8, 0, 1 são considerados inválidos.
+   - Mensagem de validação: `"Telefone inválido — celular com DDD tem 11 dígitos (ex.: (11) 98765-4321) e fixo tem 10 dígitos."`.
+   - Coerência total com `parseBrazilMobile` (`src/lib/whatsapp.ts`).
+3. **Linha "Evento: ..." nos e-mails de confirmação:**
+   - Em `src/lib/submit-response.ts` (inscrição) e `src/lib/edit-response.ts` (edição), passar `event_date`, `event_time` e `event_location` do formulário carregado para `buildConfirmationEmail`.
+   - Em `src/lib/admin-response.functions.ts` (reenvio administrativo manual), incluir `event_time` e `event_location` no `select` da consulta e repassar para `buildConfirmationEmail`.
+   - Quando `event_date` estiver presente, texto e HTML exibem `Evento: dd/mm/aaaa` seguido de ` às HH:MM` (se houver horário) e ` · Local` (se houver local). Sem `event_date`, a linha não aparece.
+4. **Mensagens de limite de idade em linguagem natural:**
+   - Em `src/lib/birthdate.ts`, atualizar `ageLimitMessage`:
+     - Só mínimo: `"Este evento só aceita participantes com ${min} anos ou mais."`
+     - Só máximo: `"Este evento só aceita participantes de até ${max} anos."`
+     - Ambos: `"Este evento aceita participantes de ${min} a ${max} anos."`
+     - Data impossível, futura ou vazia: `"Informe uma data de nascimento válida."`
+   - Nunca mostrar datas calculadas da janela ao usuário.
+5. **Validação em tempo real e desativação de validação nativa do navegador:**
+   - Adicionar `noValidate` aos elementos `<form>` em `src/routes/$slug.tsx` e `src/routes/editar.$token.tsx` para evitar os balões nativos do navegador.
+   - Em `src/components/QuestionField.tsx`, `$slug.tsx` e `editar.$token.tsx`: função pura `validateBirthdateInline` roda no `onChange` (ao completar data válida AAAA-MM-DD) e no `onBlur`, exibindo erro imediatamente abaixo do campo e limpando ao corrigir. Não mostra erro para datas incompletas durante a digitação antes do blur.
+   - Na edição, preserva a regra: se a data de nascimento não foi alterada, o limite de idade não é reaplicado.
+
+Critérios de Aceite:
+- QA-24d-01 a QA-24d-13 cumpridos e aprovados.
+- Testes unitários cobrindo todos os cenários novos e regressões.
+- `bunx tsc --noEmit` sem erros.
+- `bun run build` gerando bundle válido com `[add-previews-block]`.
+- `package.json` e `bun.lock` inalterados.
+
+---
+
 ## Fluxo de execução recomendado
 
 

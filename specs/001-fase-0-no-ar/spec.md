@@ -42,8 +42,8 @@ Como administrador, quero copiar o link de edição de qualquer inscrito, para r
 Como administrador, quero exibir um texto de consentimento obrigatório, para coletar CPF/RG com base clara.
 **Critério:** Dado um formulário com texto de consentimento, quando o inscrito não marca o aceite, então o envio é bloqueado; quando marca, então a inscrição registra a data e hora do aceite. Formulário sem texto de consentimento não mostra a caixa.
 
-### RF-09 — Proteção contra robôs (mínima)
-**Critério:** Dado um envio em que o campo invisível ao humano veio preenchido, então nada é gravado e o robô recebe uma resposta de "sucesso" sem link.
+### RF-09 — Proteção contra robôs e resiliência a autofill
+**Critério:** Dado um envio em que o campo invisível ao humano veio preenchido, então nada é gravado no banco; para que participantes legítimos cujo navegador ou gerenciador de senhas preencheu o campo via autofill não percam a inscrição em silêncio, o servidor devolve um erro amigável e recuperável ("Não foi possível enviar. Recarregue a página e tente novamente."), e registra log com o código "HONEYPOT" e o slug do formulário (sem CPF, respostas ou dados pessoais). No cliente, o input recebe atributos anti-autofill (`name="zq_trap_7f3"`, `id="zq_trap_7f3"`, `data-lpignore="true"`, `data-1p-ignore="true"`, `data-form-type="other"`, etc., sem `<label>`), e ao receber o erro do servidor, a tela limpa o campo `hp` preservando todas as respostas preenchidas pelo usuário para permitir reenvio imediato.
 
 ### RF-10 — Dados protegidos
 **Critério:** Dado alguém sem login, quando tenta ler formulários, perguntas ou respostas diretamente no banco, então não recebe nada; as respostas só são visíveis ao administrador.
@@ -67,6 +67,19 @@ Como administrador, quero que a mensagem de sucesso que escrevi apareça ao fina
 ### RF-13 — Legibilidade dos botões com qualquer cor de tema
 Como inscrito ou participante, quero conseguir ler com clareza o texto dos botões de ação independentemente da cor definida pelo organizador.
 **Critério:** Dado o tema com cor `#ffff00` ou `#22c55e`, o texto do botão fica preto (`#000000`); com `#4f46e5` ou `#000000`, fica branco (`#ffffff`); com `#ffffff`, fica preto (`#000000`). Com qualquer cor de tema, o contraste entre o texto e o fundo do botão é de pelo menos 4,5:1. A cor escolhida pelo organizador não é alterada.
+
+### RF-14 — Validação estrita de telefone (celular e fixo)
+Como administrador e inscrito, quero que números de telefone inválidos ou com dígitos faltando sejam recusados com orientação clara.
+**Critério:** Dado um telefone informado:
+- Celular com DDD (11 dígitos): DDD 11–99 e 3º dígito obrigatoriamente 9.
+- Telefone fixo com DDD (10 dígitos): DDD 11–99 e 3º dígito obrigatoriamente entre 2 e 5. Números de 10 dígitos iniciados em 9 (ex.: celular com 8 dígitos sem o nono dígito) ou outros dígitos são recusados com a mensagem: `"Telefone inválido — celular com DDD tem 11 dígitos (ex.: (11) 98765-4321) e fixo tem 10 dígitos."`.
+
+### RF-15 — Validação em tempo real da data de nascimento e linha de evento no e-mail
+Como inscrito, quero saber imediatamente se a data de nascimento digitada cumpre os requisitos do evento e ter os detalhes do evento no e-mail de confirmação.
+**Critério:**
+- Os formulários públicos utilizam `noValidate` para impedir os balões nativos do navegador. Ao completar uma data no formato AAAA-MM-DD ou ao sair do campo (`onBlur`), se a data estiver fora da faixa etária permitida, a mensagem em linguagem natural (`Este evento só aceita participantes com {min} anos ou mais.`, `Este evento só aceita participantes de até {max} anos.` ou `Este evento aceita participantes de {min} a {max} anos.`) aparece imediatamente abaixo do campo.
+- Na edição da inscrição, a restrição de idade só é reaplicada se a data de nascimento for alterada.
+- Quando o formulário tem data de evento (`event_date`), o e-mail de confirmação (inscrição, edição e reenvio admin) exibe a linha `Evento: dd/mm/aaaa` (com horário e local, se preenchidos) logo abaixo do título.
 
 ## Fora de escopo (produto)
 
