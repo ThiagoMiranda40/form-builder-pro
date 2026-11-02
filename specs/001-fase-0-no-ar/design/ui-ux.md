@@ -422,7 +422,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 | **Rodapé de Documentos Legais** | Em **todos os estados** da tela pública (aberto, sucesso, indisponível, encerrado, esgotado, não encontrado), abaixo do cartão principal, exibe `<nav aria-label="Documentos legais">` com *"Termos de Uso · Política de Privacidade"* abrindo em nova aba com texto para leitor de tela. |
 | **Erro: Consentimento** | Mensagem vermelha abaixo da caixa: *"É necessário aceitar o termo para continuar."*. |
 | **Erro: CPF Duplicado** | Mensagem no próprio campo CPF com foco automático: *"CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."*. |
-| **Erro Geral (Banco)** | Alertas no topo: *"O limite de inscrições foi atingido."* ou *"O prazo de preenchimento encerrou."*. |
+| **Erro Geral (Banco / Anti-robô)** | Alertas no topo do formulário (`role="alert"`, `rounded-lg bg-destructive/10 px-3 py-2 text-sm text-red-800`): *"O limite de inscrições foi atingido."*, *"O prazo de preenchimento encerrou."* ou, quando o campo anti-robô `hp` chega preenchido, *"Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo."*. |
 | **Enviando** | Botão com opacidade reduzida (`disabled={true}`), texto *"Enviando..."*. |
 | **Sucesso (emailSent === true)** | Bloco em destaque verde claro com anel e envelope ANTES do link: *"Enviamos um resumo e o link para o seu e-mail."*, *"Enviado para: <endereço>"* e *"Não chegou? Procure na caixa de spam ou lixo eletrônico."*, seguido do cartão do link de edição e do rodapé legal. |
 | **Sucesso (emailSent === false com e-mail)** | Cartão do link de edição seguido de aviso âmbar: *"Não conseguimos enviar o e-mail agora. Guarde o link acima: é a sua forma de corrigir seus dados."* e do rodapé legal. |
@@ -451,6 +451,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 - **Links do rodapé legal:** "Termos de Uso" e "Política de Privacidade"
 - **Erro consentimento:** "É necessário aceitar o termo para continuar."
 - **Erro CPF duplicado:** "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador."
+- **Erro anti-robô (honeypot preenchido):** "Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo." (exibido no alerta geral no topo do formulário, `role="alert"`)
 - **Título de sucesso:** "Tudo certo!"
 - **Aviso e-mail enviado (título do bloco):** "Enviamos um resumo e o link para o seu e-mail."
 - **Aviso e-mail enviado (destinatário):** "Enviado para: "
@@ -1054,6 +1055,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
       - Data impossível/futura/vazia: `"Informe uma data de nascimento válida."`
     - **Validação em tempo real e eliminação do balão nativo:** Atributo `noValidate` nos formulários de inscrição pública e de edição (`$slug.tsx` e `editar.$token.tsx`) para eliminar balões nativos do navegador. Validação inline imediata ao completar 10 caracteres (formato AAAA-MM-DD) e no evento `onBlur` via `validateBirthdateInline`, com exibição da mensagem de erro logo abaixo do campo. Campo incompleto durante a digitação não exibe erro até o `blur`. Na edição, se a data de nascimento não foi alterada pelo participante, os limites não são reaplicados.
     - **Linha do evento completa nos e-mails:** Os e-mails de confirmação de inscrição pública, de edição e de reenvio administrativo pelo painel recebem `event_date`, `event_time` e `event_location` do formulário e exibem no corpo (HTML e texto puro) a linha literal: `"Evento: dd/mm/aaaa às HH:MM · Local"` (ou sem horário/local caso não configurados).
+27. P-NN [Formulário Público] Mensagem de erro do anti-robô orientada ao usuário (T-24e / M-43 versão reduzida), aprovada pelo dono: quando o campo escondido anti-robô (`zq_trap_7f3`, payload `hp`) vem preenchido, o servidor retorna a mensagem literal `"Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo."`, exibida no alerta geral do topo (`role="alert"`), preservando todas as respostas, confirmações de e-mail e consentimento na tela, limpando o estado `hp` e liberando o botão Enviar para que um novo envio sem recarregar a página funcione imediatamente.
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.

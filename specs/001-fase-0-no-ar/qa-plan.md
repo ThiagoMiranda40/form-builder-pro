@@ -587,3 +587,17 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 | **QA-24d-11** | Validação inline de data de nascimento ao completar formato AAAA-MM-DD e no blur | Componente / Unitário | Função `validateBirthdateInline` identifica data completa fora da janela ou futura e exibe imediatamente a mensagem de erro abaixo do campo; limpa o erro ao corrigir; não exibe erro enquanto a data estiver incompleta durante a digitação. |
 | **QA-24d-12** | Desativação de balões nativos do navegador (`noValidate`) | Componente | Formulário possui atributo `noValidate`, impedindo que balões nativos em português truncado do navegador sobreponham a UI customizada. |
 | **QA-24d-13** | Edição de inscrição sem alterar data de nascimento | Unitário / Integração | Ao editar outro campo em inscrição existente, limites de idade não são cobrados se a data de nascimento permanecer inalterada. |
+
+---
+
+## 13. Plano de Testes — T-24e (Mensagem de Erro do Anti-Robô Orientada ao Usuário)
+
+### 13.1 Casos de Teste Automatizados e Manuais
+
+| ID | Descrição do Teste | Tipo | Resultado Esperado |
+|---|---|---|---|
+| **QA-24e-01** | Honeypot preenchido (via DevTools) | Integração / Manual | Mensagem literal exibida (`"Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo."`), nada gravado no banco, log `HONEYPOT` registrado apenas com código e slug (sem dados pessoais). |
+| **QA-24e-02** | Preservação de estado após o erro | Unitário / Manual | Após o erro, todas as respostas digitadas, confirmações de e-mail e o aceite de consentimento permanecem intactos na tela. |
+| **QA-24e-03** | Reenvio imediato sem recarregar a página | Unitário / Manual | Após o erro, o campo escondido `hp` está limpo e um novo clique em Enviar (sem recarregar) grava a inscrição e mostra a tela de sucesso com o link de edição. |
+| **QA-24e-04** | Ausência de falso sucesso no estado de erro | Unitário / Manual | A mensagem não aparece como sucesso: não há título `"Tudo certo!"`, nem ícone `✓`, nem link de edição no estado de erro. |
+| **QA-24e-05** | Não regressão dos erros comuns | Unitário / Manual | Erros comuns (CPF inválido, campo obrigatório, CPF repetido, vagas esgotadas, prazo encerrado) continuam com as mensagens e comportamentos anteriores. |

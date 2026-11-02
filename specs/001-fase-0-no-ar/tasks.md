@@ -794,6 +794,30 @@ Critérios de Aceite:
 
 ---
 
+## T-24e — Mensagem de erro do anti-robô orientada ao usuário (M-43, versão reduzida)
+
+Dependência: T-24d (concluída).
+
+Contexto e objetivo:
+Desde a T-24d, quando o campo escondido anti-robô (`zq_trap_7f3`, payload `hp`) chega preenchido, o servidor não grava a inscrição, registra `HONEYPOT` no log (apenas código e slug) e devolve erro sem exibir falso sucesso ("Tudo certo"). Porém, a orientação "Recarregue a página e tente novamente." levaria o participante a perder as respostas digitadas, e é necessário provar por teste automatizado que, após o erro, as respostas permanecem na tela, o estado do campo escondido é limpo e um novo envio sem recarregar funciona normalmente.
+M-43 (quarentena de envios bloqueados pelo anti-robô) está ADIADO e fica registrado no documento de decisões do dono; não implementar aqui.
+
+Arquivos tocados: `src/lib/submit-response.ts`, `src/routes/$slug.tsx`, `src/lib/submit-response.test.ts` e `src/lib/routes.test.ts`. NÃO altere `package.json` nem `bun.lock`.
+
+Critérios de Aceite:
+- **A. Texto da mensagem (literal):**
+  - Definir e exportar uma única vez a constante `HONEYPOT_ERROR_MESSAGE = "Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo."` em `src/lib/submit-response.ts` (ou `src/lib/inscricao.ts` reexportado em `submit-response.ts`) e reutilizá-la no servidor, nos testes e na tela, sem duplicar a literal.
+  - Manter `GENERIC_SUBMIT_ERROR = "Não foi possível enviar. Verifique os campos e tente novamente."` inalterada.
+  - No retorno de `handleSubmission` quando `hp` vier preenchido: retornar `{ ok: false, error: HONEYPOT_ERROR_MESSAGE }`, sem chamar `rpcSubmitResponse`, sem enviar e-mail e mantendo `logError("HONEYPOT", data.slug)`.
+- **B. Comportamento da tela pública (`src/routes/$slug.tsx`):**
+  - Exibir a mensagem na área de erro geral no topo do formulário (`role="alert"`), manter todas as respostas, o consentimento e as confirmações de e-mail já digitados, limpar o estado `hp` (`setHp("")`) e liberar o botão Enviar (`isSubmittingRef.current = false`, `sending = false`).
+  - Um novo clique em Enviar, sem recarregar a página, envia com `hp: ""` e conclui a inscrição normalmente.
+  - Manter intactos o nome e os atributos anti-autofill do campo escondido (`zq_trap_7f3`, `autoComplete="off"`, `data-1p-ignore="true"`, `data-lpignore="true"`).
+- QA-24e-01 a QA-24e-05 cumpridos e aprovados.
+- `bunx tsc --noEmit` sem erros, `bun run test` verde e `bun run build` com `[add-previews-block]`.
+
+---
+
 ## Fluxo de execução recomendado
 
 
