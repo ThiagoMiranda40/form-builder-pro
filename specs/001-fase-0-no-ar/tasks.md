@@ -818,6 +818,20 @@ Critérios de Aceite:
 
 ---
 
+## T-44 — Senha de acesso no link do cliente, rótulos claros no painel e máscara opcional de CPF/RG (M-44)
+
+- **Estado:** a escrever. Aguardando 4 decisões do dono (abaixo). Depende da T-24e promovida.
+- **Contexto:** em 02/11/2026 o cliente confundiu o link público de inscrição com o link privado de acompanhamento (`/c/<token>`) e compartilhou dados pessoais dos inscritos. O link foi revogado e substituído. Hoje o link do cliente não tem senha nem validade e a visão do cliente entrega todas as respostas completas, incluindo CPF, RG, telefone e e-mail sem máscara, com atualização a cada 30 segundos e exportação em Excel e PDF.
+- **Objetivo:** que o link do cliente, se for compartilhado por engano, não mostre nenhum dado sem um código de acesso; e que a diferença entre link público e link privado fique evidente no painel.
+- **Parte 1 — código de acesso:** código gerado pelo sistema (alta entropia, alfabeto sem caracteres confusos), mostrado ao administrador uma única vez e regenerável; tela de desbloqueio em `/c/<token>`; hash com sal em `forms` (migração pequena: hash, sal, contador de falhas, hora de bloqueio); função servidora que confere o código em tempo constante e devolve cookie de sessão assinado (HttpOnly, Secure, SameSite, caminho restrito ao link, validade a definir); `getSharedResponses` e as exportações passam a exigir sessão válida; bloqueio após 5 erros por 15 minutos com mensagem neutra; segredo novo `SHARE_SESSION_SECRET` no Cloudflare (produção e prévia), ação do dono.
+- **Parte 2 — painel:** rótulos e cores distintos para "Link público (para quem vai se inscrever)" e "Link privado (só para o responsável, mostra os dados)", com aviso ao copiar o link privado e dica para enviar o código por canal separado do link.
+- **Parte 3 — máscara opcional:** CPF e RG parcialmente ocultos na tela e nas exportações do link do cliente, com opção por formulário de mostrar completo (sujeito à decisão 3).
+- **Decisões pendentes do dono:** (1) links já existentes sem senha: parar de funcionar até o administrador gerar o código (recomendado) ou continuar com aviso; (2) código gerado (recomendado) ou escolhido; (3) máscara de CPF/RG ligada por padrão, opcional ou fora do escopo; (4) validade da sessão (proposta: 12 horas).
+- **Arquivos prováveis:** `src/lib/share.ts`, `src/lib/share.functions.ts`, `src/routes/c.$token.tsx`, `src/components/ShareLinkCard.tsx`, nova migração em `supabase/migrations`, testes correspondentes, `seguranca.md` (novo SEC), `qa-plan.md`, `design/ui-ux.md`.
+- **Critérios de aceite (rascunho, a fechar após as decisões):** sem sessão válida nenhuma resposta é entregue; código errado não revela nada além de mensagem neutra; 5 erros bloqueiam por 15 minutos; sessão expirada volta à tela de desbloqueio; regenerar o código invalida as sessões anteriores; o link público não é afetado.
+
+---
+
 ## Fluxo de execução recomendado
 
 
