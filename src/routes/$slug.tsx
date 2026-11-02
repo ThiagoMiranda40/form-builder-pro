@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
+import { HONEYPOT_ERROR_MESSAGE, resolveSubmitOutcome } from "@/lib/submit-response";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
 import { findEmailQuestion } from "@/lib/inscricao";
@@ -348,30 +349,21 @@ function PublicForm() {
 
       setSending(true);
       const result = await send({ data: { slug, answers, consent, hp } });
-      if (!result.ok) {
+      const outcome = resolveSubmitOutcome(
+        result,
+        questions.map((q) => q.id),
+      );
+      if (outcome.kind !== "success") {
         setHp("");
-        const isKnownField =
-          Boolean(result.field) &&
-          (result.field === "__consent" || questions.some((q) => q.id === result.field));
-
-        if (isKnownField && result.field) {
-          setErrors({ [result.field]: result.error ?? "Resposta inválida." });
-          if (result.field === "__consent") {
-            document.getElementById("consent-checkbox")?.focus();
-          } else {
-            document.getElementById(`field-${result.field}`)?.focus();
-          }
-        } else {
-          setErrors({ __form: result.error ?? "Não foi possível enviar." });
+        setErrors(outcome.errors);
+        if (outcome.kind === "field_error") {
+          document.getElementById(outcome.focusElementId)?.focus();
+        } else if (outcome.refetchForm && outcome.errors.__form !== HONEYPOT_ERROR_MESSAGE) {
           query.refetch();
         }
         return;
       }
-      setDone({
-        message: result.message || "Inscrição confirmada!",
-        editUrl: result.editUrl,
-        emailSent: Boolean(result.emailSent),
-      });
+      setDone(outcome.done);
     } catch {
       setErrors({ __form: "Não foi possível enviar sua inscrição. Tente novamente." });
     } finally {

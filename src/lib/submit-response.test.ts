@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import * as confirmationEmailModule from "./confirmation-email";
 import {
   ALLOWED_ORIGINS,
+  GENERIC_SUBMIT_ERROR,
+  HONEYPOT_ERROR_MESSAGE,
   getOrigin,
   handleSubmission,
+  resolveSubmitOutcome,
   submitSchema,
   createTimedFetch,
   validateAndCleanAnswers,
@@ -425,7 +428,7 @@ describe("T-09: Servidor de inscrição via banco", () => {
       hp: "",
     };
 
-    it("honeypot preenchido retorna erro recuperável, não grava e registra HONEYPOT sem dados pessoais (T-24d, SEC-29)", async () => {
+    it("honeypot preenchido retorna HONEYPOT_ERROR_MESSAGE, não grava, não envia e-mail e registra HONEYPOT sem dados pessoais (T-24d, T-24e, SEC-29)", async () => {
       const deps = createMockDeps();
       const res = await handleSubmission(deps, {
         ...validSubmission,
@@ -434,12 +437,132 @@ describe("T-09: Servidor de inscrição via banco", () => {
 
       expect(res).toEqual({
         ok: false,
-        error: "Não foi possível enviar. Recarregue a página e tente novamente.",
+        error: HONEYPOT_ERROR_MESSAGE,
       });
       expect(deps.loadFormAndQuestions).not.toHaveBeenCalled();
       expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
       expect(deps.fetchFn).not.toHaveBeenCalled();
       expect(deps.logError).toHaveBeenCalledWith("HONEYPOT", "corrida-skf");
+
+      const logArgs = JSON.stringify(vi.mocked(deps.logError).mock.calls);
+      expect(logArgs).not.toContain("52998224725");
+      expect(logArgs).not.toContain("529.982.247-25");
+      expect(logArgs).not.toContain("maria@example.com");
+      expect(logArgs).not.toContain("Maria Souza");
+    });
+
+    it("HONEYPOT_ERROR_MESSAGE é diferente de GENERIC_SUBMIT_ERROR e contém a orientação correta sem mandar recarregar (T-24e)", () => {
+      expect(HONEYPOT_ERROR_MESSAGE).toBe(
+        "Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo.",
+      );
+      expect(HONEYPOT_ERROR_MESSAGE).not.toBe(GENERIC_SUBMIT_ERROR);
+      expect(HONEYPOT_ERROR_MESSAGE).toContain("preenchido um campo automaticamente");
+      expect(HONEYPOT_ERROR_MESSAGE).toContain("Enviar novamente");
+      expect(HONEYPOT_ERROR_MESSAGE).not.toContain("Recarregue a página");
+    });
+
+    it("dois envios seguidos na mesma instância de deps: 1º com hp preenchido (erro), 2º com hp vazio e mesmas respostas (sucesso, RPC chamado uma vez) (T-24e)", async () => {
+      const deps = createMockDeps();
+
+      const res1 = await handleSubmission(deps, {
+        ...validSubmission,
+        hp: "autofill-invisivel",
+      });
+      expect(res1).toEqual({
+        ok: false,
+        error: HONEYPOT_ERROR_MESSAGE,
+      });
+      expect(deps.rpcSubmitResponse).not.toHaveBeenCalled();
+
+      const res2 = await handleSubmission(deps, {
+        ...validSubmission,
+        hp: "",
+      });
+      expect(res2.ok).toBe(true);
+      expect(deps.rpcSubmitResponse).toHaveBeenCalledTimes(1);
+      expect(deps.rpcSubmitResponse).toHaveBeenCalledWith({
+        slug: "corrida-skf",
+        answers: validSubmission.answers,
+        identifier: "52998224725",
+        consented: true,
+      });
+    });
+
+    it("resolveSubmitOutcome trata erro do honeypot mantendo respostas, limpando hp, sem marcar done, e aceita reenvio em seguida (QA-24e-02, QA-24e-03, QA-24e-04, QA-24e-05)", () => {
+      const qIds = mockQuestions.map((q) => q.id);
+
+      // 1) Erro de honeypot (sem field) -> alerta geral __form, clearHp: true, done: null, refetchForm: true
+      const hpOutcome = resolveSubmitOutcome(
+        { ok: false, error: HONEYPOT_ERROR_MESSAGE },
+        qIds,
+      );
+      expect(hpOutcome).toEqual({
+        kind: "form_error",
+        errors: { __form: HONEYPOT_ERROR_MESSAGE },
+        clearHp: true,
+        keepAnswers: true,
+        refetchForm: true,
+        done: null,
+      });
+
+      // 2) Erro de campo conhecido (ex.: CPF duplicado) -> erro no campo, foco no campo, clearHp: true, done: null, refetchForm: false
+      const fieldOutcome = resolveSubmitOutcome(
+        {
+          ok: false,
+          error: "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.",
+          field: "q-cpf",
+        },
+        qIds,
+      );
+      expect(fieldOutcome).toEqual({
+        kind: "field_error",
+        errors: {
+          "q-cpf": "CPF já inscrito. Use o link de edição enviado ao seu e-mail ou fale com o organizador.",
+        },
+        focusElementId: "field-q-cpf",
+        clearHp: true,
+        keepAnswers: true,
+        refetchForm: false,
+        done: null,
+      });
+
+      // 3) Erro de consentimento -> foco em consent-checkbox
+      const consentOutcome = resolveSubmitOutcome(
+        {
+          ok: false,
+          error: "É necessário aceitar o termo para continuar.",
+          field: "__consent",
+        },
+        qIds,
+      );
+      expect(consentOutcome).toEqual({
+        kind: "field_error",
+        errors: { __consent: "É necessário aceitar o termo para continuar." },
+        focusElementId: "consent-checkbox",
+        clearHp: true,
+        keepAnswers: true,
+        refetchForm: false,
+        done: null,
+      });
+
+      // 4) Sucesso no reenvio -> done preenchido
+      const okOutcome = resolveSubmitOutcome(
+        {
+          ok: true,
+          message: "Inscrição realizada com sucesso!",
+          editUrl: "https://inscricoes.corretime.com.br/editar/tok123",
+          emailSent: true,
+        },
+        qIds,
+      );
+      expect(okOutcome).toEqual({
+        kind: "success",
+        done: {
+          message: "Inscrição realizada com sucesso!",
+          editUrl: "https://inscricoes.corretime.com.br/editar/tok123",
+          emailSent: true,
+        },
+      });
     });
 
     it("honeypot vazio ou somente com espaços segue o fluxo normal (T-24d)", async () => {

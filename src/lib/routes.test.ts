@@ -303,6 +303,40 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     // Payload continua enviando a chave hp
     expect(content).toContain("data: { slug, answers, consent, hp }");
   });
+
+  it("$slug.tsx satisfaz os requisitos de T-24e (HONEYPOT_ERROR_MESSAGE sem literal duplicado, setHp('') no erro, liberação de isSubmittingRef no finally e preservação de respostas)", () => {
+    const slugPath = path.join(rootDir, "src/routes/$slug.tsx");
+    const content = fs.readFileSync(slugPath, "utf-8");
+    const submitPath = path.join(rootDir, "src/lib/submit-response.ts");
+    const submitContent = fs.readFileSync(submitPath, "utf-8");
+
+    // submit-response.ts exporta HONEYPOT_ERROR_MESSAGE, GENERIC_SUBMIT_ERROR e resolveSubmitOutcome
+    expect(submitContent).toContain("export const HONEYPOT_ERROR_MESSAGE");
+    expect(submitContent).toContain("export const GENERIC_SUBMIT_ERROR");
+    expect(submitContent).toContain("export function resolveSubmitOutcome");
+
+    // $slug.tsx importa resolveSubmitOutcome, não contém a mensagem antiga "Recarregue a página" nem duplica a literal de HONEYPOT_ERROR_MESSAGE
+    expect(content).toContain("resolveSubmitOutcome");
+    expect(content).not.toContain("Recarregue a página");
+    expect(content).not.toContain("preenchido um campo automaticamente");
+
+    // Existe setHp("") no ramo de erro (outcome.kind !== "success") e não apaga answers/consent/emailConfirmations
+    const errorBranchMatch = content.match(/if\s*\(\s*outcome\.kind\s*!==\s*"success"\s*\)\s*\{[\s\S]*?return;\s*\}/);
+    expect(errorBranchMatch).not.toBeNull();
+    const errorBranch = errorBranchMatch ? errorBranchMatch[0] : "";
+    expect(errorBranch).toContain('setHp("")');
+    expect(errorBranch).not.toContain("setAnswers(");
+    expect(errorBranch).not.toContain("setConsent(");
+    expect(errorBranch).not.toContain("setEmailConfirmations(");
+    expect(errorBranch).not.toContain("setDone(");
+
+    // isSubmittingRef.current = false e setSending(false) no finally
+    const finallyMatch = content.match(/finally\s*\{[\s\S]*?\}/);
+    expect(finallyMatch).not.toBeNull();
+    const finallyBlock = finallyMatch ? finallyMatch[0] : "";
+    expect(finallyBlock).toContain("isSubmittingRef.current = false");
+    expect(finallyBlock).toContain("setSending(false)");
+  });
 });
 
 

@@ -31,7 +31,10 @@ export function getOrigin(rawOrigin?: string): string {
   return ALLOWED_ORIGINS[0];
 }
 
-const GENERIC_SUBMIT_ERROR = "Não foi possível enviar. Verifique os campos e tente novamente.";
+export const GENERIC_SUBMIT_ERROR = "Não foi possível enviar. Verifique os campos e tente novamente.";
+
+export const HONEYPOT_ERROR_MESSAGE =
+  "Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo.";
 
 const answerValueSchema = z.union([
   z.string().max(10000, GENERIC_SUBMIT_ERROR),
@@ -302,12 +305,12 @@ export async function handleSubmission(
   }
   const data = parsed.data;
 
-  // 1. Honeypot (RF-09, SEC-09): responde erro recuperável sem gravar e sem chamar o rpc
+  // 1. Honeypot (RF-09, SEC-09, SEC-29, T-24e): responde erro orientado ao usuário sem gravar e sem chamar o rpc
   if (isHoneypotFilled(data.hp)) {
     deps.logError("HONEYPOT", data.slug);
     return {
       ok: false,
-      error: "Não foi possível enviar. Recarregue a página e tente novamente.",
+      error: HONEYPOT_ERROR_MESSAGE,
     };
   }
 
@@ -448,5 +451,80 @@ export async function handleSubmission(
     message: rpcData.success_message || form.success_message || "Inscrição confirmada!",
     ...(editUrl ? { editUrl } : {}),
     emailSent,
+  };
+}
+
+export type SubmitClientOutcome =
+  | {
+      kind: "success";
+      done: {
+        message: string;
+        editUrl?: string | undefined;
+        emailSent: boolean;
+      };
+    }
+  | {
+      kind: "field_error";
+      errors: Record<string, string>;
+      focusElementId: string;
+      clearHp: true;
+      keepAnswers: true;
+      refetchForm: false;
+      done: null;
+    }
+  | {
+      kind: "form_error";
+      errors: { __form: string };
+      clearHp: true;
+      keepAnswers: true;
+      refetchForm: boolean;
+      done: null;
+    };
+
+/**
+ * Determina a transição de estado na tela pública após o retorno de submitResponse (T-24e).
+ * Garante que erros de envio (incluindo HONEYPOT_ERROR_MESSAGE) limpem `hp`, preservem as respostas,
+ * não marquem `done` (sem falso sucesso) e não façam refetch desnecessário quando for o erro de honeypot.
+ */
+export function resolveSubmitOutcome(
+  result: SubmitResult,
+  questionIds: readonly string[],
+): SubmitClientOutcome {
+  if (result.ok) {
+    return {
+      kind: "success",
+      done: {
+        message: result.message || "Inscrição confirmada!",
+        editUrl: result.editUrl,
+        emailSent: Boolean(result.emailSent),
+      },
+    };
+  }
+
+  const isKnownField =
+    Boolean(result.field) &&
+    (result.field === "__consent" || questionIds.includes(result.field!));
+
+  if (isKnownField && result.field) {
+    const focusElementId =
+      result.field === "__consent" ? "consent-checkbox" : `field-${result.field}`;
+    return {
+      kind: "field_error",
+      errors: { [result.field]: result.error ?? "Resposta inválida." },
+      focusElementId,
+      clearHp: true,
+      keepAnswers: true,
+      refetchForm: false,
+      done: null,
+    };
+  }
+
+  return {
+    kind: "form_error",
+    errors: { __form: result.error ?? "Não foi possível enviar." },
+    clearHp: true,
+    keepAnswers: true,
+    refetchForm: true,
+    done: null,
   };
 }
