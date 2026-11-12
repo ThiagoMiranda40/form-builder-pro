@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { getSharedResponses } from "@/lib/share.functions";
+import { getSharedResponses, unlockSharedLink } from "@/lib/share.functions";
 import { ResponsesTable } from "@/components/ResponsesTable";
 import { ResponseDetailDialog } from "@/components/ResponseDetailDialog";
 import {
@@ -62,6 +62,7 @@ export const Route = createFileRoute("/c/$token")({
 function SharedResponsesPage() {
   const { token } = useParams({ from: "/c/$token" });
   const fetchSharedData = useServerFn(getSharedResponses);
+  const unlockSharedLinkFn = useServerFn(unlockSharedLink);
 
   const query = useQuery({
     queryKey: ["shared-responses", token],
@@ -73,6 +74,48 @@ function SharedResponsesPage() {
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [detailRow, setDetailRow] = useState<TableRow | null>(null);
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [code, setCode] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (query.data?.state !== "ok" && detailRow !== null) {
+      setDetailRow(null);
+    }
+  }, [query.data?.state, detailRow]);
+
+  const handleUnlockSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (unlocking) return;
+    setUnlocking(true);
+    setUnlockError(null);
+    try {
+      const res = await unlockSharedLinkFn({ data: { token, code } });
+      if (res.state === "ok") {
+        setCode("");
+        setUnlockError(null);
+        await query.refetch();
+        return;
+      }
+      if (res.state === "not_found") {
+        await query.refetch();
+        return;
+      }
+      if (res.state === "wrong_code") {
+        setUnlockError("Código incorreto. Confira e tente novamente.");
+        return;
+      }
+      if (res.state === "locked_out") {
+        setUnlockError("Muitas tentativas. Aguarde 15 minutos e tente de novo.");
+        return;
+      }
+      setUnlockError("Não foi possível verificar o código agora. Tente novamente.");
+    } catch {
+      setUnlockError("Não foi possível verificar o código agora. Tente novamente.");
+    } finally {
+      setUnlocking(false);
+    }
+  };
 
   if (query.isLoading) {
     return (
@@ -114,6 +157,69 @@ function SharedResponsesPage() {
           <p className="mt-3 text-sm text-muted-foreground">
             Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (query.data.state === "locked") {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="glass-strong rise w-full max-w-md rounded-2xl p-6 space-y-5 sm:p-8">
+          <div className="space-y-2 text-center">
+            <h1 className="font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Link protegido
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Digite o código de acesso que o organizador enviou para ver as inscrições.
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlockSubmit} className="space-y-4" noValidate>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="share-access-code"
+                className="block text-xs font-medium text-foreground"
+              >
+                Código de acesso
+              </label>
+              <input
+                id="share-access-code"
+                type="text"
+                autoFocus
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={code}
+                aria-invalid={Boolean(unlockError)}
+                aria-describedby={unlockError ? "share-access-code-error" : undefined}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  if (unlockError) setUnlockError(null);
+                }}
+                placeholder="Ex.: ABCDE23456"
+                className="w-full rounded-lg bg-white/90 px-3 py-2.5 font-mono text-sm tracking-widest uppercase ring-1 ring-black/10 focus:outline-none focus:ring-2 focus:ring-brand/50"
+              />
+            </div>
+
+            {unlockError && (
+              <p
+                id="share-access-code-error"
+                role="alert"
+                className="text-xs font-medium text-destructive"
+              >
+                {unlockError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={unlocking || code.trim().length === 0}
+              className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {unlocking ? "Verificando..." : "Acessar"}
+            </button>
+          </form>
         </div>
       </div>
     );

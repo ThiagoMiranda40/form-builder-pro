@@ -27,6 +27,11 @@ export type Database = {
           id: string
           max_responses: number | null
           owner_id: string
+          share_code_hash: string | null
+          share_code_salt: string | null
+          share_code_version: number
+          share_failed_attempts: number
+          share_locked_until: string | null
           share_token: string | null
           slug: string
           status: string
@@ -47,6 +52,11 @@ export type Database = {
           id?: string
           max_responses?: number | null
           owner_id: string
+          share_code_hash?: string | null
+          share_code_salt?: string | null
+          share_code_version?: number
+          share_failed_attempts?: number
+          share_locked_until?: string | null
           share_token?: string | null
           slug: string
           status?: string
@@ -67,6 +77,11 @@ export type Database = {
           id?: string
           max_responses?: number | null
           owner_id?: string
+          share_code_hash?: string | null
+          share_code_salt?: string | null
+          share_code_version?: number
+          share_failed_attempts?: number
+          share_locked_until?: string | null
           share_token?: string | null
           slug?: string
           status?: string
@@ -191,6 +206,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      share_register_failure: {
+        Args: {
+          p_form_id: string
+          p_max?: number
+          p_lock_minutes?: number
+        }
+        Returns: Json
+      }
       submit_response: {
         Args: {
           p_slug: string

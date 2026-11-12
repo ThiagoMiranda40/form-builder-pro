@@ -195,7 +195,13 @@ function Editor() {
     queryKey: ["form", id],
     queryFn: async () => {
       const [formRes, questionsRes] = await Promise.all([
-        supabase.from("forms").select("*").eq("id", id).single(),
+        supabase
+          .from("forms")
+          .select(
+            "id, title, description, slug, status, theme, max_responses, closes_at, consent_text, success_message, share_token, event_date, event_time, event_location",
+          )
+          .eq("id", id)
+          .single(),
         supabase.from("questions").select("*").eq("form_id", id).order("position"),
       ]);
       if (formRes.error) throw formRes.error;
@@ -559,9 +565,12 @@ function Editor() {
       </div>
 
       <div className="glass rounded-2xl p-4">
-        <label htmlFor="slug-input" className="text-xs font-medium text-muted-foreground">
-          Link de compartilhamento
+        <label htmlFor="slug-input" className="text-xs font-semibold text-slate-800">
+          Link público de inscrição
         </label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Compartilhe este link com quem vai se inscrever.
+        </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <div className="flex flex-1 min-w-[280px] items-center rounded-lg bg-white/80 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand/40">
             <span className="select-none rounded-l-lg bg-white/60 px-3 py-2 text-xs text-muted-foreground border-r border-black/5 whitespace-nowrap">

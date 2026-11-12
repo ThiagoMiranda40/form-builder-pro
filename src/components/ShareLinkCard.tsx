@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
 import { buildShareUrl } from "@/lib/share";
-import { createShareLink, revokeShareLink } from "@/lib/share.functions";
+import {
+  createShareLink,
+  regenerateAccessCode,
+  revokeShareLink,
+} from "@/lib/share.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,16 +31,54 @@ export function ShareLinkCard({
   onShareTokenChange,
 }: ShareLinkCardProps) {
   const [loading, setLoading] = useState(false);
-  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [isProtected, setIsProtected] = useState<boolean | null>(null);
+  const [oneTimeCode, setOneTimeCode] = useState<string | null>(null);
+  const [copyWarningVisible, setCopyWarningVisible] = useState(false);
+
+  const [showProtectDialog, setShowProtectDialog] = useState(false);
+  const [showRegenerateCodeDialog, setShowRegenerateCodeDialog] = useState(false);
+  const [showRegenerateLinkDialog, setShowRegenerateLinkDialog] = useState(false);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
 
   const createShareLinkFn = useServerFn(createShareLink);
+  const regenerateAccessCodeFn = useServerFn(regenerateAccessCode);
   const revokeShareLinkFn = useServerFn(revokeShareLink);
 
   const canonicalOrigin = ALLOWED_ORIGINS[0];
   const shareUrl = shareToken ? buildShareUrl(canonicalOrigin, shareToken) : "";
+  const skipNextStatusCheckRef = useRef(false);
 
-  const handleGenerate = async (regenerate?: boolean) => {
+  useEffect(() => {
+    if (!shareToken) {
+      setIsProtected(null);
+      setOneTimeCode(null);
+      setCopyWarningVisible(false);
+      return;
+    }
+    if (skipNextStatusCheckRef.current) {
+      skipNextStatusCheckRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    createShareLinkFn({ data: { formId, regenerate: false } })
+      .then((res) => {
+        if (cancelled || !res.ok) return;
+        if ("accessCode" in res) {
+          setIsProtected(true);
+          setOneTimeCode(res.accessCode);
+        } else {
+          setIsProtected(res.protected);
+        }
+      })
+      .catch(() => {
+        // Falha silenciosa na consulta de status; botões de ação continuam disponíveis
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [formId, shareToken, createShareLinkFn]);
+
+  const handleGenerateLink = async (regenerate?: boolean) => {
     setLoading(true);
     try {
       const res = await createShareLinkFn({
@@ -44,20 +86,56 @@ export function ShareLinkCard({
       });
 
       if (res.ok) {
+        skipNextStatusCheckRef.current = true;
+        if ("accessCode" in res) {
+          setIsProtected(true);
+          setOneTimeCode(res.accessCode);
+        } else {
+          setIsProtected(res.protected);
+          setOneTimeCode(null);
+        }
+        setCopyWarningVisible(false);
         onShareTokenChange?.(res.shareToken);
         toast.success(
           regenerate
-            ? "Novo link do cliente gerado!"
-            : "Link do cliente gerado com sucesso!"
+            ? "Novo link e código de acesso gerados!"
+            : "Link privado e código de acesso gerados!",
         );
       } else {
         toast.error(res.error || "Não foi possível gerar o link.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Erro ao gerar o link do cliente.");
     } finally {
       setLoading(false);
-      setShowRegenerateDialog(false);
+      setShowRegenerateLinkDialog(false);
+    }
+  };
+
+  const handleRegenerateCode = async (wasLegacy?: boolean) => {
+    setLoading(true);
+    try {
+      const res = await regenerateAccessCodeFn({
+        data: { formId },
+      });
+
+      if (res.ok) {
+        setIsProtected(true);
+        setOneTimeCode(res.accessCode);
+        toast.success(
+          wasLegacy
+            ? "Link protegido com código de acesso!"
+            : "Novo código de acesso gerado!",
+        );
+      } else {
+        toast.error(res.error || "Não foi possível gerar o código de acesso.");
+      }
+    } catch {
+      toast.error("Erro ao gerar o código de acesso.");
+    } finally {
+      setLoading(false);
+      setShowProtectDialog(false);
+      setShowRegenerateCodeDialog(false);
     }
   };
 
@@ -69,12 +147,15 @@ export function ShareLinkCard({
       });
 
       if (res.ok) {
+        setIsProtected(null);
+        setOneTimeCode(null);
+        setCopyWarningVisible(false);
         onShareTokenChange?.(null);
         toast.success("Link do cliente desativado.");
       } else {
         toast.error(res.error || "Não foi possível desativar o link.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Erro ao desativar o link do cliente.");
     } finally {
       setLoading(false);
@@ -82,27 +163,52 @@ export function ShareLinkCard({
     }
   };
 
-  const handleCopy = async () => {
+  const handleCopyLink = async () => {
     if (!shareUrl) return;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copiado!");
-    } catch (err) {
+      setCopyWarningVisible(true);
+      toast.warning(
+        "Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável.",
+      );
+    } catch {
       toast.error("Não foi possível copiar o link.");
     }
   };
 
+  const handleCopyCode = async () => {
+    if (!oneTimeCode) return;
+    try {
+      await navigator.clipboard.writeText(oneTimeCode);
+      toast.success("Código de acesso copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o código.");
+    }
+  };
+
   return (
-    <div className="glass rounded-2xl p-4 mt-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-        <h3 className="text-xs font-semibold text-slate-800">
-          Link do cliente (somente leitura)
-        </h3>
+    <div className="rounded-2xl bg-amber-50/90 p-4 mt-4 ring-1 ring-amber-300/80">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-200/80 text-xs font-bold text-amber-950"
+          >
+            🔒
+          </span>
+          <h3 className="text-xs font-semibold text-amber-950">
+            Link privado do cliente
+          </h3>
+        </div>
+        {shareToken && isProtected === true && (
+          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-medium text-emerald-900 ring-1 ring-emerald-300">
+            Link protegido por código de acesso
+          </span>
+        )}
       </div>
 
-      <p className="mt-1 text-xs text-slate-600">
-        Quem tiver este link vê todas as inscrições, inclusive CPF, e-mail e telefone,
-        mas não consegue alterar nada. Compartilhe só com quem precisa.
+      <p className="mt-1.5 text-xs text-amber-900/90">
+        Mostra os dados dos inscritos. Compartilhe só com o responsável, junto com o código de acesso, de preferência por outro canal.
       </p>
 
       {!shareToken ? (
@@ -110,8 +216,8 @@ export function ShareLinkCard({
           <button
             type="button"
             disabled={loading}
-            onClick={() => handleGenerate(false)}
-            className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90 disabled:opacity-60"
+            onClick={() => handleGenerateLink(false)}
+            className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90 disabled:opacity-60 cursor-pointer"
           >
             {loading ? "Gerando link..." : "Gerar link do cliente"}
           </button>
@@ -123,13 +229,13 @@ export function ShareLinkCard({
               type="text"
               readOnly
               value={shareUrl}
-              aria-label="URL do link do cliente"
-              className="min-w-[260px] flex-1 rounded-lg bg-white/80 px-3 py-2 text-xs ring-1 ring-black/5 select-all focus:outline-none focus:ring-2 focus:ring-brand/40"
+              aria-label="URL do link privado do cliente"
+              className="min-w-[260px] flex-1 rounded-lg bg-white/95 px-3 py-2 text-xs ring-1 ring-amber-300/80 select-all focus:outline-none focus:ring-2 focus:ring-brand/40"
             />
             <button
               type="button"
-              onClick={handleCopy}
-              className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90"
+              onClick={handleCopyLink}
+              className="rounded-lg bg-brand px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-brand/90 cursor-pointer"
             >
               Copiar
             </button>
@@ -137,26 +243,102 @@ export function ShareLinkCard({
               href={shareUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-white/70 px-3 py-2 text-xs font-medium ring-1 ring-black/5 hover:bg-white"
+              className="rounded-lg bg-white/90 px-3 py-2 text-xs font-medium text-amber-950 ring-1 ring-amber-300/80 hover:bg-white"
             >
               Abrir
             </a>
           </div>
 
+          {copyWarningVisible && (
+            <p
+              role="status"
+              className="rounded-lg bg-amber-100/90 px-3 py-2 text-xs font-medium text-amber-950 ring-1 ring-amber-300"
+            >
+              Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável.
+            </p>
+          )}
+
+          {oneTimeCode && (
+            <div
+              role="region"
+              aria-label="Código de acesso recém-gerado"
+              className="rounded-xl bg-white p-3.5 ring-2 ring-amber-400 space-y-2"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wider text-amber-900">
+                    Código de acesso
+                  </span>
+                  <code className="block font-mono text-base font-bold tracking-widest text-slate-900 select-all">
+                    {oneTimeCode}
+                  </code>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-brand/90 cursor-pointer"
+                  >
+                    Copiar código
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOneTimeCode(null)}
+                    className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 cursor-pointer"
+                  >
+                    Já anotei
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-amber-950">
+                Anote ou envie agora. Este código não aparece de novo. Se perder, gere um novo código: o link continua o mesmo, mas quem já entrou precisará digitar o novo código.
+              </p>
+            </div>
+          )}
+
+          {isProtected === false && !oneTimeCode && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-100/90 p-3 ring-1 ring-amber-300"
+            >
+              <p className="text-xs font-medium text-amber-950">
+                Este link não tem código de acesso. Quem tiver o endereço vê os dados.
+              </p>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setShowProtectDialog(true)}
+                className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-950 disabled:opacity-60 cursor-pointer"
+              >
+                Proteger com código
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2 pt-1">
+            {isProtected !== false && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setShowRegenerateCodeDialog(true)}
+                className="rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-medium text-slate-800 ring-1 ring-amber-300/80 hover:bg-white disabled:opacity-60 cursor-pointer"
+              >
+                Gerar novo código
+              </button>
+            )}
             <button
               type="button"
               disabled={loading}
-              onClick={() => setShowRegenerateDialog(true)}
-              className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-black/5 hover:bg-white disabled:opacity-60"
+              onClick={() => setShowRegenerateLinkDialog(true)}
+              className="rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-medium text-slate-800 ring-1 ring-amber-300/80 hover:bg-white disabled:opacity-60 cursor-pointer"
             >
-              Gerar novo link
+              Gerar novo link e código
             </button>
             <button
               type="button"
               disabled={loading}
               onClick={() => setShowRevokeDialog(true)}
-              className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-black/5 hover:bg-red-50 disabled:opacity-60"
+              className="rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-medium text-destructive ring-1 ring-amber-300/80 hover:bg-red-50 disabled:opacity-60 cursor-pointer"
             >
               Desativar link
             </button>
@@ -164,20 +346,68 @@ export function ShareLinkCard({
         </div>
       )}
 
-      {/* Diálogo de confirmação para Regenerar Link */}
-      <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+      {/* Diálogo de confirmação para Proteger com código (link legado) */}
+      <AlertDialog open={showProtectDialog} onOpenChange={setShowProtectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Gerar novo link do cliente?</AlertDialogTitle>
+            <AlertDialogTitle>Proteger este link com código de acesso?</AlertDialogTitle>
             <AlertDialogDescription>
-              O link atual deixará de funcionar na hora. Continuar?
+              O endereço do link continuará o mesmo, mas quem acessar precisará digitar o código de acesso que será gerado agora. Continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               disabled={loading}
-              onClick={() => handleGenerate(true)}
+              onClick={() => handleRegenerateCode(true)}
+            >
+              {loading ? "Protegendo..." : "Proteger com código"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmação para Gerar novo código */}
+      <AlertDialog
+        open={showRegenerateCodeDialog}
+        onOpenChange={setShowRegenerateCodeDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gerar novo código de acesso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O endereço do link continuará o mesmo, mas o código anterior deixará de funcionar e quem já tinha aberto precisará digitar o novo código. Continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={loading}
+              onClick={() => handleRegenerateCode(false)}
+            >
+              {loading ? "Gerando..." : "Continuar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmação para Gerar novo link e código */}
+      <AlertDialog
+        open={showRegenerateLinkDialog}
+        onOpenChange={setShowRegenerateLinkDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gerar novo link e código?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O link e o código atuais deixarão de funcionar na hora. Continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={loading}
+              onClick={() => handleGenerateLink(true)}
             >
               {loading ? "Gerando..." : "Continuar"}
             </AlertDialogAction>

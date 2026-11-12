@@ -337,6 +337,75 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(finallyBlock).toContain("isSubmittingRef.current = false");
     expect(finallyBlock).toContain("setSending(false)");
   });
+
+  it("c.$token.tsx, ShareLinkCard.tsx, editor e share satisfazem os requisitos de T-44 (M-44)", () => {
+    const clientRoutePath = path.join(rootDir, "src/routes/c.$token.tsx");
+    const clientContent = fs.readFileSync(clientRoutePath, "utf-8");
+
+    const shareCardPath = path.join(rootDir, "src/components/ShareLinkCard.tsx");
+    const shareCardContent = fs.readFileSync(shareCardPath, "utf-8");
+
+    const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+    const editorContent = fs.readFileSync(editorPath, "utf-8");
+
+    const sharePath = path.join(rootDir, "src/lib/share.ts");
+    const shareContent = fs.readFileSync(sharePath, "utf-8");
+
+    const shareFnPath = path.join(rootDir, "src/lib/share.functions.ts");
+    const shareFnContent = fs.readFileSync(shareFnPath, "utf-8");
+
+    // 1. c.$token.tsx trata o estado locked, mantém noindex e no-referrer e contém os textos literais
+    expect(clientContent).toContain('"locked"');
+    expect(clientContent).toContain("noindex, nofollow");
+    expect(clientContent).toContain("no-referrer");
+    expect(clientContent).toContain('autoComplete="off"');
+    expect(clientContent).toContain('role="alert"');
+    expect(clientContent).toContain("Link protegido");
+    expect(clientContent).toContain(
+      "Digite o código de acesso que o organizador enviou para ver as inscrições.",
+    );
+    expect(clientContent).toContain("Código de acesso");
+    expect(clientContent).toContain("Acessar");
+    expect(clientContent).toContain("Código incorreto. Confira e tente novamente.");
+    expect(clientContent).toContain(
+      "Muitas tentativas. Aguarde 15 minutos e tente de novo.",
+    );
+    expect(clientContent).toContain(
+      "Não foi possível verificar o código agora. Tente novamente.",
+    );
+
+    // 2. Editor e ShareLinkCard contêm os textos literais de rótulo e de código e NÃO usam confirm(
+    expect(editorContent).toContain("Link público de inscrição");
+    expect(editorContent).toContain("Compartilhe este link com quem vai se inscrever.");
+    expect(editorContent).not.toContain('from("forms").select("*")');
+
+    expect(shareCardContent).toContain("Link privado do cliente");
+    expect(shareCardContent).toContain(
+      "Mostra os dados dos inscritos. Compartilhe só com o responsável, junto com o código de acesso, de preferência por outro canal.",
+    );
+    expect(shareCardContent).toContain(
+      "Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável.",
+    );
+    expect(shareCardContent).toContain("Copiar código");
+    expect(shareCardContent).toContain(
+      "Anote ou envie agora. Este código não aparece de novo. Se perder, gere um novo código: o link continua o mesmo, mas quem já entrou precisará digitar o novo código.",
+    );
+    expect(shareCardContent).toContain("Link protegido por código de acesso");
+    expect(shareCardContent).toContain("Gerar novo código");
+    expect(shareCardContent).toContain("Gerar novo link e código");
+    expect(shareCardContent).toContain("Desativar link");
+    expect(shareCardContent).toContain(
+      "Este link não tem código de acesso. Quem tiver o endereço vê os dados.",
+    );
+    expect(shareCardContent).toContain("Proteger com código");
+    expect(shareCardContent).not.toContain("confirm(");
+    expect(shareCardContent).not.toContain("window.confirm");
+
+    // 3. Path=/ no cookie (nunca Path=/c/)
+    const combinedShareServer = shareContent + "\n" + shareFnContent;
+    expect(combinedShareServer).toContain("Path=/");
+    expect(combinedShareServer).not.toContain("Path=/c/");
+  });
 });
 
 
