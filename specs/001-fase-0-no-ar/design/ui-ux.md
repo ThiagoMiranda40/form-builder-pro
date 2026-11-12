@@ -997,7 +997,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
   - Quando `getSharedResponses` retorna `{ state: "locked" }`, nenhum dado do formulário (nem título, nem perguntas, nem respostas) é exibido ou trafegado.
   - Exibe cartão centralizado (`glass-strong rise w-full max-w-md rounded-2xl p-6 sm:p-8`) com:
     - Título (`<h1>`): `"Link protegido"`
-    - Texto: `"Digite o código de acesso que o organizador enviou para ver as inscrições."`
+    - Texto: `"Digite o código de acesso que o administrador enviou para ver as inscrições."`
     - Campo de texto com `<label htmlFor="share-access-code">`: `"Código de acesso"`, `autoFocus`, `autoComplete="off"`, `autoCapitalize="characters"`, `spellCheck={false}`.
     - Botão de envio: `"Acessar"` (desabilitado enquanto verifica ou se o campo estiver vazio).
     - Mensagens de erro exibidas com `role="alert"`:

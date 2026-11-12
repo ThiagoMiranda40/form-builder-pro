@@ -362,7 +362,7 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
     expect(clientContent).toContain('role="alert"');
     expect(clientContent).toContain("Link protegido");
     expect(clientContent).toContain(
-      "Digite o código de acesso que o organizador enviou para ver as inscrições.",
+      "Digite o código de acesso que o administrador enviou para ver as inscrições.",
     );
     expect(clientContent).toContain("Código de acesso");
     expect(clientContent).toContain("Acessar");

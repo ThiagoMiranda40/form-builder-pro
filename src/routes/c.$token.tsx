@@ -171,7 +171,7 @@ function SharedResponsesPage() {
               Link protegido
             </h1>
             <p className="text-sm text-muted-foreground">
-              Digite o código de acesso que o organizador enviou para ver as inscrições.
+              Digite o código de acesso que o administrador enviou para ver as inscrições.
             </p>
           </div>
 
