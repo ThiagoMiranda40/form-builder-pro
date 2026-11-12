@@ -102,6 +102,8 @@ DECLARE
   v_deferred integer;
   v_batch_id uuid;
 BEGIN
+  -- Serializa o orçamento global de 24 h (sempre adquirido antes da trava por formulário)
+  PERFORM pg_advisory_xact_lock(hashtext('invite_create_batch:budget'));
   -- Serializa chamadas concorrentes para o mesmo formulário na mesma transação
   PERFORM pg_advisory_xact_lock(hashtext(p_form_id::text));
 
@@ -136,6 +138,15 @@ BEGIN
       FROM public.responses AS r
      WHERE r.form_id = p_form_id
        AND r.id = ANY(p_response_ids)
+       AND NOT EXISTS (
+         SELECT 1
+           FROM public.invite_deliveries AS dp
+           JOIN public.invite_batches AS bp ON bp.id = dp.batch_id
+          WHERE dp.response_id = r.id
+            AND dp.channel = 'email'
+            AND dp.state = 'pending'
+            AND bp.status = 'open'
+       )
        AND (
          coalesce(p_resend, false)
          OR NOT EXISTS (
@@ -224,3 +235,4 @@ $$;
 
 REVOKE ALL ON FUNCTION public.invite_create_batch(uuid, text, uuid[], integer, integer, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.invite_create_batch(uuid, text, uuid[], integer, integer, boolean) TO service_role;
+

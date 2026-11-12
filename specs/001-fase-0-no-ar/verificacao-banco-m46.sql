@@ -274,9 +274,53 @@ SELECT pg_temp.chk(
   'too_soon'
 );
 
--- Recua o lote de 47 para 11 minutos atrás e marca suas entregas como sent (há 2 dias para testar reenvio isolado)
+-- Recua apenas o created_at do lote 'open' (que tem 47 entregas pending) para 11 minutos atrás
 UPDATE public.invite_batches
-SET created_at = now() - interval '11 minutes', status = 'done', sent = 47
+SET created_at = now() - interval '11 minutes'
+WHERE id = ((current_setting('app.res_47')::jsonb)->>'batch_id')::uuid;
+
+-- Com lote 'open' e entregas pending para as 47 pessoas (> 10 min depois), p_resend=false e p_resend=true devolvem nobody_eligible
+INSERT INTO pg_temp.resultados_m46(linha)
+SELECT pg_temp.chk(
+  'QA-46-04: com lote open e entregas pending (> 10 min), p_resend=false para as mesmas pessoas devolve nobody_eligible',
+  (SELECT (public.invite_create_batch(
+    current_setting('app.form_m46')::uuid,
+    'admin:' || current_setting('app.owner'),
+    ARRAY(
+      SELECT response_id
+      FROM public.invite_deliveries
+      WHERE batch_id = ((current_setting('app.res_47')::jsonb)->>'batch_id')::uuid
+      ORDER BY response_id
+    ),
+    10,
+    80,
+    false
+  ))->>'reason'),
+  'nobody_eligible'
+);
+
+INSERT INTO pg_temp.resultados_m46(linha)
+SELECT pg_temp.chk(
+  'QA-46-04: com lote open e entregas pending (> 10 min), p_resend=true para as mesmas pessoas devolve nobody_eligible',
+  (SELECT (public.invite_create_batch(
+    current_setting('app.form_m46')::uuid,
+    'admin:' || current_setting('app.owner'),
+    ARRAY(
+      SELECT response_id
+      FROM public.invite_deliveries
+      WHERE batch_id = ((current_setting('app.res_47')::jsonb)->>'batch_id')::uuid
+      ORDER BY response_id
+    ),
+    10,
+    80,
+    true
+  ))->>'reason'),
+  'nobody_eligible'
+);
+
+-- Conclui o lote de 47 (status = 'done') e marca suas entregas como sent (há 2 dias para testar reenvio isolado)
+UPDATE public.invite_batches
+SET status = 'done', sent = 47
 WHERE id = ((current_setting('app.res_47')::jsonb)->>'batch_id')::uuid;
 
 UPDATE public.invite_deliveries
@@ -476,6 +520,17 @@ SELECT pg_temp.chk(
   'true'
 );
 
+INSERT INTO pg_temp.resultados_m46(linha)
+SELECT pg_temp.chk(
+  'QA-46-06/07: invite_create_batch contém trava global invite_create_batch:budget',
+  (
+    SELECT (prosrc LIKE '%invite_create_batch:budget%')::text
+    FROM pg_proc
+    WHERE oid = 'public.invite_create_batch(uuid,text,uuid[],integer,integer,boolean)'::regprocedure
+  ),
+  'true'
+);
+
 -- ===== Resultado final (uma única tabela) =====
 SELECT resultado FROM (
   SELECT n, linha AS resultado FROM pg_temp.resultados_m46
@@ -488,3 +543,4 @@ SELECT resultado FROM (
 ) r ORDER BY n;
 
 ROLLBACK;
+
