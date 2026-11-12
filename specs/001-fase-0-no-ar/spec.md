@@ -95,6 +95,64 @@ Como administrador, quero que o link privado de acompanhamento do cliente (`/c/{
 - No painel do formulário, os cartões diferenciam claramente `"Link público de inscrição"` (visual neutro) e `"Link privado do cliente"` (visual de alerta âmbar, com aviso ao copiar: `"Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável."`).
 - O link público de inscrição (`/{slug}`) e o fluxo de inscrição não sofrem alterações. A visão do cliente após desbloqueio continua exibindo os dados completos (sem máscara de CPF/RG nesta etapa).
 
+## O quê e por quê (M-46)
+
+O cliente (assessoria de corrida) monta, a cada evento, um grupo de WhatsApp para passar as informações da semana. Com 57 inscritos, isso significa salvar 57 contatos e adicionar um a um. O WhatsApp não permite que um sistema crie o grupo e adicione pessoas sem arriscar o número do cliente; o que o sistema pode fazer com segurança é **entregar o convite**: o cliente cria o grupo uma vez, cola o link no sistema, e o sistema o distribui por e-mail em lote, na tela de confirmação, por um botão de WhatsApp por inscrito e por um arquivo de contatos. Administrador e cliente (pelo link protegido por código) têm as mesmas funções.
+
+
+### RF-17 — Link do grupo do WhatsApp no formulário
+Como administrador, quero informar o link do grupo do WhatsApp do evento, para que o sistema o distribua.
+**Critério de aceite:** Dado um formulário, quando informo um endereço de convite de grupo do WhatsApp no formato `https://chat.whatsapp.com/<código>` (até 200 caracteres), então ele é salvo. Endereço de outro site, com `http`, com espaços, com `@` ou fora desse formato é recusado com a mensagem `Cole o endereço completo do convite do grupo, que começa com https://chat.whatsapp.com/`. Campo vazio é permitido e remove o link.
+
+### RF-18 — Link do grupo na confirmação de inscrição
+Como inscrito, quero receber o link do grupo ao me inscrever, para entrar se eu quiser.
+**Critério de aceite:** Dado um formulário com link do grupo, quando uma inscrição é concluída, então a tela de confirmação e o e-mail de confirmação mostram o botão `Entrar no grupo de avisos do evento`. Sem link configurado, nada muda. O link do grupo não aparece em nenhuma tela antes da inscrição ser concluída.
+
+### RF-19 — Convite por e-mail em lote
+Como administrador ou cliente, quero enviar o convite do grupo por e-mail a todos os inscritos com um clique, para não chamar um por um.
+**Critério de aceite:** Dado um formulário com link do grupo e N inscritos com e-mail válido, quando aciono `Enviar convite por e-mail` e confirmo o resumo com a quantidade de destinatários, então cada inscrito recebe um e-mail só dele (sem mostrar outros inscritos) com o link, e o envio é registrado (quem enviou, quando, quantos). Quem já recebeu não recebe de novo, salvo ação explícita `Reenviar`. O envio mostra progresso. Se o envio for interrompido, o painel mostra quantos ficaram pendentes e permite continuar sem repetir quem já recebeu.
+**Limites visíveis:** no máximo um envio em lote por formulário a cada 10 minutos; o sistema respeita um teto diário de convites (80 por dia no total, valor inicial) e, quando só cabem alguns, envia o que couber e avisa quantos ficam para o dia seguinte (`Hoje cabem {n} envios. Os outros {m} ficam para continuar amanhã.`).
+
+### RF-20 — Convidar pelo WhatsApp, inscrito por inscrito
+Como cliente, quero um botão por inscrito que abre o WhatsApp dele com a mensagem pronta, para convidar quem não leu o e-mail, sem salvar o contato.
+**Critério de aceite:** Dado um inscrito com celular válido, quando toco em `Convidar`, então abre o WhatsApp com a conversa daquele número e a mensagem pronta contendo o link do grupo. A mensagem vem em 5 variações de redação (todas com o nome e o link), sorteadas de forma estável por inscrito (o mesmo inscrito sempre recebe a mesma variação), para que as mensagens não sejam idênticas. A mensagem é editável antes (a edição vale só para esse uso no aparelho, substitui as variações por um texto único e nunca vai para o e-mail). Inscrito sem celular válido aparece sem botão.
+
+### RF-21 — Quem já foi convidado
+Como cliente, quero ver quem já foi convidado (por e-mail ou pelo botão do WhatsApp), para não repetir.
+**Critério de aceite:** Dado que o e-mail foi enviado ou toquei em `Convidar`, então a linha mostra `Convidado em <data>`; o filtro `Ainda não convidados` lista só quem falta. Se o registro falhar, o WhatsApp abre do mesmo jeito e a linha apenas não muda.
+
+### RF-22 — Baixar contatos (última prioridade da M-46, T-55)
+Como cliente, quero baixar os contatos dos inscritos num arquivo, para importar na agenda de uma vez se eu preferir adicionar manualmente.
+**Critério de aceite:** Dado N inscritos com celular válido, quando toco em `Baixar contatos (.vcf)`, então baixo um arquivo com N contatos (nome e telefone com +55) que abre no Android e no iPhone. Nomes com caracteres especiais não alteram nem criam campos no contato.
+
+### RF-23 — Mesmas funções no link privado do cliente
+Como cliente, quero usar RF-19 a RF-22 pelo meu link protegido por código.
+**Critério de aceite:** Dado um link com código de acesso e sessão válida, as funções estão disponíveis. Sem sessão válida, nenhuma é acessível (continua a tela `Link protegido`). Em link antigo sem código, o painel mostra só a leitura e o texto `Para enviar convites por aqui, peça ao administrador para proteger este link com código.`
+
+### RF-24 — Cliente informa o link do grupo
+Como cliente, quero colar eu mesmo o link do grupo no meu painel, sem depender do administrador.
+**Critério de aceite:** Dado sessão válida em link protegido, quando colo um link válido (regra do RF-17), então o campo do formulário é atualizado e a alteração fica registrada com data e autoria `cliente via link`. Os e-mails já enviados mantêm o link antigo.
+
+### RF-25 — Aviso no formulário público
+Como inscrito, quero saber que receberei o convite do grupo antes de me inscrever.
+**Critério de aceite:** Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
+
+## Ordem de entrega (decisão do dono, 12/11/2026)
+1. **Administrador primeiro:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.
+2. **Cliente depois, antes da próxima corrida:** RF-23 e RF-24.
+3. **Por último:** RF-22 (arquivo de contatos).
+
+## Qualidade e privacidade (nível da spec, sem tecnologia)
+- Nenhum envio mostra a lista de outros inscritos nem seus telefones (RNF-02 do PRD).
+- Nenhuma automação do WhatsApp do cliente: o sistema só abre links (RNF-01).
+- Convites usam só a cota gratuita de e-mail; ao esgotar, avisam e continuam depois (RNF-03).
+- Cada envio registra autoria, data, quantidade e resultado (RNF-05).
+- O e-mail informa por que a pessoa o recebeu e como pedir para não receber mais mensagens do evento (RNF-06; **texto final depende do advogado**, DP pendente).
+- 57 inscritos: envio concluído em até 60 segundos, com progresso na tela (RNF-07).
+
+## Fora de escopo (M-46)
+Adicionar pessoas ao grupo automaticamente; criar o grupo pelo sistema; saber quem entrou no grupo; Canal do WhatsApp automatizado; descadastro automático (EV-04, só com gatilho); máscara de CPF/RG (M-45).
+
 ## Fora de escopo (produto)
 
 Data/hora de **abertura**, excluir resposta pela tela, upload de logotipo, duplicar formulário, busca na tabela, captcha, reenvio do link pelo próprio inscrito, pré-visualização no editor, quiz com nota, mais de um administrador, confirmar que o CPF existe na Receita, lógica condicional, upload de arquivos pelo inscrito, redirecionamento de endereços antigos (nada está em produção ainda).
@@ -112,3 +170,8 @@ Data/hora de **abertura**, excluir resposta pela tela, upload de logotipo, dupli
 3. **Vagas:** formulário com 3 vagas recebe 10 envios ao mesmo tempo; entram exatamente 3.
 4. **Endereço legível no subdomínio:** `inscricoes.<domínio>/skf-corrida-track-field` abre o formulário no celular; trocar o endereço no painel faz o antigo deixar de funcionar e o novo funcionar; o link de edição enviado antes continua funcionando.
 5. **Só eu entro:** tentar criar uma conta é recusado; sem login, não se lê nenhuma inscrição.
+6. **Convite em lote:** formulário de teste com 57 inscritos de e-mails de teste; colo o link do grupo, confirmo o resumo e o envio conclui em até 60 s com progresso; cada caixa recebe 1 e-mail só com o próprio convite.
+7. **Duplo toque e retomada:** dois toques seguidos em `Enviar convite` criam um só envio; derrubo a conexão no meio e `Continuar envio` termina sem repetir ninguém.
+8. **Link antigo não dispara:** com o link do cliente sem código, o painel mostra só leitura; depois de `Proteger com código` e do desbloqueio, os botões aparecem.
+9. **Convidar por WhatsApp:** toco em `Convidar` num inscrito e abre a conversa certa com a mensagem pronta; a linha vira `Convidado em <data>`.
+10. **Confirmação:** nova inscrição no formulário de teste mostra `Entrar no grupo de avisos do evento` na tela e no e-mail.

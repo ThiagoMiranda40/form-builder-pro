@@ -25,6 +25,7 @@ Nesta máquina, use os comandos equivalentes da seção Comandos do AGENTS.md (o
 | Edição | T-11 |
 | Administração | T-12, T-13 |
 | Fechamento | T-14 🧑 |
+| M-46 Convite em lote (ordem de execução na seção própria) | T-45 🧑, T-46, T-47, T-48, T-50, T-52, T-51, T-49, T-53, T-55, T-54 🧑 |
 
 ---
 
@@ -832,6 +833,210 @@ Critérios de Aceite:
 - **Parte 2 — painel:** rótulos e cores distintos para `Link público de inscrição` (neutro) e `Link privado do cliente` (alerta âmbar), aviso ao copiar o link privado, exibição única do código com botão `Copiar código`, botões `Gerar novo código`, `Gerar novo link e código`, `Desativar link` e `Proteger com código` (para links legado), sempre com diálogo interno (`AlertDialog`, nunca `confirm()`).
 - **Arquivos tocados:** `supabase/migrations/20261112090000_codigo_de_acesso_do_link_do_cliente.sql`, `src/integrations/supabase/types.ts`, `src/lib/share.ts`, `src/lib/share.test.ts`, `src/lib/share.functions.ts`, `src/lib/share.functions.test.ts`, `src/routes/c.$token.tsx`, `src/components/ShareLinkCard.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`.
 - **Critérios de aceite:** QA-44-01 a QA-44-15 cumpridos; sem sessão válida nenhuma resposta nem título são entregues em links protegidos; código errado devolve mensagem neutra; 5 erros bloqueiam por 15 minutos; sessão expirada ou versão divergente volta à tela de desbloqueio; links legado seguem abrindo até serem protegidos; o link público de inscrição não é afetado; nenhum log registra token completo, código ou cookie.
+
+---
+
+## M-46 — Convite em lote para o grupo do WhatsApp (T-45 a T-55)
+
+> **M-46, prioridade máxima do dono (12/11/2026):** passa à frente de T-28, T-29, T-30 e T-33. Comandos de verificação de toda tarefa: `bunx tsc --noEmit` · `bun run test` · `bun run build` (equivalentes do `AGENTS.md` nesta máquina). Lint não é critério. Toda tarefa: `git diff --stat -- package.json bun.lock` vazio (ARQ-01, QA-46-25). 🧑 = passo manual do dono. ⚖ = revisão obrigatória por segunda sessão (T-45, T-48, T-49). Documentos da feature: `m46/prd-m46-grupo-whatsapp.md`, `docs/arquitetura/architecture.md`, `docs/arquitetura/adr/`, `qa-plan.md` seção 15, `seguranca.md` seção 9 (SEC-37 a SEC-48), `design/ui-ux.md` seção 12 (Telas H a K).
+
+**Ordem de execução (decisão do dono, 12/11/2026: administrador primeiro, e-mail antes do botão individual, cliente depois, arquivo de contatos por último).** Os números das tarefas não seguem a ordem; siga esta tabela.
+
+| Ordem | Tarefa | Depende de | Entrega |
+|---|---|---|---|
+| 1 | T-45 🧑 ⚖ Banco | — | |
+| 2 | T-46 Núcleo puro | — (pode andar junto com a T-45: arquivos diferentes) | |
+| 3 | T-47 E-mail em lote | T-46 | |
+| 4 | T-48 ⚖ Servidor do administrador | T-45 aplicada, T-46, T-47 | |
+| 5 | T-50 Campo no editor | T-46 | |
+| 6 | T-52 Painel do administrador (e-mail + botão por inscrito) | T-48, T-50 | |
+| 7 | T-51 Confirmação e aviso | T-46, T-50 | **Marco 1: administrador usa** (após prova da T-54 parte A) |
+| 8 | T-49 ⚖ Servidor do cliente | T-48 | |
+| 9 | T-53 Painel do cliente | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
+| 10 | T-55 Baixar contatos (.vcf) | T-52 | Marco 3 |
+| — | T-54 🧑 Prova na prévia (partes A, B e C) | ver cada parte | |
+
+---
+
+## T-45 — Banco: link do grupo, lotes e entregas de convite (M-46) 🧑 ⚖
+
+- **Estado:** a fazer.
+- **Ler:** `spec.md RF-17, RF-19, RF-21; data-model.md (seção T-45); architecture.md 3.3, 3.4, 4.1 ARQ-02, ARQ-05; ADR-003; ADR-005; seguranca.md SEC-39, SEC-41; qa-plan.md QA-46-02 a QA-46-07`.
+- **Objetivo:** criar a base de dados da M-46 fechada ao acesso direto e com a regra de limite decidida pelo próprio banco.
+- **Primeiro passo (base):** registrar a saída real de `bunx tsc --noEmit`, `bun run test` e `bun run build` antes de qualquer alteração (linha de base). Falha preexistente é reportada, não corrigida.
+- **Especificações complementares (já decididas):** nomes e colunas exatamente como em `data-model.md`; `CHECK` do link com a regex `^https://chat\.whatsapp\.com/[A-Za-z0-9]+$` e `char_length(whatsapp_group_link) <= 200`; razões de recusa da função: `no_link`, `too_soon`, `budget_exhausted`, `nobody_eligible`; `invite_create_batch` devolve `jsonb`; padrão do intervalo 10 e do orçamento 80 vêm como parâmetros (o servidor os lê das variáveis de ambiente). Nada de dado pessoal nas tabelas novas.
+- **TDD:** escrever primeiro `verificacao-banco-m46.sql` (casos que falham sem a migração) e `verificacao-concorrencia-m46.mjs` (duas chamadas simultâneas a `invite_create_batch` para o mesmo formulário: exatamente um lote criado); depois a migração.
+- **Arquivos (lista fechada):** `supabase/migrations/20261113090000_convite_em_lote_grupo_whatsapp.sql`, `specs/001-fase-0-no-ar/verificacao-banco-m46.sql`, `specs/001-fase-0-no-ar/verificacao-concorrencia-m46.mjs`, `src/integrations/supabase/types.ts` (edição manual das novas colunas e tabelas, sem regenerar por CLI), `specs/001-fase-0-no-ar/tasks.md` (só o estado da T-45), `specs/001-fase-0-no-ar/data-model.md` (só o resultado real da verificação do banco, se divergir do desenhado).
+- **Verificação:** comandos padrão verdes; o relatório traz o SQL completo da migração como bloco copiável "Passo 0 — aplicar no Supabase SQL Editor", e depois que o dono aplicar, a saída de `verificacao-banco-m46.sql` e de `verificacao-concorrencia-m46.mjs` colada no relatório.
+- **O que isso prova:** o banco recusa link de grupo inválido, ninguém de fora lê nem escreve as tabelas de convite, e dois cliques simultâneos não furam o limite.
+- **🧑 Manual:** aplicar a migração no SQL Editor (prévia e produção usam o mesmo banco); rodar os dois arquivos de verificação e colar a saída.
+- **Critérios de aceite:** QA-46-02 a QA-46-07 verdes; `REVOKE` e RLS presentes nas duas tabelas e na função; `package.json` e `bun.lock` sem diff.
+
+---
+
+## T-46 — Núcleo puro: link do grupo, mensagens variadas, wa.me, elegíveis (M-46)
+
+- **Estado:** a fazer.
+- **Ler:** `spec.md RF-17, RF-20; architecture.md 4.1 ARQ-04, ARQ-07; ADR-004; seguranca.md SEC-38, SEC-48; qa-plan.md QA-46-01, QA-46-17, QA-46-29`.
+- **Objetivo:** concentrar em funções puras tudo o que não toca rede, banco ou cookie.
+- **Especificações complementares:**
+  - `validateGroupLink(input: unknown): { ok: true; link: string } | { ok: false }`: aceita só `^https://chat\.whatsapp\.com/[A-Za-z0-9]+$` com até 200 caracteres, após `trim`; vazio = `{ok:true, link:""}` tratado pelo chamador como "remover". Recusa: outro domínio, `http`, subdomínio extra, `@`, espaço interno, barra final extra, parâmetros `?`, texto com quebra de linha.
+  - `INVITE_MESSAGE_VARIANTS`: 5 redações em português do Brasil, todas com `{primeiro nome}`, `{título}` (cortado em 80 caracteres) e `{link}`, por exemplo a primeira: `Oi, {primeiro nome}! Aqui é a organização de "{título}". Entre no nosso grupo de avisos do evento: {link}`. As outras quatro mudam a abertura, a ordem e o fecho (sem emojis repetidos, sem promessa, sem texto de venda). O redator escreve as cinco e o dono as aprova no relatório.
+  - `pickInviteMessage(responseId, firstName, formTitle, link)`: escolhe a variação por hash estável do `responseId` (mesmo inscrito, mesma variação; sem `Math.random`).
+  - `buildInviteWhatsappUrl(rawPhone, message)`: reusa `whatsappUrl` existente; devolve `null` se o telefone não for celular válido; mensagem passada por `encodeURIComponent` (via `whatsappUrl`).
+  - `pickEligible(responses, questions)`: usa `findEmailQuestionWithAnswer` e `isSafeRecipient` para e-mail e `parseBrazilMobile` para WhatsApp; devolve `{ id, firstName, email|null, phone|null }` sem copiar mais nada.
+  - `chunk<T>(items: T[], size = 50): T[][]`.
+  - `sanitizeSubject(text)`: sem caracteres de controle, no máximo 120 caracteres.
+- **TDD:** `src/lib/invite.test.ts` primeiro: pelo menos 8 links inválidos recusados e 2 válidos; as 5 variações contêm nome e link; sorteio estável e com mais de uma variação em 57 inscritos; `chunk` de 57 → 50 e 7; telefone inválido sem botão.
+- **Arquivos:** `src/lib/invite.ts`, `src/lib/invite.test.ts`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; `grep -n "getRequest\|cookie" src/lib/invite.ts` sem saída (ARQ-04).
+- **O que isso prova:** só aparece link de grupo legítimo do WhatsApp, e as mensagens de convite não saem todas idênticas.
+- **Critérios de aceite:** QA-46-01, QA-46-17, QA-46-29.
+
+---
+
+## T-47 — E-mail de convite em lote pelo Resend (M-46)
+
+- **Estado:** a fazer. Depende da T-46.
+- **Ler:** `spec.md RF-19; architecture.md 2 RQ-01, RQ-03, RQ-05; 4.1 ARQ-04, ARQ-06; ADR-002; seguranca.md SEC-42, SEC-44, SEC-45; qa-plan.md QA-46-08 a QA-46-11, QA-46-16, QA-46-24`.
+- **Objetivo:** montar e enviar uma fatia de até 50 convites com uma única chamada, sem duplicar e sem vazar dados de outros inscritos.
+- **Especificações complementares:**
+  - `buildInviteEmail({ firstName, formTitle, eventDate?, eventTime?, eventLocation?, groupLink })`: HTML com `escapeHtml` em todo texto variável; assunto `Convite para o grupo de avisos: {título}` passado por `sanitizeSubject`; botão `Entrar no grupo`; rodapé com a frase `Você recebeu este e-mail por ter feito inscrição neste evento. Para não receber mais mensagens sobre ele, avise a organização do evento.` (texto jurídico final: pendência do dono; **não** usar "responda este e-mail", P-07).
+  - `sendInviteSlice({ fetchFn, apiKey, from, items, idempotencyKey })`: um `POST https://api.resend.com/emails/batch`, corpo = lista de objetos com `from`, `to: [um endereço]`, `subject`, `html`; cabeçalho `Idempotency-Key`; sem `cc`/`bcc`; sem anexos; tempo limite de 15 s; interpreta a resposta item a item e devolve `{ results: ("sent"|"failed")[], unexpected: boolean }`. Resposta fora do formato, erro de rede ou status diferente de 2xx: `unexpected: true` e **nenhum item é marcado como enviado**.
+  - `Idempotency-Key` = `<batchId>:<número da fatia>` (até 256 caracteres).
+  - Não registra e-mail, nome nem link em log; erro só como código.
+- **TDD:** `src/lib/invite-email.test.ts` com `fetch` simulado: 50 itens → 1 chamada; corpo com exatamente 1 destinatário por item e nenhum `cc`/`bcc`; mesma chave ao repetir; título com `<script>` e quebra de linha escapados; resposta parcial; resposta inesperada → nada `sent`.
+- **Arquivos:** `src/lib/invite-email.ts`, `src/lib/invite-email.test.ts`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; `grep -rn "api.resend.com" src --include=*.ts | grep -v test` lista só `confirmation-email.ts` e `invite-email.ts` (ARQ-06); `grep -n "getRequest\|cookie" src/lib/invite-email.ts` sem saída.
+- **O que isso prova:** o envio em lote usa uma chamada por 50 e-mails, cada pessoa só vê o próprio convite, e uma falha do Resend nunca é contada como entregue.
+- **Critérios de aceite:** QA-46-08 (parte do e-mail), QA-46-09, QA-46-10, QA-46-11, QA-46-16.
+
+---
+
+## T-48 — Servidor do administrador: link, envio em fatias e status (M-46) ⚖
+
+- **Estado:** a fazer. Depende da T-45 aplicada, T-46 e T-47.
+- **Ler:** `spec.md RF-17, RF-19, RF-21; architecture.md 2 RQ-01 a RQ-04; 4.1 ARQ-03 a ARQ-06; 4.2; ADR-002; ADR-003; ADR-005; seguranca.md SEC-38, SEC-40, SEC-41, SEC-45; qa-plan.md QA-46-08, QA-46-12, QA-46-13, QA-46-15, QA-46-19, QA-46-24`.
+- **Objetivo:** entradas de servidor do administrador sobre o núcleo, com autorização, limites e retomada.
+- **Especificações complementares:**
+  - Entrada autenticada (mesmo padrão das funções do administrador existentes em `admin-response.functions.ts`): só o dono do formulário; formulário de outro usuário → `{state:"refused"}`.
+  - `setGroupLinkAdmin({ formId, link })`: `validateGroupLink`; grava `whatsapp_group_link`, `..._updated_at`, `..._updated_by = "admin"`; vazio remove.
+  - `startInviteBatchAdmin({ formId, resend })`: calcula elegíveis com `pickEligible`; chama `invite_create_batch` com `p_created_by = "admin:<id>"`, intervalo e orçamento lidos de `INVITE_MIN_INTERVAL_MINUTES` e `INVITE_DAILY_BUDGET` (padrões 10 e 80); devolve `{state:"ok", batchId, total, deferred}` ou `{state:"refused", reason, ...}`.
+  - `sendNextSliceAdmin({ formId, batchId })`: **reautoriza**, confere que o lote pertence ao formulário, pega até 50 entregas `pending` de e-mail, envia com `sendInviteSlice`, marca `sent`/`failed`; se `unexpected`, mantém `pending`; devolve progresso `{sent, failed, pending}`. No máximo 1 chamada ao Resend e 20 chamadas externas por requisição (RQ-01).
+  - `getInviteStatusAdmin({ formId })`: totais, último lote, pendentes, e por inscrito `convidadoEm` (sem e-mail nem telefone no retorno além do que a tela já tem).
+  - `markInvitedAdmin({ formId, responseId })`: registra entrega `whatsapp`/`opened`, idempotente; `responseId` precisa pertencer ao formulário.
+  - Núcleo de orquestração em funções internas **sem** `getRequest`/cookie, recebendo `formId` já autorizado, para a T-49 reaproveitar.
+  - Logs: só `formId`, `batchId` e código de erro.
+- **TDD:** `src/lib/invite.functions.test.ts` com banco e `fetch` simulados: 57 inscritos → 1 lote, 2 fatias (50 + 7) e no máximo 20 chamadas externas por requisição; duas chamadas de `start` simultâneas (a função SQL simulada devolve `too_soon` na segunda); retomada depois de derrubar na fatia 1; `batchId` de outro formulário recusado; usuário que não é dono recusado.
+- **Arquivos:** `src/lib/invite.functions.ts`, `src/lib/invite.functions.test.ts`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/seguranca.md`.
+- **Verificação:** comandos padrão; prova do teste de 57 inscritos e do de retomada colada no relatório; `grep` de log mostra que nenhum `console`/`logError` recebe e-mail, telefone, token ou link.
+- **O que isso prova:** o administrador envia 57 convites em duas chamadas ao Resend, sem repetir ninguém se algo cair, e só para formulários dele.
+- **Critérios de aceite:** QA-46-08, QA-46-12, QA-46-13, QA-46-15, QA-46-19, QA-46-24.
+
+---
+
+## T-49 — Servidor do cliente: mesmas ações só com link protegido (M-46) ⚖
+
+- **Estado:** a fazer. Depende da T-48. **Ordem 8:** só depois do Marco 1 (administrador usando).
+- **Ler:** `spec.md RF-23, RF-24; architecture.md 4.1 ARQ-03, ARQ-04; ADR-004; seguranca.md SEC-37, SEC-38, SEC-40, SEC-45; qa-plan.md QA-46-14, QA-46-15, QA-46-24, QA-46-27`.
+- **Objetivo:** expor ao cliente as mesmas ações, autorizadas pelo token e pela sessão de código (T-44), e recusar qualquer link sem código.
+- **Especificações complementares:**
+  - Funções `...Client` com `token`: valida formato do token, localiza o formulário, **exige `share_code_hash` preenchido** (link legado → `{state:"legacy_read_only"}`) e exige cookie de sessão válido (`verifyShareSession`, mesma versão do código); só então chama o núcleo da T-48 com o `formId` do banco, nunca do corpo.
+  - `setGroupLinkClient({ token, link })`: grava com `..._updated_by = "client_link"` e data.
+  - `startInviteBatchClient`, `sendNextSliceClient`, `getInviteStatusClient`, `markInvitedClient`: `created_by = "client_link"`.
+  - Sessão ausente, expirada, de outro formulário ou de versão antiga → `{state:"locked"}`.
+  - Se for preciso expor "este link é protegido?" ao painel, `getSharedResponses` pode devolver só um booleano `canInvite`; nada mais muda no que já devolve.
+- **TDD:** `src/lib/invite.functions.test.ts` (estender): para **cada** função do cliente, casos com link legado, sem cookie, cookie de outro formulário, versão antiga e válido; `responseId`/`batchId` de outro formulário recusados.
+- **Arquivos:** `src/lib/invite.functions.ts`, `src/lib/invite.functions.test.ts`, `src/lib/share.functions.ts` (só se necessário para `canInvite`), `src/lib/share.functions.test.ts` (idem), `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/seguranca.md`.
+- **Verificação:** comandos padrão; quadro colado no relatório com todas as funções do cliente × cenário (legado, sem sessão, outro formulário, versão antiga, válido) e o resultado de cada célula.
+- **O que isso prova:** quem tem só o endereço do cliente, sem o código, não consegue mandar e-mail nenhum nem mudar o link do grupo.
+- **Critérios de aceite:** QA-46-14, QA-46-15, QA-46-24, QA-46-27; ARQ-03 verificada.
+
+---
+
+## T-50 — Campo "Grupo do WhatsApp" no editor e fora do carregamento público (M-46)
+
+- **Estado:** a fazer. Depende da T-46.
+- **Ler:** `spec.md RF-17; design/ui-ux.md Tela H; seguranca.md SEC-38, SEC-46; qa-plan.md QA-46-01, QA-46-20`.
+- **Objetivo:** o administrador cola o link do grupo na aba `Limites e Termos`; o link não vai ao carregamento público do formulário.
+- **Especificações complementares:** seção `Grupo do WhatsApp (opcional)` com os textos literais da Tela H do `ui-ux.md`; validação com `validateGroupLink` antes de salvar e mensagem `Cole o endereço completo do convite do grupo, que começa com https://chat.whatsapp.com/`; carregar e salvar `whatsapp_group_link` junto do restante do formulário (lista de colunas do carregamento do editor, linha 201 do arquivo); **não** adicionar a coluna a nenhuma consulta de `public-forms.functions.ts`.
+- **TDD:** teste em `src/lib/routes.test.ts` (padrão do projeto, sem jsdom) garantindo que as listas de colunas públicas não contêm `whatsapp_group_link`; testes do núcleo já cobrem a validação.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; `grep -n "whatsapp_group_link" src/lib/public-forms.functions.ts` sem saída.
+- **O que isso prova:** o link só é aceito no formato certo e quem abre o formulário público não o recebe antes de se inscrever.
+- **Critérios de aceite:** QA-46-01, QA-46-20.
+
+---
+
+## T-51 — Link do grupo na confirmação, no e-mail de confirmação e aviso no formulário (M-46)
+
+- **Estado:** a fazer. Depende das T-46 e T-50.
+- **Ler:** `spec.md RF-18, RF-25; design/ui-ux.md Tela J, Tela K; seguranca.md SEC-38, SEC-42, SEC-46; qa-plan.md QA-46-20, QA-46-21, QA-46-22`.
+- **Objetivo:** depois de concluir a inscrição, o inscrito vê e recebe o botão `Entrar no grupo de avisos do evento`; antes, só vê o aviso.
+- **Especificações complementares:** o aviso (RF-25) precisa saber se há link **sem revelá-lo**: o carregamento público passa só um booleano `hasGroupInvite` (consulta explícita; decisão local: ler a coluna no servidor e devolver apenas o booleano). O link em si sai só no resultado de `submitResponse` bem-sucedido (`groupLink?: string`) e entra no e-mail de confirmação como botão; HTML escapado e `validateGroupLink` reaplicado antes de usar (defesa se o valor do banco for alterado por fora). Sem link, nenhuma mudança visível. Medir antes como `submit-response.ts` carrega o formulário (por injeção `deps`) e reaproveitar o mesmo caminho.
+- **TDD:** estender `src/lib/submit-response.test.ts` e `src/lib/confirmation-email.test.ts` (já existem): com link → resultado e e-mail trazem o botão; sem link → idênticos ao de hoje; link inválido no banco → ignorado.
+- **Arquivos:** `src/lib/submit-response.ts`, `src/lib/submit-response.test.ts`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/routes/$slug.tsx`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; os testes de submissão existentes continuam verdes sem alteração de expectativa para formulário sem link.
+- **O que isso prova:** quem acabou de se inscrever recebe o caminho para o grupo, quem ainda não se inscreveu não vê o link, e formulários sem grupo ficam exatamente como são hoje.
+- **Critérios de aceite:** QA-46-20, QA-46-21, QA-46-22.
+
+---
+
+## T-52 — Painel "Convidar para o grupo" no administrador (M-46)
+
+- **Estado:** a fazer. Depende das T-48 e T-50. **Ordem 6.** O envio por e-mail vem primeiro na tela; o botão por inscrito é o complemento.
+- **Ler:** `spec.md RF-19 a RF-21; design/ui-ux.md Tela I; seguranca.md SEC-41, SEC-48; qa-plan.md QA-46-17, QA-46-19, QA-46-23, QA-46-28, QA-46-29`.
+- **Objetivo:** o administrador envia o convite por e-mail, convida por WhatsApp quem faltar e vê quem foi convidado, pela página de respostas. **Sem o `.vcf`** (T-55).
+- **Especificações complementares:** componente único `GroupInvitePanel` (dados e ações por propriedades, sem saber se é administrador ou cliente); estados e textos literais da Tela I (sem link, sem elegíveis, orçamento `Hoje cabem {n} envios. Os outros {m} ficam para continuar amanhã.`, interrompido `Envio interrompido: {p} pendentes.` com `Continuar envio`, legado); confirmação com `AlertDialog` (nunca `confirm()`); progresso por fatia; botão `Convidar` abre `wa.me` em nova aba (`rel="noopener noreferrer"`) e chama `markInvited` sem bloquear a abertura; mensagem editável só em estado local; mensagem do botão via `pickInviteMessage` (variações da T-46); mobile primeiro (360 px), alvos de toque de 44 px, foco visível.
+- **TDD:** sem teste de interface (jsdom está fora do projeto): extrair a lógica de estado do painel para funções puras (`derivePanelState`) em `src/lib/invite.ts` com testes, e conferir o painel por roteiro manual na T-54. Estender `src/lib/invite.test.ts`.
+- **Arquivos:** `src/components/GroupInvitePanel.tsx`, `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; relatório descreve cada estado do painel (tabela estado → texto exibido) a partir do código.
+- **O que isso prova:** o administrador consegue concluir o convite dos 57 inscritos pela tela, por e-mail e pelo botão, com os avisos certos quando algo limita o envio.
+- **Critérios de aceite:** QA-46-17, QA-46-19, QA-46-23, QA-46-28, QA-46-29.
+
+---
+
+## T-53 — Painel no link privado do cliente (M-46)
+
+- **Estado:** a fazer. Depende das T-49 e T-52. **Ordem 9; Marco 2, antes da próxima corrida.**
+- **Ler:** `spec.md RF-23, RF-24; design/ui-ux.md Tela I (variante do cliente); seguranca.md SEC-37, SEC-38; qa-plan.md QA-46-23, QA-46-26, QA-46-27, QA-46-28`.
+- **Objetivo:** o mesmo painel em `/c/<token>`, ligado às funções `...Client`, com campo para o cliente colar o link do grupo.
+- **Especificações complementares:** em link legado, o painel mostra só `Para enviar convites por aqui, peça ao administrador para proteger este link com código.`; sem sessão válida continua a tela `Link protegido` (nada novo antes do desbloqueio); resposta `{state:"locked"}` de qualquer ação volta à tela de desbloqueio como já acontece com a atualização de 30 s; o painel respeita `noindex` e `referrer: no-referrer` já existentes na página.
+- **TDD:** testes das funções puras já existentes; teste em `src/lib/routes.test.ts` de que a rota não renderiza o painel sem `state === "ok"`, se o padrão do projeto permitir (senão, roteiro manual).
+- **Arquivos:** `src/routes/c.$token.tsx`, `src/components/GroupInvitePanel.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; relatório descreve os 3 caminhos (legado, protegido sem sessão, protegido com sessão).
+- **O que isso prova:** o cliente faz o convite sozinho pelo celular, e quem só tem o endereço continua sem ver nem fazer nada.
+- **Critérios de aceite:** QA-46-23, QA-46-26, QA-46-27, QA-46-28.
+
+---
+
+## T-54 — Prova na prévia, plano dos serviços e fechamento (M-46) 🧑
+
+- **Estado:** a fazer. Em três partes, cada uma depois da sua tarefa.
+- **Ler:** `qa-plan.md seção 15 (roteiro manual MAN-46-01 a MAN-46-10); seguranca.md SEC-44, SEC-47; spec.md cenários 6 a 10`.
+- **Objetivo:** provar na prévia, com formulário de **teste** (nunca os 57 inscritos reais) e e-mails de teste, os cenários da spec, e fechar as decisões do dono.
+- **Parte A (depois da T-51, Marco 1):** MAN-46-01 a MAN-46-06 e MAN-46-10; cenários 6, 7, 9 e 10.
+- **Parte B (depois da T-53, Marco 2):** MAN-46-08 e MAN-46-09; cenário 8.
+- **Parte C (depois da T-55):** MAN-46-07.
+- **🧑 Manual:** (1) conferir o plano do Worker e o limite diário do Resend e anotar no relatório; (2) rodar o roteiro de cada parte na prévia; (3) decidir o texto jurídico do e-mail (SEC-44) e o `Reply-To`; (4) autorizar a promoção à `main` quando quiser (só com pedido explícito do dono); (5) antes do envio real aos 57, combinar com o cliente: aprovar entrada no grupo e o aviso LGPD.
+- **Arquivos:** `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/tasks.md` (estados das tarefas).
+- **Verificação:** roteiro com resultado por passo (aprovado/reprovado) e, para o cenário 6, o horário de início e fim do envio.
+- **O que isso prova:** o fluxo funciona de ponta a ponta no ambiente real, com os limites reais do Resend e do Worker.
+- **Critérios de aceite:** passos de cada parte aprovados; checklist de conformidade do `architecture.md` (seção 10) respondido item a item ao fim da parte B.
+
+---
+
+## T-55 — Baixar contatos em .vcf (M-46)
+
+- **Estado:** a fazer. Depende da T-52. **Ordem 10, última.**
+- **Ler:** `spec.md RF-22; design/ui-ux.md Tela I (botão Baixar contatos); seguranca.md SEC-43; qa-plan.md QA-46-18, QA-46-28`.
+- **Objetivo:** o administrador (e depois o cliente, pelo painel já existente) baixa um arquivo de contatos dos inscritos com celular válido.
+- **Especificações complementares:** `buildVcf(contacts: {name: string; phone: string}[]): string` em `src/lib/invite.ts`: vCard 3.0, `CRLF`; telefone em `+55<DDD><número>` só quando `parseBrazilMobile` valida; escapa `\`, `;`, `,` e quebras de linha no nome; remove caracteres de controle; nome vazio vira `Inscrito`; quem não tem celular válido não entra. O arquivo é gerado no navegador com os dados já carregados (sem rota nova), no mesmo padrão das exportações Excel e PDF; botão `Baixar contatos (.vcf)` no `GroupInvitePanel`.
+- **TDD:** estender `src/lib/invite.test.ts`: nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; N contatos para N válidos.
+- **Arquivos:** `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/components/GroupInvitePanel.tsx`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; parte C da T-54 (importar em Android e iPhone).
+- **O que isso prova:** o arquivo abre na agenda e nenhum nome estranho consegue alterar ou criar contatos.
+- **Critérios de aceite:** QA-46-18, QA-46-28.
 
 ---
 

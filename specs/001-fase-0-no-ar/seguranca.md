@@ -212,3 +212,136 @@ Copie e cole estas perguntas diretamente no prompt do seu assistente de IA duran
   4. **Preservação de Dados Digitados:** O cliente, ao receber o erro do servidor, exibe a mensagem no alerta superior geral (`role="alert"`) e limpa exclusivamente o estado `hp`, mantendo todas as respostas, confirmações de e-mail e o consentimento preenchidos pelo usuário para que ele possa submeter novamente sem recarregar a página.
   5. **Auditoria Limpa de Logs (SEC-03):** O evento de disparo do honeypot é registrado no servidor com `deps.logError("HONEYPOT", data.slug)` registrando unicamente o código `"HONEYPOT"` e o slug do formulário; o log `HONEYPOT` não contém dados pessoais, CPF, e-mail ou respostas.
 
+---
+
+## 9. Revisão de segurança — M-46 Convite em lote para o grupo do WhatsApp (SEC-37 a SEC-48)
+
+Modo: **desenho** (antes do código). Acréscimo ao `specs/001-fase-0-no-ar/seguranca.md` (continua a numeração a partir de SEC-37). Lidos: `prd-m46-grupo-whatsapp.md`, `ui-ux-m46.md`, `architecture.md` (versão de 12/11/2026: seções 4.3 e 5, ARQ-01 a ARQ-07, ADR-001 a ADR-005). Código medido no commit `524ac2b`.
+
+### 1. Resumo executivo
+**Pode ir ao ar só depois de fechar os 4 achados A (SEC-37 a SEC-40).** Os quatro são decisões de projeto baratas, todas já previstas ou propostas na arquitetura; nenhuma é falha do código atual. Totais desta revisão: 4 A, 6 B, 2 C.
+
+Em uma frase por risco:
+- Sem as regras certas, qualquer pessoa com um link antigo do cliente poderia mandar e-mail para todos os inscritos em nome da organização (SEC-37).
+- Se o campo do link do grupo aceitar qualquer endereço, o envio em massa vira um canal de golpe com a reputação do domínio (SEC-38).
+- As tabelas novas precisam nascer fechadas ao acesso direto pelo navegador (SEC-39) e cada ação precisa conferir que o lote pertence ao formulário do usuário (SEC-40).
+- O risco de LGPD mais relevante é a finalidade e a forma de sair: o e-mail atual diz "não responda" (SEC-44).
+
+Não rodei: auditoria de dependências (npm audit e similares) e inventário SBOM, porque este ambiente não alcança os registros de pacotes (a instalação de dependências retorna 403). A feature não deve acrescentar dependência (ARQ, checklist item 10), então o risco novo de cadeia de suprimentos é nulo; as dependências atuais seguem sem varredura nova desde a T-44.
+
+### 2. Tabela de achados
+
+Origem: arquitetura (4.3 fronteiras, ARQ, ADR) ou análise de abuso. "Onde aplicar": tarefas ainda não existem (SDD vem a seguir): a definir.
+
+| ID | Categoria | Classe | Severidade | Cenário de ataque (1 frase) | Correção mínima | Onde aplicar |
+|---|---|---|---|---|---|---|
+| SEC-37 | A01 / ASVS v5.0.0-8.2.1 | **A** | Alta | Quem achou um link de cliente antigo (sem código) usa as novas ações para mandar e-mail a todos os inscritos ou trocar o link do grupo. | Funções de escrita do cliente exigem `share_code_hash` preenchido e sessão válida; link legado só lê (ARQ-03, ADR-004); teste por função | a definir |
+| SEC-38 | A05 / A06 / ASVS v5.0.0-1.3.x | **A** | Alta | Alguém com sessão do cliente (ou o próprio cliente por engano) coloca no campo "Link do grupo" um endereço de golpe, que sai em e-mail para dezenas de pessoas a partir de um domínio confiável. | Aceitar só `^https://chat\.whatsapp\.com/[A-Za-z0-9]+$`, até 200 caracteres, sem espaços; rejeitar maiúsculas no host, `@`, `%`, porta, redirecionamento; montar o `href` do e-mail só a partir do valor validado (ARQ-07); texto do e-mail fixo, sem campo livre do cliente | a definir |
+| SEC-39 | A01 / A05 / ASVS v5.0.0-8.2.x, 13.x | **A** | Alta | Alguém com a chave pública do banco lê, insere ou altera `invite_batches` e `invite_deliveries`, ou chama `invite_create_batch`, e provoca envios ou apaga o histórico. | Migração com RLS ligado, `REVOKE ALL` das tabelas e da função de `PUBLIC, anon, authenticated`, `GRANT` só a `service_role`; função com `SECURITY DEFINER` apenas se precisar, com `search_path` fixo; teste de banco com a chave pública (ARQ-02, ADR-003) | a definir |
+| SEC-40 | A01 / ASVS v5.0.0-8.2.2 | **A** | Alta | Um cliente do link A envia o identificador de lote ou de inscrição de outro formulário e dispara envio ou lê status de outro evento. | Toda função recebe o formulário do contexto autorizado (dono ou token) e confere `batch.form_id` e `delivery.form_id` iguais a ele antes de agir; nunca confiar em id vindo da tela; teste com ids de outro formulário | a definir |
+| SEC-41 | A06 / ASVS v5.0.0-2.4.1 | B | Alta | Alguém com acesso válido repete o disparo para esgotar os 100 e-mails por dia do Resend e deixar sem confirmação as inscrições novas de qualquer formulário. | Função SQL atômica: intervalo de 10 min por formulário, orçamento de 80 por 24 h no sistema, reserva de 20 para confirmações, destinatários limitados às inscrições do formulário; "reenviar" exige parâmetro explícito e também entra na conta (ARQ-05, ADR-005) | a definir |
+| SEC-42 | A05 / ASVS v5.0.0-1.2.x | B | Média | Um nome de inscrito ou título de formulário com HTML ou quebras de linha altera o corpo ou o assunto do e-mail de convite. | Reusar `escapeHtml`; assunto limitado a 120 caracteres sem caracteres de controle; destinatário só por `isSafeRecipient`; 1 destinatário por item, sem `cc`/`bcc` (RQ-05) | a definir |
+| SEC-43 | A05 / ASVS v5.0.0-1.2.x | B | Média | Um nome de inscrito com quebra de linha ou ponto e vírgula injeta campos extras (por exemplo, outro telefone ou endereço) no arquivo .vcf que o cliente importa na agenda. | Gerar o .vcf no navegador a partir dos dados já carregados (sem nova rota); escapar `\`, `;`, `,` e quebra de linha pelo formato vCard; remover caracteres de controle; limitar o nome a 100 caracteres; telefone só do formato normalizado `+55DDDNÚMERO`; nome do arquivo fixo `inscritos.vcf` | a definir |
+| SEC-44 | LGPD / A06 | B | Alta | Inscritos recebem mensagem sem entender por quê e sem canal para pedir que parem (o e-mail atual diz "não responda"). | Finalidade registrada (informar sobre o evento em que se inscreveu); texto do e-mail com origem do contato e forma real de pedir descadastro (P-07: `Reply-To` do cliente ou instrução clara); aviso de que o número fica visível no grupo; entregas apagadas com a inscrição (cascata, compatível com a T-42); redação final com o advogado | a definir |
+| SEC-45 | A09 / ASVS v5.0.0-16.2.x, 16.5.x | B | Média | Logs de erro do envio gravam e-mail, telefone, token do link ou o link do grupo (quem tiver o link entra no grupo). | Registrar só código de erro, `formId` e `batchId`; nunca endereço, telefone, link do grupo, token, código ou cookie (mesma regra da SEC-32) | a definir |
+| SEC-46 | A06 | B | Média | O link do grupo vaza antes da inscrição porque vai no carregamento público do formulário, e atletas falsos ou robôs entram no grupo. | Não incluir `whatsapp_group_link` no que a página pública carrega; devolvê-lo só no retorno da inscrição concluída (e no e-mail); recomendar ao cliente ativar a aprovação de entrada no grupo | a definir |
+| SEC-47 | A02 / A06 | C | Baixa | Devoluções e reclamações de spam reduzem a reputação do domínio de envio e prejudicam também as confirmações. | Gatilho EV-04: ao primeiro pedido de descadastro ou reclamação, tabela de bloqueio e link de saída; conferir SPF e DKIM do domínio no Resend (fora do código) | — |
+| SEC-48 | A05 | C | Baixa | Um telefone ou nome com caracteres estranhos quebra a mensagem do `wa.me` ou direciona a outra conversa. | Já tratado: `wa.me` só com telefone de `parseBrazilMobile` (11 dígitos validados) e texto com `encodeURIComponent`; abrir em nova aba com `rel="noopener noreferrer"`; telefone não aparece na lista. Verificar por teste | — |
+
+Fronteiras do `architecture.md` 4.3: ver seção 4.3 desta revisão.
+
+### 3. Resultado das auditorias automatizadas
+
+#### 3.1 Dependências vulneráveis
+**Não executado.** Este ambiente não alcança os registros de pacotes (instalação retorna 403). A feature não deve acrescentar dependências (checklist item 10: diferença vazia em `package.json` e `bun.lock`). O dono ou o agente deve rodar `bun audit` (ou equivalente) na máquina de desenvolvimento antes de promover.
+
+#### 3.2 Segredos no código e no histórico
+Varredura por padrões (chave `re_...` do Resend, JWT `eyJ...`, chave de serviço do Supabase atribuída em texto) sobre os arquivos versionados e sobre o histórico (142 commits) no commit `524ac2b`: **um único resultado**, em `src/lib/submit-response.test.ts` (linha 411), dentro de um teste que simula `readEnv`. Parece valor de teste, não chave real, mas **não foi validado contra o provedor**; o dono deve conferir olhando a linha e, se for uma chave real, revogá-la no Resend. O mesmo texto aparece no histórico em um commit (`81875e6`, T-09). Nenhum outro padrão foi encontrado. Varredura por padrões não é prova de ausência (ferramenta dedicada, como gitleaks, não foi executada).
+
+#### 3.3 Inventário de componentes (SBOM)
+**Não gerado** (precisa baixar a ferramenta CycloneDX; sem acesso à rede de pacotes aqui). Gerar na máquina de desenvolvimento quando a M-46 estiver implementada, para registrar que não houve componente novo.
+
+### 4. Análise das superfícies
+
+#### 4.1 Percurso OWASP Top 10:2025
+| Categoria | Aplica? | Decisão |
+|---|---|---|
+| A01 Controle de acesso | Sim, central | SEC-37, 39, 40; teste de autorização por função |
+| A02 Configuração incorreta | Sim | SEC-39 (grants), SEC-47 (domínio de e-mail) |
+| A03 Cadeia de suprimentos | Pouco | Sem dependência nova; varredura não executada (3.1) |
+| A04 Falhas criptográficas | Pouco | Sem cripto nova; sessão e segredo já tratados (SEC-33, SEC-36) |
+| A05 Injeção | Sim | SEC-38, 42, 43, 48 |
+| A06 Design inseguro | Sim | SEC-41, 44, 46 |
+| A07 Autenticação | Reaproveita T-44 | Sessão por fatia reautorizada (ARQ do fluxo 4.2) |
+| A08 Integridade | Pouco | Idempotência por fatia (RQ-03) |
+| A09 Logs | Sim | SEC-45 |
+| A10 Condições excepcionais | Sim | Resposta inesperada do Resend vira "pendente", nunca "enviado" (ADR-002) |
+
+#### 4.2 Superfícies reais
+- **Disparo em massa de e-mail.** É a superfície nova de maior dano: usa o domínio da organização e dado pessoal de dezenas de pessoas. Mitigada por SEC-37, 38, 41, 42.
+- **Escrita pelo link do cliente.** Hoje o link é só de leitura. As ações novas exigem sessão válida; verificar que cada fatia reautoriza e que "Gerar novo código" ou "Desativar link" interrompe lotes em andamento (a próxima fatia recusa).
+- **CSRF.** O administrador usa autenticação por cabeçalho (não cookie) e o cliente usa cookie `SameSite=Lax` (SEC-33), que não segue em envio de formulário de outro site. Verificada, sem achado novo; confirmar na implementação que as funções novas são POST.
+- **.vcf.** Gerado no navegador com dados já carregados (mesmo padrão dos exports Excel e PDF): não cria rota nem leitura nova (SEC-43).
+- **Link do grupo como credencial.** Quem tem o link entra no grupo. Ele só aparece após a inscrição e no e-mail (SEC-46). Aprovação de entrada no grupo é recomendação ao cliente, não controle do sistema.
+- **Tabelas e função novas.** Só service role (SEC-39). Lição da T-44: a função SQL de limite existia e não era usada; aqui a função é o caminho único (ARQ-05).
+
+#### 4.3 Fronteiras de confiança do `architecture.md` 4.3
+| Fronteira | Resultado |
+|---|---|
+| Navegador do cliente para o servidor (token, cookie, link do grupo, mensagem) | Achados SEC-37, 38, 40; a mensagem editada fica só no navegador (usada no `wa.me`), nunca vai ao e-mail (P-13 abaixo) |
+| Link do grupo para o e-mail e o `wa.me` | SEC-38, SEC-48 |
+| Resposta do inscrito para o corpo do e-mail | SEC-42 |
+| Servidor para o Resend | Verificada, sem achado novo: chave só em variável de ambiente; 1 destinatário por item (RQ-05) |
+| Download do .vcf | SEC-43 |
+
+### 5. Propostas de mudança nos documentos da spec
+#### 5.1 No `spec.md`
+- Requisito de segurança novo: nível ASVS **L2** para a M-46 (dado pessoal), com os capítulos V1, V2, V3, V4, V7, V8, V13, V14 e V16 (Anexo A).
+- RF-08 e RF-03 do PRD condicionados a link protegido com sessão (ADR-004); RNF-04 com os valores 10 min e 80 por 24 h.
+- P-13 [ui-ux/spec]: o corpo do e-mail de convite é fixo; "Editar mensagem do convite" (Tela I) vale só para o botão do WhatsApp e não é enviada ao servidor.
+- Retenção: entregas apagadas junto com a inscrição ou o formulário.
+#### 5.2 No `plan.md`
+- Ordem: migração com REVOKE e função de limite antes de qualquer tela; funções de escrita do cliente depois do teste de autorização (SEC-37, 40); validação do link do grupo como função pura primeiro (SEC-38).
+#### 5.3 No `tasks.md`
+- Tarefas de revisão obrigatória por segunda sessão: a da migração com função de limite (SEC-39, 41) e a das funções de escrita do cliente (SEC-37, 40).
+#### 5.4 No `data-model.md`
+- `invite_batches` e `invite_deliveries` guardam só ids; sem e-mail, telefone ou link em texto na tabela de entregas (o link usado pode ser guardado no lote como texto já validado, acessível só por service role; avaliar na SDD se vale o risco de vazamento do link por backup ou relatório).
+
+### 6. Checklist de revisão sem código (cole no agente antes de aprovar)
+1. "Mostre o teste que chama cada função de escrita do cliente com link sem código e com link com código mas sem sessão. Todas devem recusar." (SEC-37)
+2. "Mostre a função que valida o link do grupo e o teste com ao menos 8 endereços falsos: outro domínio, `http`, usuário@, porta, `%`, espaços, maiúsculas no host, endereço com mais de 200 caracteres. Todos recusados." (SEC-38)
+3. "Mostre a migração das tabelas novas: RLS ligado, REVOKE de PUBLIC, anon e authenticated, GRANT só para service_role. Rode uma consulta com a chave pública e mostre que é negada." (SEC-39)
+4. "Chame as funções com um `batchId` e um `responseId` de outro formulário e mostre que são recusados." (SEC-40)
+5. "Dispare dois lotes ao mesmo tempo no mesmo formulário e mostre que só um é criado. Mostre a recusa por orçamento diário e a reserva para confirmações." (SEC-41)
+6. "Crie uma inscrição cujo nome tenha `<script>`, quebra de linha e aspas. Mostre o corpo do e-mail e o assunto gerados, escapados." (SEC-42)
+7. "Gere o .vcf para um nome com `;`, vírgula e quebra de linha e mostre que não surgem campos novos." (SEC-43)
+8. "Mostre o texto final do e-mail de convite, com origem do contato e forma de pedir descadastro." (SEC-44)
+9. "Provoque uma falha de envio e mostre o log: não pode conter e-mail, telefone, link do grupo, token, código nem cookie." (SEC-45)
+10. "Mostre a resposta pública do formulário (antes de se inscrever) e confirme que não contém o link do grupo." (SEC-46)
+11. "Gere um novo código de acesso no meio de um lote de teste e mostre que a próxima fatia é recusada." (4.2)
+12. "Mostre a saída de `git diff main -- package.json bun.lock`: vazia."
+
+### 7. Riscos aceitos e gatilhos de reavaliação
+| Risco | Decisão | Gatilho de reavaliação |
+|---|---|---|
+| SEC-47 reputação do domínio | Aceito agora (C) | Primeira reclamação de spam, taxa de devolução alta no painel do Resend, ou pedido de descadastro (EV-04) |
+| Robôs ou atletas falsos entram no grupo (resíduo de SEC-46) | Aceito, com recomendação de aprovação de entrada no grupo | Primeiro estranho no grupo |
+| L3 recusado ou adiado | **Pendente de decisão do dono** (ver Anexo A) | Antes da promoção |
+| Contagem diária só conta convites, não confirmações | Aceito (reserva de 20) | Medir o uso real do Resend por 2 semanas |
+
+### Anexo A. Cobertura ASVS
+- **Nível escolhido: L2.** Motivo: o produto guarda dado pessoal (nome, telefone, e-mail, CPF, RG).
+- **L3 recomendado nesta área.** Gatilho aplicável da regra da skill: **histórico de incidente** (exposição do link privado em 02/11/2026). Requisitos L3 mais relevantes: capítulos V8 (6 requisitos L3) e V16 (1). A skill recomenda adotá-los para a área de convites e link do cliente. **Decisão do dono: pendente.** Se não adotar, registrar em "Riscos aceitos" com nome, data e gatilho.
+- **Capítulos incluídos:** V1, V2, V3, V4, V7, V8, V13, V14, V16 (133 requisitos L1+L2 selecionados pelo filtro da skill). **Excluídos, com motivo:** V5 arquivos (não há upload; o .vcf é gerado, não recebido), V6 autenticação, V9 e V10 (reaproveitam o que a T-44 e a conta do administrador já têm; não há login novo), V11 e V12 (sem criptografia nova; transporte seguro é do provedor), V15 (sem arquitetura nova de terceiros), V17 (não se aplica).
+- **Status:** os 133 requisitos estão em **"Não verificado"**, porque a revisão é de desenho: não existe código para provar. Gerar a tabela com `node scripts/filtrar_asvs.mjs --nivel 2 --incluir V1,V2,V3,V4,V7,V8,V13,V14,V16` e preencher status e prova na revisão pós-implementação. Os achados SEC-37 a SEC-46 já cobrem, em desenho, as áreas V1, V2, V8, V13 e V16.
+- Rodapé: requisitos OWASP ASVS v5.0.0, CC BY-SA 4.0, https://github.com/OWASP/ASVS. Este documento não é certificação.
+
+### Anexo B. Decisões de segurança documentadas
+- **Permissões:** administrador (dono do formulário) e cliente com link protegido e sessão válida podem convidar; link sem código só lê.
+- **Sessão:** a mesma da T-44 (30 dias após o fechamento, invalidada ao gerar novo código); cada fatia do lote reautoriza.
+- **Segredos:** `RESEND_API_KEY` e `EMAIL_FROM` já existem como variáveis do servidor; nenhum segredo novo.
+- **Retenção:** entregas de convite apagadas junto com a inscrição e o formulário; sem prazo próprio por enquanto (EV-05 trata a limpeza).
+- **Tipos de arquivo:** o único arquivo é o .vcf gerado no navegador; nenhum upload.
+
+### Anexo C. Skills, agentes e integrações de terceiros
+Não se aplica a esta feature (nenhuma skill, servidor MCP ou agente de terceiros entra no produto).

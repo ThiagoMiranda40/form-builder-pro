@@ -11,7 +11,7 @@
 
 # Form Builder Pro — instruções do projeto
 
-Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/001-fase-0-no-ar/` (`spec.md` = comportamento, `plan.md` = técnica, `data-model.md` = banco, `tasks.md` = tarefas). Executar **uma task por vez** e rodar a verificação dela antes de seguir.
+Documentos: produto em `docs/PRD-form-builder-pro.md`; feature atual em `specs/001-fase-0-no-ar/` (`spec.md` = comportamento, `plan.md` = técnica, `data-model.md` = banco, `tasks.md` = tarefas). Executar **uma task por vez** e rodar a verificação dela antes de seguir. Feature M-46 (convite em lote para o grupo do WhatsApp, tarefas T-45 a T-55): PRD em `specs/001-fase-0-no-ar/m46/`, arquitetura e ADRs em `docs/arquitetura/`, estudo da M-47 em `docs/estudos/`; a ordem de execução está no `tasks.md` (seção M-46).
 
 ## Comandos
 - Gerenciador de pacotes: **bun** (`bun.lock`). O `bunfig.toml` bloqueia versões com menos de 24 h: se uma dependência for barrada, usar a versão anterior e **nunca** adicionar exceção sem perguntar ao dono.

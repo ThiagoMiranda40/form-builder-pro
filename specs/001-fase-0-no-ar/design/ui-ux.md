@@ -1088,3 +1088,340 @@ Melhorias registradas para consideração futura:
 1. **Reenvio do link de edição pelo próprio inscrito:** Campo "Esqueci meu link de edição" onde o participante informa o CPF e o sistema reenvia o token ao e-mail cadastrado.
 2. **Visualização em Cartões no Mobile para Respostas:** Modo lista para gerenciar inscrições em celulares sem necessidade de scroll horizontal.
 3. **Pré-visualização em tempo real no Editor:** Split view no desktop para visualizar a aparência enquanto configura perguntas e cores.
+
+---
+
+## 12. M-46 — Convite em lote para o grupo do WhatsApp (Telas H a K)
+
+> **Atualização de 12/11/2026 (decisão do dono):** (1) no painel o envio por e-mail vem primeiro e o botão `Convidar` por inscrito é o complemento; (2) a mensagem do botão tem 5 variações sorteadas por inscrito (editar a mensagem a troca por texto único); (3) o botão `Baixar contatos (.vcf)` só entra na T-55; (4) o painel do cliente só entra no Marco 2.
+
+Insumo: `prd-m46-grupo-whatsapp.md` (RF-01 a RF-09). Esta seção é um acréscimo ao `specs/001-fase-0-no-ar/design/ui-ux.md` (telas H a K, letras seguintes às existentes A a G; a numeração duplicada "Tela F" da seção 8b é um defeito antigo do documento e não é corrigida aqui). Nada aqui decide comportamento: tudo que falta no spec está em "Propostas de mudança".
+
+### 1. Diretrizes transversais
+
+#### 1.1 Sistema visual existente (verificado nos arquivos, commit 524ac2b)
+- Estilos e tokens: `src/styles.css`; cartões `glass`, `glass-strong`, `ring-1 ring-black/5`, `rounded-2xl` em cartões e `rounded-lg` em campos e botões; animação `rise`; fontes `font-display` (Space Grotesk) e `font-body` (Inter).
+- Campo de texto: classe exportada `fieldClass` em `src/components/QuestionField.tsx`.
+- Botão primário do admin: `rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90`. Botão secundário: `rounded-lg bg-white/70 px-3 py-2 text-xs font-medium ring-1 ring-black/5 hover:bg-white`.
+- Botão primário do formulário público: cor do tema (`accent`) com texto `readableTextColor(accent)` de `src/lib/theme.ts` (tela de confirmação em `src/routes/$slug.tsx`, bloco `if (done)`).
+- Diálogo de confirmação: `AlertDialog` de `src/components/ui/alert-dialog.tsx`, já usado no `ShareLinkCard`. Nunca `confirm()`.
+- Avisos: faixa âmbar `rounded-lg bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200/80`; bloco de confirmação de e-mail em verde `rounded-xl bg-emerald-50 p-5 ring-1 ring-emerald-200`.
+- Avisos temporários: `toast` de `sonner`.
+- WhatsApp já existente: botão "WhatsApp" no card de detalhes do administrador (`ResponseDetailDialog`, T-43) com `whatsappUrl`, `firstNameOf`, `whatsappGreeting` e `parseBrazilMobile` de `src/lib/whatsapp.ts`. Só celular brasileiro válido recebe o botão.
+- Tabela de respostas compartilhada: `ResponsesTable` (usada no painel do administrador e em `/c/$token`). O link do cliente não passa `whatsappContext` ao detalhe, portanto hoje o cliente não tem botão de WhatsApp.
+- O que NÃO usar: a pasta `src/components/ui` tem dezenas de componentes, mas as telas existentes só importam `alert-dialog` e `sonner`. Não introduzir `table`, `tabs`, `sheet`, `drawer` etc. nesta feature.
+
+#### 1.2 Regras de tema e contraste
+- Tela J (confirmação, formulário público): o botão "Entrar no grupo do WhatsApp" usa `accent` do tema com `readableTextColor(accent)`; a cor do organizador nunca é alterada. O ícone do WhatsApp não é usado em verde de marca; usar só texto e seta, para manter contraste válido em qualquer cor de tema.
+- Telas H e I (administrador e cliente): cores fixas do painel.
+
+#### 1.3 Alvos de toque e responsividade
+- Tela I vale para o cliente no celular: botões e linhas com alvo mínimo de 44 px de altura. A tabela densa do administrador não é reaproveitada aqui, porque a lista de convite é uma lista de linhas, não uma tabela.
+- Em 360 px não há rolagem horizontal da página.
+- Foco visível em todos os botões e campos; ordem de tab segue a ordem visual.
+
+### 2. Tela H — Link do grupo no editor do formulário
+
+#### 2.1 Objetivo e fluxo
+Objetivo: o administrador informa o link do grupo do WhatsApp do evento (RF-01).
+Local: aba **Limites e Termos** do painel lateral do editor, nova seção "Grupo do WhatsApp" logo abaixo da seção "Evento". Opcional; vazio é permitido.
+
+```mermaid
+flowchart TD
+  A[Admin abre aba Limites e Termos] --> B[Cola o link do grupo]
+  B --> C{Link valido?}
+  C -- nao --> D[Mostra erro no campo e mantem o texto]
+  D --> B
+  C -- sim --> E[Salvar formulario]
+  E --> F[Link passa a aparecer na confirmacao, no e-mail e no painel Convidar]
+```
+
+#### 2.2 Wireframes
+Computador (painel lateral) e celular (mesma ordem, coluna única):
+```
++-- Limites e Termos ---------------------------+
+| ... Evento (data, horário, local) ...         |
+|                                               |
+| Grupo do WhatsApp (opcional)                  |
+| Cole o link de convite do grupo. No WhatsApp: |
+| abra o grupo > nome do grupo > Convidar via   |
+| link do grupo > Copiar link.                  |
+| [ https://chat.whatsapp.com/XXXXXXXXXXXX    ] |
+| (erro, se houver, em vermelho)                |
+| [Limpar link]                                 |
++-----------------------------------------------+
+```
+
+#### 2.3 Todos os estados
+| Estado | Comportamento |
+|---|---|
+| Carregando | Campo desabilitado junto com o restante do editor, sem indicador próprio |
+| Padrão | Campo vazio, texto de apoio visível |
+| Vazio | É o padrão; o painel Convidar (Tela I) mostra o passo a passo para colar o link |
+| Enviando (salvar) | Segue o comportamento do botão Salvar existente |
+| Erro de campo | Mensagem abaixo do campo, `role="alert"`, `aria-invalid`, `aria-describedby`; o foco vai ao campo ao tentar salvar |
+| Erro do sistema | Toast de erro já existente do editor; o valor digitado não se perde |
+| Sucesso | Toast existente de formulário salvo |
+| Bloqueado / somente leitura | Não se aplica |
+| Indisponível | Não se aplica |
+
+#### 2.4 Textos exatos (todos novos, sujeitos à aprovação)
+- Título da seção: `Grupo do WhatsApp (opcional)`
+- Rótulo do campo: `Link do grupo do WhatsApp`
+- Apoio: `Crie o grupo no WhatsApp e cole aqui o link de convite. No WhatsApp: abra o grupo, toque no nome do grupo, escolha "Convidar via link do grupo" e copie o link.`
+- Placeholder: `https://chat.whatsapp.com/...`
+- Erro: `Cole o link completo do convite, que começa com https://chat.whatsapp.com/`
+- Botão: `Limpar link`
+
+#### 2.5 Markup e classes reutilizados
+`fieldClass` para o campo; rótulo `<label htmlFor>` como os demais campos do editor (`_authenticated.formularios.$id.tsx`); botão secundário padrão; erro em `text-xs text-destructive` com `role="alert"` (padrão de `QuestionField`).
+
+#### 2.6 Checagem
+- Nielsen: 1 visibilidade (apoio explica de onde copiar), 5 prevenção de erro (valida o formato antes de salvar), 9 recuperação de erro (mensagem diz o que colar), 6 reconhecimento (passo a passo ao lado do campo).
+- WCAG: 1.3.1 rótulo associado, 3.3.1 e 3.3.3 erro identificado com sugestão, 4.1.3 `role="alert"`, 2.4.7 foco visível.
+
+### 3. Tela I — Painel "Convidar para o grupo" (administrador e cliente)
+
+#### 3.1 Objetivo e fluxo
+Objetivo: convidar os inscritos para o grupo sem salvar contato e sem adicionar um a um (RF-03 a RF-08). O mesmo organismo `GroupInvitePanel` aparece em dois lugares:
+- Administrador: página de respostas `/formularios/$id/respostas`, em cartão acima da tabela.
+- Cliente: `/c/$token`, estado `ok` (sessão válida), acima da tabela, abaixo dos contadores e botões de download.
+
+Hierarquia da ação: primária = "Enviar convite por e-mail para todos"; secundárias = "Convidar pelo WhatsApp" por pessoa e "Baixar contatos (.vcf)".
+
+```mermaid
+flowchart TD
+  S[Painel Convidar para o grupo] --> Q{Tem link do grupo?}
+  Q -- nao --> P[Passo a passo e campo para colar o link]
+  P --> V{Link valido?}
+  V -- nao --> P
+  V -- sim --> OK[Painel completo]
+  Q -- sim --> OK
+  OK --> M[Enviar convite por e-mail para todos]
+  M --> C[Dialogo de confirmacao com quantidade]
+  C -- cancelar --> OK
+  C -- confirmar --> E[Envio em andamento com progresso]
+  E --> R[Resultado: enviados e falhas]
+  R -- falhas --> T[Tentar de novo as falhas]
+  OK --> W[Botao Convidar pelo WhatsApp por pessoa]
+  OK --> D[Baixar contatos .vcf]
+```
+
+#### 3.2 Wireframes
+Celular (360 px):
+```
++--------------------------------------+
+| Convidar para o grupo                |
+| 57 inscritos                         |
+| 55 com e-mail · 52 com WhatsApp      |
+| 0 já convidados                      |
+|                                      |
+| [ Enviar convite por e-mail ]        |   <- primário, largura total
+|   para 57 inscritos                  |
+|                                      |
+| Link do grupo: chat.whatsapp.com/…   |
+| [Trocar link]  [Baixar contatos .vcf]|
+|                                      |
+| v Editar mensagem do convite         |
+|                                      |
+| Filtro: (•) Todos ( ) Ainda não      |
+|         convidados                   |
+| ------------------------------------ |
+| MARIA SOUZA                          |
+| Convidada em 12/11 às 09:10  [Convidar] |
+| ------------------------------------ |
+| JOÃO LIMA                            |
+| Ainda não convidado          [Convidar] |
+| ------------------------------------ |
+| PEDRO ALVES                          |
+| Sem WhatsApp válido                  |
++--------------------------------------+
+```
+Computador: o mesmo cartão, com as três ações em linha (`flex-wrap`), e a lista em duas colunas de informação por linha (nome à esquerda, status e botão à direita). Largura máxima igual à do cartão de respostas.
+
+Sem link do grupo:
+```
++--------------------------------------+
+| Convidar para o grupo                |
+| 1. Crie o grupo no WhatsApp.         |
+| 2. Copie o link de convite do grupo. |
+| 3. Cole o link aqui.                 |
+| [ https://chat.whatsapp.com/...    ] |
+| [ Salvar link ]                      |
++--------------------------------------+
+```
+
+Diálogo de confirmação do envio por e-mail:
+```
++----------------------------------------+
+| Enviar convite por e-mail?             |
+| Vamos enviar o convite do grupo para   |
+| 55 inscritos que ainda não receberam.  |
+| Cada pessoa recebe só o próprio e-mail,|
+| sem ver os outros.                     |
+| [ ] Incluir quem já recebeu (0)        |
+| [Cancelar]   [Enviar para 55 inscritos]|
++----------------------------------------+
+```
+
+#### 3.3 Todos os estados
+| Estado | Comportamento |
+|---|---|
+| Carregando | Cartão com o título e `Carregando...`; botões desabilitados |
+| Padrão | Painel completo, como no wireframe |
+| Vazio (sem inscritos) | `Ainda não há inscritos para convidar.` e os botões ficam desabilitados |
+| Sem link do grupo | Passo a passo e campo para colar o link; botões de convite ocultos |
+| Sem e-mail em nenhum inscrito | Botão de e-mail desabilitado com `Os inscritos deste formulário não têm e-mail cadastrado. Use o botão Convidar pelo WhatsApp.` |
+| Enviando (lote) | Botão vira `Enviando... {x} de {N}` com `aria-live="polite"`, desabilitado; o resto do painel continua usável |
+| Erro de campo (link) | Mensagem abaixo do campo; foco no campo |
+| Erro do sistema | Faixa de erro com `Não foi possível enviar agora. Nada foi perdido: tente de novo.` e botão `Tentar de novo`; quem já recebeu não recebe duas vezes |
+| Sucesso | Faixa verde `Convites enviados: {E}.` e, se houver falhas, `{F} não puderam ser enviados.` com botão `Tentar de novo as falhas` |
+| Limite atingido | Faixa âmbar com o tempo de espera, botão desabilitado |
+| Bloqueado / somente leitura | Cliente com sessão expirada volta à tela "Link protegido" (nada de convite sem sessão válida) |
+| Indisponível | Formulário sem WhatsApp válido em nenhum inscrito: botão `Convidar` ausente nas linhas e `Baixar contatos (.vcf)` desabilitado |
+
+Regras de exibição por linha:
+- Com celular brasileiro válido (`parseBrazilMobile`): botão `Convidar`, que abre `whatsappUrl(telefone, mensagem)` em nova aba (`target="_blank" rel="noopener noreferrer"`).
+- Sem celular válido: texto `Sem WhatsApp válido`, sem botão.
+- Depois de tocar em `Convidar`, a linha passa a `Convidado(a) em dd/mm às HH:mm` (fuso de São Paulo). A marcação é um registro de "abriu o WhatsApp", não prova de que a mensagem foi enviada (ver P-03).
+- Telefone da pessoa não aparece na linha; só o nome (reduz exposição, principalmente em tela compartilhada).
+
+#### 3.4 Textos exatos (novos, sujeitos à aprovação)
+- Título: `Convidar para o grupo`
+- Resumo: `{N} inscritos` (singular `1 inscrito`); `{E} com e-mail · {W} com WhatsApp válido`; `{C} já convidados`
+- Passo a passo (sem link): `1. Crie o grupo no WhatsApp.` / `2. Copie o link de convite do grupo.` / `3. Cole o link aqui.`
+- Botão salvar link: `Salvar link`
+- Link salvo: `Link do grupo:` + domínio abreviado; botão `Trocar link`
+- Botão primário: `Enviar convite por e-mail`; sublinha `para {N} inscritos`
+- Botão por pessoa: `Convidar`; rótulo acessível `Convidar {nome} pelo WhatsApp`
+- Botão `Baixar contatos (.vcf)`; dica (title): `Arquivo com o nome e o celular de quem informou WhatsApp. Ao importar, os contatos entram na sua agenda.`
+- Disclosure: `Editar mensagem do convite`; campo `Mensagem` com o texto padrão abaixo; botão `Restaurar mensagem padrão`
+- Mensagem padrão (WhatsApp): `Olá, {primeiro nome}! Aqui está o link do grupo de avisos de “{título}”: {link}` (sem nome: `Olá! Aqui está o link do grupo de avisos de “{título}”: {link}`). A mensagem sempre contém o link do grupo, mesmo que o texto seja editado.
+- Aviso de privacidade (fixo no painel, `text-xs`): `Quem entrar no grupo vê o número de WhatsApp dos outros participantes. O convite é opcional: cada pessoa entra se quiser.`
+- Diálogo: título `Enviar convite por e-mail?`; corpo `Vamos enviar o convite do grupo para {N} inscritos que ainda não receberam. Cada pessoa recebe só o próprio e-mail, sem ver os outros.`; caixa `Incluir quem já recebeu ({K})`; botões `Cancelar` e `Enviar para {N} inscritos`
+- Progresso: `Enviando... {x} de {N}`
+- Sucesso: `Convites enviados: {E}.`; falhas: `{F} não puderam ser enviados.`; botão `Tentar de novo as falhas`
+- Limite: `Limite de envios atingido. Tente de novo em {M} minutos.` (e diário: `Limite diário de envios atingido. Tente amanhã.`)
+- Erro: `Não foi possível enviar agora. Nada foi perdido: tente de novo.`
+- Vazio: `Ainda não há inscritos para convidar.`
+- Filtro: `Todos` / `Ainda não convidados`
+- Linha: `Convidado(a) em {dd/mm} às {HH:mm}` / `Ainda não convidado(a)` / `Sem WhatsApp válido`
+- Link inválido (mesmo texto da Tela H).
+
+#### 3.5 Markup e classes reutilizados
+- Cartão: `glass rounded-2xl p-4 sm:p-5` (padrão do painel).
+- Campo: `fieldClass`. Botão primário do admin e do cliente: `bg-brand`; secundário: `bg-white/70`.
+- Diálogo: `AlertDialog` (como no `ShareLinkCard`). Disclosure: elemento nativo `<details>/<summary>` (sem biblioteca nova).
+- Linhas: `<ul role="list">` com `divide-y`, cada `<li>` com `py-3`.
+- Faixas: âmbar e verde já usadas no projeto. Progresso com `aria-live="polite"`.
+- Componente compartilhado `GroupInvitePanel`, usado por `_authenticated.formularios.$id_.respostas.tsx` e por `c.$token.tsx`, no mesmo padrão do `ResponsesTable` (T-26).
+
+#### 3.6 Checagem
+- Nielsen:
+  1 visibilidade: progresso do lote e status por linha; 2 linguagem do usuário: "Convidar", "grupo", sem "lote" nem "payload"; 3 controle: cancelar no diálogo e mensagem editável; 4 consistência: mesmos botões e diálogos do `ShareLinkCard`; 5 prevenção: confirmação com a quantidade exata antes do envio e bloqueio de duplicidade; 6 reconhecimento: ações visíveis, sem menu escondido; 7 eficiência: um clique para todos, um toque por pessoa; 8 minimalismo: só três ações; 9 recuperação: falhas reenviáveis; 10 ajuda: passo a passo e aviso de privacidade.
+- WCAG: 2.5.8 e 2.5.5 alvos de 44 px na lista; 4.1.3 `aria-live` no progresso e `role="alert"` nos erros; 1.4.1 status não depende só de cor (texto "Convidado(a) em"); 2.4.3 foco volta ao botão que abriu o diálogo ao fechar (padrão do Radix); 1.4.10 sem rolagem horizontal em 360 px; 1.3.1 lista semântica; rótulo acessível por pessoa no botão `Convidar`.
+- Risco de interpretação: o selo "Somente leitura" do cliente (Tela F) passa a conviver com ações de convite (ver P-01).
+
+### 4. Tela J — Confirmação de inscrição e e-mail com o botão "Entrar no grupo"
+
+#### 4.1 Objetivo e fluxo
+Objetivo: quem acabou de se inscrever recebe o convite sem precisar de ninguém (RF-02). Só aparece se o formulário tem link do grupo.
+```mermaid
+flowchart TD
+  I[Inscrição enviada com sucesso] --> L{Formulário tem link do grupo?}
+  L -- não --> N[Tela de sucesso como hoje]
+  L -- sim --> G[Cartão Grupo de avisos na tela de sucesso]
+  L -- sim --> E[Bloco com botão no e-mail de confirmação]
+  G --> B[Toque abre o WhatsApp em nova aba]
+```
+
+#### 4.2 Wireframes
+Tela de sucesso (abaixo do bloco verde do e-mail e acima do link de edição):
+```
+      (✓)  Tudo certo!
+   {mensagem de sucesso do formulário}
+ +----------------------------------------+
+ | Enviamos um resumo e o link para o     |
+ | seu e-mail. ...                        |
+ +----------------------------------------+
+ +----------------------------------------+
+ | Grupo de avisos do evento              |
+ | Entre no grupo para receber as         |
+ | informações da corrida. Entrar é       |
+ | opcional.                              |
+ | [ Entrar no grupo do WhatsApp  ↗ ]     |   <- cor do tema
+ | Quem entra no grupo vê o número de     |
+ | WhatsApp dos outros participantes.     |
+ +----------------------------------------+
+ | Link para editar sua inscrição: ...    |
+```
+E-mail (texto e HTML do `buildConfirmationEmail`): bloco com o mesmo título, a frase, um botão (link) e, logo abaixo, o endereço em texto puro como alternativa, para clientes de e-mail que não mostram botões.
+
+#### 4.3 Todos os estados
+| Estado | Comportamento |
+|---|---|
+| Carregando | Não se aplica (o cartão faz parte do estado de sucesso) |
+| Padrão | Cartão visível com botão |
+| Vazio | Sem link do grupo: o cartão não aparece e nada muda |
+| Enviando | Não se aplica |
+| Erro de campo | Não se aplica |
+| Erro do sistema | Não se aplica; o link já está na página, sem chamada |
+| Sucesso | O botão abre o WhatsApp em nova aba; a confirmação de inscrição continua na tela |
+| Bloqueado | Não se aplica |
+| Indisponível | Link do grupo removido pelo administrador depois da inscrição: o e-mail já enviado mantém o link antigo (limite aceito, ver P-04) |
+
+#### 4.4 Textos exatos (novos)
+- Título: `Grupo de avisos do evento`
+- Texto: `Entre no grupo para receber as informações da corrida. Entrar é opcional.`
+- Botão: `Entrar no grupo do WhatsApp`; rótulo acessível `Entrar no grupo do WhatsApp (abre em nova aba)`
+- Aviso: `Quem entra no grupo vê o número de WhatsApp dos outros participantes.`
+- Assunto do e-mail em lote (Tela I): `Entre no grupo de avisos: {título}`
+- Corpo do e-mail em lote: `Olá, {primeiro nome}! Você se inscreveu em “{título}”. Este é o link do grupo de avisos do evento no WhatsApp. Entrar é opcional. Quem entra no grupo vê o número de WhatsApp dos outros participantes.` + botão `Entrar no grupo do WhatsApp` + `Se o botão não abrir, copie este endereço: {link}` + linha final `Você recebeu este e-mail por ter feito essa inscrição. Se não quiser receber mais mensagens sobre este evento, responda este e-mail.` (texto final sujeito à orientação jurídica, RNF-06)
+
+#### 4.5 Markup e classes reutilizados
+Cartão `rounded-xl bg-white/70 p-5 text-left ring-1 ring-black/5` (mesmo do bloco do link de edição); botão de largura total com `style={{ backgroundColor: accent, color: readableTextColor(accent) }}` (padrão do botão de envio); `<a target="_blank" rel="noopener noreferrer">`.
+
+#### 4.6 Checagem
+- Nielsen: 1 e 6 (o botão diz o que faz e para onde vai); 3 (entrar é opcional, dito na tela); 10 (aviso de privacidade antes do clique).
+- WCAG: 1.4.3 contraste do botão pela função `readableTextColor`; 2.4.4 propósito do link claro; 3.2.5 aviso de nova aba no rótulo acessível; no e-mail, endereço em texto puro como alternativa.
+
+### 5. Tela K — Texto de ciência no formulário público
+
+#### 5.1 Objetivo e fluxo
+Objetivo: a pessoa sabe, antes de enviar, que receberá o convite (RF-09). Só aparece quando há link do grupo.
+
+#### 5.2 Wireframe
+Acima do botão de envio e abaixo do consentimento LGPD (ordem do formulário atual):
+```
+[ ] Li e concordo com os Termos...        (consentimento atual)
+Depois de se inscrever, você poderá entrar no
+grupo de avisos do evento no WhatsApp. Entrar é
+opcional.
+[            Enviar inscrição            ]
+```
+
+#### 5.3 Todos os estados
+Padrão: texto `text-xs` em cor `text-muted-foreground`, sem checkbox (não é consentimento). Vazio: sem link do grupo, nada aparece. Demais estados: não se aplicam.
+
+#### 5.4 Textos exatos (novo)
+`Depois de se inscrever, você poderá entrar no grupo de avisos do evento no WhatsApp. Entrar é opcional.`
+
+#### 5.5 Markup e classes reutilizados
+`<p className="text-xs text-muted-foreground">` como os textos de apoio do formulário.
+
+#### 5.6 Checagem
+Nielsen 1, 10. WCAG 1.4.3 (usar o tom `muted-foreground` já aprovado nos textos de apoio) e 3.3.2 (instrução antes da ação). Não é um campo, então não há rótulo nem erro.
+
+### 6. Propostas de mudança no spec, plan e tasks
+- P-01 [spec] O selo "Somente leitura" no link do cliente passa a referir-se aos dados dos inscritos; incluir no painel Convidar a frase `Estas ações não alteram as inscrições.` Alternativa: trocar o selo por `Só leitura dos dados`. Decisão do dono.
+- P-02 [spec] No link do cliente, o botão por pessoa abre o WhatsApp com o número que o cliente já vê na lista; confirmar que isso não amplia o que o cliente pode ver (a lista de convite não mostra o telefone, só o nome).
+- P-03 [spec] "Convidado(a) em" é um registro de que o botão foi tocado ou o e-mail foi enviado, não de que a pessoa entrou no grupo. O sistema não consegue saber quem entrou. Texto de ajuda opcional: `O WhatsApp não informa quem entrou no grupo.`
+- P-04 [spec] Se o administrador trocar ou limpar o link do grupo depois de enviar e-mails, os e-mails antigos continuam com o link velho. Mostrar no painel, ao trocar o link, o aviso `Os e-mails já enviados continuam com o link anterior.`
+- P-05 [plan] O painel do cliente precisa de gravação (salvar link, disparar e-mail, marcar convidado) por meio da sessão assinada da T-44; hoje essa rota é só de leitura. Impacta segurança (ver etapa de cibersegurança).
+- P-06 [plan] `GroupInvitePanel` compartilhado entre administrador e cliente (padrão do `ResponsesTable`).
+
+### 7. Ideias para a próxima fase
+- Botão "Copiar mensagem" para o cliente colar numa lista de transmissão do WhatsApp (envia a vários de uma vez, sem expor os números entre si).
+- Texto de apoio com vídeo curto de 20 segundos mostrando como copiar o link do grupo.
+- Opção "Canal do WhatsApp" no lugar de grupo, com o mesmo painel, para avisos de mão única (ver DP-04 do PRD).
+- Mensagem do convite diferente por formulário.

@@ -171,3 +171,28 @@ ALTER TABLE public.forms ADD CONSTRAINT forms_edit_window_hours_check
   CHECK (edit_window_hours IS NULL OR edit_window_hours BETWEEN 1 AND 720);
 ```
 
+## Migração T-45: Convite em lote para o grupo do WhatsApp (`20261113090000_convite_em_lote_grupo_whatsapp.sql`)
+
+### Entidades novas ou alteradas
+| Entidade | Mudança | Dono do dado |
+|---|---|---|
+| `forms` | coluna `whatsapp_group_link text null`, `whatsapp_group_link_updated_at timestamptz null`, `whatsapp_group_link_updated_by text null` (`admin` ou `client_link`), com `CHECK` do formato `^https://chat\.whatsapp\.com/[A-Za-z0-9]+$` e `char_length <= 200` | o formulário |
+| `invite_batches` | novo: `id uuid pk default gen_random_uuid()`, `form_id uuid not null references forms(id) on delete cascade`, `created_at timestamptz not null default now()`, `created_by text not null` (`admin:<user_id>` ou `client_link`), `group_link text not null` (cópia do link usada neste lote), `total integer not null`, `sent integer not null default 0`, `failed integer not null default 0`, `status text not null default 'open'` (`open`, `done`) | o envio |
+| `invite_deliveries` | novo: `id uuid pk`, `batch_id uuid not null references invite_batches(id) on delete cascade`, `form_id uuid not null` (redundante de propósito, para filtros e IDOR), `response_id uuid not null references responses(id) on delete cascade`, `channel text not null` (`email` ou `whatsapp`), `state text not null` (`pending`, `sent`, `failed`, `opened`), `updated_at timestamptz not null default now()`, `error_code text null`. **Não guarda e-mail nem telefone** (ficam em `responses.answers`) | o envio |
+
+Relacionamentos: formulário 1—N lotes; lote 1—N entregas; resposta 1—N entregas (uma por canal e lote). Identidade da entrega: `(batch_id, response_id, channel)` único.
+
+### Índices
+- `invite_batches (form_id, created_at desc)`: intervalo de 10 min e histórico.
+- `invite_deliveries (batch_id, state)`: próximas pendentes.
+- `invite_deliveries (form_id, response_id, channel)`: "já convidado" por inscrito.
+- `unique (batch_id, response_id, channel)`.
+
+### Função `public.invite_create_batch(p_form_id uuid, p_created_by text, p_response_ids uuid[], p_min_interval_minutes int, p_daily_budget int, p_resend boolean)`
+`SECURITY DEFINER`, `search_path` fixo (`public`), `pg_advisory_xact_lock(hashtext(p_form_id::text))`. Passos numa transação: (1) formulário existe e tem `whatsapp_group_link`; (2) último lote do formulário há mais que `p_min_interval_minutes`; (3) soma de e-mails `sent`/`pending` de convite nas últimas 24 h em todo o sistema + elegíveis não excede `p_daily_budget` (se não couber tudo, cria o lote só com os que cabem e devolve `deferred = m`); (4) elegíveis = os candidatos sem entrega `sent` de e-mail anterior (a menos que `p_resend`); (5) insere lote e entregas `pending`. Devolve `{ok, batch_id, total, deferred}` ou `{ok:false, reason}` com `reason` em (`no_link`, `too_soon`, `budget_exhausted`, `nobody_eligible`). A decisão de quem tem e-mail válido é feita no servidor (T-46/T-48) antes de chamar; a função recebe os `response_id` candidatos em `p_response_ids` e confere que todos pertencem ao formulário. Execução: `REVOKE ALL ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role`.
+
+### Segurança do banco (ARQ-02, SEC-39)
+Nas duas tabelas novas: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` sem política alguma; `REVOKE ALL ON TABLE ... FROM PUBLIC, anon, authenticated;` `GRANT ALL ... TO service_role`. A coluna nova de `forms` herda a política de `forms` (dono lê e altera); o formulário público não a recebe porque as consultas públicas usam lista explícita de colunas (verificado em `public-forms.functions.ts`, linhas 72 e 125).
+
+### Verificação do banco (a escrever na T-45)
+Arquivo `specs/001-fase-0-no-ar/verificacao-banco-m46.sql` (como `verificacao-banco.sql`): transação com `ROLLBACK` que prova (a) `anon` e `authenticated` não leem nem escrevem as tabelas, (b) a função recusa chamada de `anon`, (c) `CHECK` recusa link inválido, (d) intervalo, orçamento, reenvio e elegibilidade; mais `verificacao-concorrencia-m46.mjs` (duas chamadas simultâneas, uma cria lote). O dono roda as duas no SQL Editor e no terminal e cola a saída.

@@ -510,6 +510,12 @@ O padrão **Writer/Reviewer** (onde o Antigravity ou uma segunda sessão de IA r
    - **Por que é crítico:** Autorização baseada exclusivamente no token de 64 caracteres.
    - **Foco do Reviewer:** Conferir se o campo CPF está estritamente bloqueado contra alteração, se a leitura do `updated_at` anterior impede o bombardeio de e-mails em menos de 10 minutos e se as tags `no-referrer` e `noindex` estão presentes no cabeçalho da página.
 
+5. **Task T-45 (Banco do convite em lote, M-46):** transações, RLS e função de limite. **Foco do Reviewer:** `REVOKE`/RLS nas duas tabelas e na função `invite_create_batch`, `search_path` fixo, trava por formulário e `CHECK` do link do grupo.
+
+6. **Task T-48 (Servidor do administrador, M-46):** envio em massa com dado pessoal. **Foco do Reviewer:** reautorização a cada fatia, `batchId`/`responseId` do formulário certo, no máximo 1 chamada ao Resend por fatia, logs sem dado pessoal.
+
+7. **Task T-49 (Servidor do cliente, M-46):** autorização pelo link. **Foco do Reviewer:** toda função de escrita recusa link legado e sessão inválida; o `formId` vem do token, não do corpo.
+
 ---
 
 ## 10. Itens Posteriores (Fase 1)
@@ -625,3 +631,87 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 | **QA-44-13** | Exportações Excel/PDF só funcionam depois do código | Unitário / Manual | Como as exportações Excel e PDF operam no navegador sobre os dados de `getSharedResponses` e estes não são enviados no estado `"locked"`, os botões e dados de exportação só existem após desbloqueio com código válido. |
 | **QA-44-14** | Link público de inscrição não foi afetado | Integração / Manual | A rota pública `/$slug` e o envio de inscrições funcionam normalmente sem pedir código de acesso. |
 | **QA-44-15** | Nenhum log mostra token, código ou cookie | Unitário | Em todos os fluxos de sucesso, falha ou exceção de `share.functions.ts`, nenhuma chamada a `console.error` contém o `share_token` completo, o código de acesso em texto puro ou o valor do cookie de sessão. |
+
+## 15. Plano de Testes — M-46 (Convite em lote para o grupo do WhatsApp)
+
+> Insumos: `spec.md` RF-17 a RF-25, `docs/arquitetura/architecture.md` (RQ-01 a RQ-05, ARQ-01 a ARQ-07), `seguranca.md` SEC-37 a SEC-48. Nada foi executado no desenho; tudo é plano.
+
+### 15.1 Matriz de risco (probabilidade × impacto)
+| Risco | Prob. | Impacto | Cobertura |
+|---|---|---|---|
+| Link de cliente sem código dispara e-mail em massa (SEC-37) | Média | Alto | QA-46-14 |
+| Link do grupo malicioso em e-mail para dezenas de pessoas (SEC-38) | Baixa | Alto | QA-46-01, QA-46-02 |
+| Tabelas ou função abertas a `anon` (SEC-39) | Média | Alto | QA-46-03 |
+| Lote de outro formulário (IDOR, SEC-40) | Média | Alto | QA-46-15 |
+| Duplo clique duplica e-mails ou fura o limite (SEC-41) | Alta | Médio | QA-46-05 a QA-46-07, QA-46-12 |
+| Estouro de chamadas externas do Worker (RQ-01) | Média | Alto | QA-46-08 |
+| E-mail mostra dados de outros inscritos (RQ-05) | Baixa | Alto | QA-46-09 |
+| Injeção em HTML, assunto ou vCard (SEC-42, SEC-43) | Média | Médio | QA-46-16, QA-46-18 |
+| Link do grupo vaza no carregamento público (SEC-46) | Média | Médio | QA-46-20 |
+| Log com dado pessoal (SEC-45) | Média | Médio | QA-46-24 |
+
+### 15.2 Casos de teste (QA-46-01 a QA-46-29)
+Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **B** banco real (arquivo SQL/Node rodado pelo dono), **M** manual.
+| ID | Descrição | Camada | Resultado esperado |
+|---|---|---|---|
+| **QA-46-01** | Validação do link do grupo (RF-17, ARQ-07) | U | Aceita `https://chat.whatsapp.com/AbC123`; recusa `http://chat.whatsapp.com/x`, `https://chat.whatsapp.com.evil.com/x`, `https://evil.com/chat.whatsapp.com/x`, `https://chat.whatsapp.com/x?a=1`, `https://chat.whatsapp.com/x y`, `https://chat.whatsapp.com/@x`, `javascript:alert(1)`, texto com quebra de linha, 201 caracteres; vazio = remover |
+| **QA-46-02** | `CHECK` do banco recusa link inválido | B | `UPDATE forms SET whatsapp_group_link='https://evil.com/x'` falha; link válido passa |
+| **QA-46-03** | Tabelas e função fechadas | B | Como `anon` e `authenticated`: `SELECT/INSERT/UPDATE/DELETE` em `invite_batches` e `invite_deliveries` negados; `EXECUTE invite_create_batch` negado; `service_role` funciona |
+| **QA-46-04** | Criação do lote | B | Com 57 candidatos (10 já com entrega `sent`): lote com 47 entregas `pending`; com `p_resend = true`, 57 |
+| **QA-46-05** | Intervalo mínimo | B | Segunda chamada em menos de 10 min devolve `too_soon`; após 10 min, cria |
+| **QA-46-06** | Orçamento diário | B | Com 70 já enviados nas últimas 24 h e 57 candidatos: lote com 10 e `deferred = 47`; com 80, `budget_exhausted` |
+| **QA-46-07** | Concorrência | B | Duas chamadas simultâneas para o mesmo formulário: exatamente um lote |
+| **QA-46-08** | Fatias e chamadas externas | I | 57 inscritos = 2 fatias (50 e 7), 1 chamada ao Resend por fatia, no máximo 20 chamadas externas por requisição |
+| **QA-46-09** | Um destinatário por item, sem vazar | I | Corpo enviado: cada item com `to` de 1 endereço, sem `cc`/`bcc`, sem anexos; nenhum item contém dado de outro inscrito |
+| **QA-46-10** | Idempotency-Key | I | Reenvio da mesma fatia usa a mesma chave `<batchId>:<fatia>`; fatias diferentes, chaves diferentes; chave ≤ 256 caracteres |
+| **QA-46-11** | Resposta inesperada do Resend | I | Erro de rede, status ≠ 2xx ou corpo fora do formato: nenhum item vira `sent`; itens parciais conforme resposta |
+| **QA-46-12** | Retomada sem duplicar | I | Queda depois da fatia 1: `Continuar envio` envia só as pendentes; quem recebeu não recebe de novo |
+| **QA-46-13** | Autorização do administrador | I | Usuário que não é dono: toda função devolve `refused`; sem login, recusa |
+| **QA-46-14** | Escrita do cliente só com link protegido | I | Para **cada** função do cliente: link legado → `legacy_read_only`; sem cookie, cookie de outro formulário, versão antiga ou expirado → `locked`; válido → ok. Nenhum e-mail é enviado nos casos recusados |
+| **QA-46-15** | IDOR | I | `batchId` ou `responseId` de outro formulário: recusado em administrador e cliente; para o cliente, o `formId` vem do token, nunca do corpo |
+| **QA-46-16** | Escape do e-mail e do assunto | U | Título com `<script>` e `\r\n`: HTML escapado, assunto sem controle e ≤ 120 caracteres; texto do rodapé não contém "responda este e-mail" |
+| **QA-46-17** | wa.me | U | Só telefone validado por `parseBrazilMobile`; URL `https://wa.me/55<11 dígitos>?text=<texto codificado>`; telefone inválido = sem botão; mensagem editada nunca entra no e-mail |
+| **QA-46-18** | vCard (T-55) | U | Nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; só telefones válidos; N contatos para N válidos |
+| **QA-46-19** | Marcar convidado | I | `markInvited` é idempotente; falha de gravação não impede a abertura do WhatsApp (lógica de tela: estado, não exceção) |
+| **QA-46-20** | Link do grupo fora do público | U | As listas de colunas das consultas públicas não contêm `whatsapp_group_link`; o carregamento público só tem `hasGroupInvite` |
+| **QA-46-21** | Confirmação | I | Com link: resultado da inscrição e e-mail trazem `Entrar no grupo de avisos do evento`; sem link: saída idêntica à de hoje; link inválido no banco: ignorado |
+| **QA-46-22** | Aviso no formulário | I/M | Frase de ciência só quando `hasGroupInvite` |
+| **QA-46-23** | Estados do painel | U/M | Cada estado (sem link, sem elegíveis, orçamento, interrompido, legado, concluído) mostra o texto literal da Tela I |
+| **QA-46-24** | Logs sem dado pessoal | I | Nenhum registro contém e-mail, telefone, token do link, cookie ou link do grupo; só `formId`, `batchId`, código |
+| **QA-46-25** | Dependências | U | `git diff -- package.json bun.lock` vazio; `grep -inE "baileys\|whatsapp-web\|wppconnect\|venom-bot\|@whiskeysockets" package.json \| wc -l` = 0 |
+| **QA-46-26** | Painel do cliente | M | Sem sessão: só `Link protegido`; legado: só leitura e texto da P-08; com sessão: painel completo |
+| **QA-46-27** | Cliente define link | I/M | Grava com autoria `client_link` e data; link inválido recusado; e-mails já enviados mantêm o link antigo |
+| **QA-46-29** | Variações da mensagem | U | Existem 5 variações; todas contêm o primeiro nome e o link do grupo; o sorteio é estável (mesmo `responseId`, mesma variação) e cobre mais de uma variação em 57 inscritos; mensagem editada pelo usuário vira texto único |
+| **QA-46-28** | Mobile e acessibilidade | M | 360 px sem rolagem horizontal; alvos ≥ 44 px; `AlertDialog` com foco e teclado; contraste AA; mensagens com `role="alert"` |
+
+### 15.3 Fronteiras e valores limite
+- Inscritos: 0, 1, 50, 51 (duas fatias), 57, 100, 101 (orçamento).
+- Intervalo: 9 min 59 s (recusa) e 10 min 1 s (aceita).
+- Orçamento: 79, 80, 81 enviados em 24 h.
+- Link do grupo: 200 e 201 caracteres; código com 1 e com 60 caracteres.
+- Telefones: 10 dígitos (fixo), 11 válidos, DDD inexistente, com `+55`, com `0` na frente.
+
+### 15.4 Roteiro manual na prévia (T-54) — formulário de TESTE, e-mails de teste
+**Parte A** (depois da T-51, administrador): MAN-46-01 a MAN-46-06 e MAN-46-10. **Parte B** (depois da T-53, cliente): MAN-46-08 e MAN-46-09. **Parte C** (depois da T-55): MAN-46-07.
+Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails seus e preencher inscrições de teste (o envio dos 57 de teste só se houver cota; do contrário, 3 destinatários e conferir o fatiamento por teste automatizado).
+| ID | Passo | Esperado |
+|---|---|---|
+| MAN-46-01 | Editor: colar link inválido e depois válido | Mensagem clara; válido salva |
+| MAN-46-02 | Formulário público de teste | Aviso de ciência visível; link do grupo **não** aparece na fonte da página |
+| MAN-46-03 | Fazer inscrição de teste | Tela e e-mail com `Entrar no grupo de avisos do evento` |
+| MAN-46-04 | Administrador: `Enviar convite por e-mail` com confirmação | Resumo com quantidade; progresso; 1 e-mail por caixa; sem dados de outros |
+| MAN-46-05 | Tocar duas vezes rápido | Só um envio; segundo toque recusado com a mensagem de intervalo |
+| MAN-46-06 | `Convidar` por WhatsApp (celular) | Abre a conversa certa com mensagem pronta; linha vira `Convidado em` |
+| MAN-46-07 | `Baixar contatos (.vcf)` e importar em Android e iPhone | Contatos importados com +55 |
+| MAN-46-08 | Link do cliente legado | Painel só leitura com o texto da P-08 |
+| MAN-46-09 | `Proteger com código`, desbloquear e enviar pelo cliente | Painel completo; autoria `cliente via link` |
+| MAN-46-10 | Conferir Resend (Usage) e Cloudflare (logs) | Contagem coerente com os envios; sem erro de CPU ou de subrequests |
+
+### 15.5 Pronto para produção — M-46 (versão para quem não lê código)
+Está pronto quando: (1) ninguém sem o código do cliente consegue mandar convite (QA-46-14, MAN-46-08); (2) cada pessoa recebe só o próprio convite (QA-46-09, MAN-46-04); (3) dois toques não duplicam (QA-46-07, MAN-46-05); (4) o link do grupo só aparece depois da inscrição (QA-46-20, MAN-46-02); (5) o limite do Resend foi conferido na sua conta (MAN-46-10); (6) o texto jurídico do e-mail foi decidido; (7) o roteiro MAN-46-01 a 10 foi aprovado na prévia.
+
+### 15.6 Alinhamento com a seção 9 (revisão obrigatória)
+T-45 (banco, transações, RLS), T-48 (envio em massa, dado pessoal) e T-49 (autorização do cliente) exigem segunda sessão com contexto limpo revisando só o diff contra `plan.md`, `spec.md`, `architecture.md` (ARQ-02 a ARQ-06) e `seguranca.md` (SEC-37 a SEC-41), reportando apenas lacunas de corretude, segurança ou requisito.
+
+### 15.7 Não coberto
+Teste de carga além de 100 inscritos; entrega real em caixas de terceiros e reputação do domínio (SEC-47); comportamento de privacidade do WhatsApp do inscrito (quem restringe quem o convida só é afetado se alguém tentar adicioná-lo, o que o sistema não faz); dependência e SBOM não auditados (sem acesso ao registro).

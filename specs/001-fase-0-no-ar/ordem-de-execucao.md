@@ -122,3 +122,7 @@ Só faz sentido com mais de uma sessão/pessoa. Se você seguir sozinho, ignore 
 
 - **T-01:** o tipo `SubmitResult` ficou com `emailSent?` **opcional**; o plano exige `emailSent: boolean` obrigatório (corrigir na **T-09**).
 - **Configuração local do Bun (`bunfig.toml`):** `backend = "copyfile"` e `linker = "hoisted"` foram adicionados como contorno para o Windows/OneDrive. Depois de mover o projeto para fora do OneDrive, testar sem essas duas linhas e remover se não fizerem falta (a guarda `minimumReleaseAge` deve permanecer).
+
+## M-46 — Convite em lote para o grupo do WhatsApp (decisão do dono, 12/11/2026)
+
+Ordem: **T-45 → T-46 → T-47 → T-48 → T-50 → T-52 → T-51** (Marco 1: administrador usa; prova T-54 parte A) → **T-49 → T-53** (Marco 2: cliente usa, antes da próxima corrida; prova T-54 parte B) → **T-55** (arquivo de contatos; prova T-54 parte C). T-45 e T-46 podem andar juntas. Revisão obrigatória: T-45, T-48 e T-49. Detalhes e dependências no `tasks.md`.
