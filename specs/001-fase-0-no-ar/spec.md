@@ -81,6 +81,20 @@ Como inscrito, quero saber imediatamente se a data de nascimento digitada cumpre
 - Na edição da inscrição, a restrição de idade só é reaplicada se a data de nascimento for alterada.
 - Quando o formulário tem data de evento (`event_date`), o e-mail de confirmação (inscrição, edição e reenvio admin) exibe a linha `Evento: dd/mm/aaaa` (com horário e local, se preenchidos) logo abaixo do título.
 
+### RF-16 — Código de acesso no link do cliente
+Como administrador, quero que o link privado de acompanhamento do cliente (`/c/{token}`) exija um código de acesso gerado pelo sistema e tenha identificação visual clara no painel em relação ao link público de inscrição, para evitar exposição acidental dos dados pessoais dos inscritos caso o endereço seja compartilhado por engano.
+**Critério:**
+- Todo link do cliente criado pela primeira vez ou regenerado nasce protegido por um código de acesso de 10 caracteres do alfabeto `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem `I`, `O`, `0`, `1`), gerado criptograficamente sem viés de módulo.
+- O código em texto puro nunca é gravado no banco nem em logs (apenas hash SHA-256 com sal aleatório) e é exibido ao administrador uma única vez no momento da criação, regeneração ou proteção.
+- Links antigos já existentes antes desta funcionalidade (sem `share_code_hash`) permanecem funcionando sem código como links legado, exibindo no painel uma faixa de alerta âmbar (`"Este link não tem código de acesso. Quem tiver o endereço vê os dados."`) e o botão `"Proteger com código"` (que gera um código mantendo o mesmo endereço, mediante confirmação no diálogo interno).
+- Em links protegidos, abrir `/c/{token}` sem sessão válida retorna estado `"locked"`, sem entregar título do formulário, perguntas ou respostas, e exibe a tela `"Link protegido"` solicitando o código de acesso.
+- A entrada do código aceita letras minúsculas, espaços e hífens (normalizados para maiúsculas sem espaços/hífens).
+- Cinco tentativas incorretas consecutivas bloqueiam novas verificações por 15 minutos com a mensagem neutra `"Muitas tentativas. Aguarde 15 minutos e tente de novo."` (mesmo que o código correto seja digitado durante o bloqueio).
+- Ao acertar o código, o servidor zera as falhas e emite um cookie de sessão assinado com HMAC-SHA256 (`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`), com validade de 30 dias após o fechamento do formulário (`max(closes_at, agora) + 30 dias`, ou `agora + 30 dias` se não houver `closes_at`).
+- Regenerar o código (`Gerar novo código`), regenerar link e código (`Gerar novo link e código`) ou desativar o link incrementa `share_code_version` e invalida imediatamente todas as sessões anteriores.
+- No painel do formulário, os cartões diferenciam claramente `"Link público de inscrição"` (visual neutro) e `"Link privado do cliente"` (visual de alerta âmbar, com aviso ao copiar: `"Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável."`).
+- O link público de inscrição (`/{slug}`) e o fluxo de inscrição não sofrem alterações. A visão do cliente após desbloqueio continua exibindo os dados completos (sem máscara de CPF/RG nesta etapa).
+
 ## Fora de escopo (produto)
 
 Data/hora de **abertura**, excluir resposta pela tela, upload de logotipo, duplicar formulário, busca na tabela, captcha, reenvio do link pelo próprio inscrito, pré-visualização no editor, quiz com nota, mais de um administrador, confirmar que o CPF existe na Receita, lógica condicional, upload de arquivos pelo inscrito, redirecionamento de endereços antigos (nada está em produção ainda).

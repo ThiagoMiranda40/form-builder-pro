@@ -601,3 +601,27 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 | **QA-24e-03** | Reenvio imediato sem recarregar a página | Unitário / Manual | Após o erro, o campo escondido `hp` está limpo e um novo clique em Enviar (sem recarregar) grava a inscrição e mostra a tela de sucesso com o link de edição. |
 | **QA-24e-04** | Ausência de falso sucesso no estado de erro | Unitário / Manual | A mensagem não aparece como sucesso: não há título `"Tudo certo!"`, nem ícone `✓`, nem link de edição no estado de erro. |
 | **QA-24e-05** | Não regressão dos erros comuns | Unitário / Manual | Erros comuns (CPF inválido, campo obrigatório, CPF repetido, vagas esgotadas, prazo encerrado) continuam com as mensagens e comportamentos anteriores. |
+
+---
+
+## 14. Plano de Testes — T-44 (Código de Acesso no Link do Cliente e Rótulos Claros no Painel)
+
+### 14.1 Casos de Teste (QA-44-01 a QA-44-15)
+
+| ID | Descrição do Teste | Tipo | Resultado Esperado |
+|---|---|---|---|
+| **QA-44-01** | Link novo nasce protegido e mostra o código uma vez | Unitário / Manual | Ao criar o link do cliente pela primeira vez (ou regenerar link e código), nasce com `share_code_hash` preenchido e devolve `accessCode` de 10 caracteres exibido uma única vez em destaque com botão `"Copiar código"`. |
+| **QA-44-02** | Sem código nenhuma resposta aparece (nem título) | Unitário / Manual | Em link protegido sem cookie de sessão válido, `getSharedResponses` devolve `{ state: "locked" }` sem `form.title`, sem `questions` e sem `responses`, e a tela `/c/$token` exibe apenas `"Link protegido"`. |
+| **QA-44-03** | Código certo libera e a atualização a cada 30 s continua | Unitário / Manual | Informar o código correto (inclusive com minúsculas, espaços ou hífens) emite cookie de sessão válido, carrega as inscrições e mantém a atualização periódica a cada 30 segundos. |
+| **QA-44-04** | Código errado mostra a mensagem e não libera | Unitário / Manual | Código incorreto retorna `{ state: "wrong_code" }`, incrementa `share_failed_attempts`, não emite cookie e exibe `"Código incorreto. Confira e tente novamente."`. |
+| **QA-44-05** | Cinco erros bloqueiam 15 minutos | Unitário / Manual | Na 5ª tentativa incorreta seguida, grava `share_locked_until = agora + 15 min` e retorna `{ state: "locked_out" }` exibindo `"Muitas tentativas. Aguarde 15 minutos e tente de novo."`; durante o bloqueio, mesmo o código correto retorna `"locked_out"`. |
+| **QA-44-06** | Gerar novo código invalida quem já estava dentro | Unitário / Manual | Acionar `"Gerar novo código"` mantém o mesmo `share_token`, incrementa `share_code_version` e zera falhas/bloqueio; sessões anteriores passam a receber `{ state: "locked" }` na próxima consulta/atualização. |
+| **QA-44-07** | Link legado continua abrindo sem código e mostra a faixa âmbar | Unitário / Manual | Formulário com `share_token` existente e `share_code_hash = null` abre diretamente em `/c/$token` sem pedir código, e no painel exibe a faixa âmbar `"Este link não tem código de acesso. Quem tiver o endereço vê os dados."`. |
+| **QA-44-08** | "Proteger com código" no link legado | Unitário / Manual | Clicar em `"Proteger com código"` no painel abre `AlertDialog` interno de confirmação; ao confirmar, gera código sem trocar o `share_token`, exibe o código uma vez e passa a exigir código em `/c/$token`. |
+| **QA-44-09** | Desativar link limpa tudo | Unitário / Manual | `"Desativar link"` define `share_token = null`, limpa `share_code_hash`, `share_code_salt`, `share_failed_attempts`, `share_locked_until` e incrementa `share_code_version`. |
+| **QA-44-10** | O código não reaparece depois de fechar o cartão | Unitário / Manual | Ao fechar o aviso do código ou recarregar o editor, o código não é mais exibido e o cartão mostra `"Link protegido por código de acesso"`. |
+| **QA-44-11** | Rótulos público x privado e aviso ao copiar | Componente / Manual | O painel exibe `"Link público de inscrição"` (neutro) e `"Link privado do cliente"` (alerta âmbar); ao copiar o link privado, exibe `"Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável."`. |
+| **QA-44-12** | Sessão expira conforme a regra de 30 dias após o fechamento | Unitário | `computeSessionExpiry(closesAt, now)` retorna `max(closes_at, now) + 30 dias` (ou `now + 30 dias` quando `closes_at` é nulo ou anterior a `now`), e sessões com `exp` vencido retornam `{ state: "locked" }`. |
+| **QA-44-13** | Exportações Excel/PDF só funcionam depois do código | Unitário / Manual | Como as exportações Excel e PDF operam no navegador sobre os dados de `getSharedResponses` e estes não são enviados no estado `"locked"`, os botões e dados de exportação só existem após desbloqueio com código válido. |
+| **QA-44-14** | Link público de inscrição não foi afetado | Integração / Manual | A rota pública `/$slug` e o envio de inscrições funcionam normalmente sem pedir código de acesso. |
+| **QA-44-15** | Nenhum log mostra token, código ou cookie | Unitário | Em todos os fluxos de sucesso, falha ou exceção de `share.functions.ts`, nenhuma chamada a `console.error` contém o `share_token` completo, o código de acesso em texto puro ou o valor do cookie de sessão. |

@@ -953,50 +953,69 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
 
 ---
 
-## 8b. Tela F — Link do cliente (`/c/$token`) e Cartão no Editor
+## 8b. Tela F — Link do cliente (`/c/$token`) e Cartões de Link no Editor (T-25, T-37, T-44)
 
-### 8b.1 Cartão no Editor (`ShareLinkCard`)
-- **Localização:** Logo abaixo do cartão "Link de compartilhamento" no editor de formulário (`_authenticated.formularios.$id.tsx`).
-- **Título:** "Link do cliente (somente leitura)"
-- **Descrição:** "Quem tiver este link vê todas as inscrições, inclusive CPF, e-mail e telefone, mas não consegue alterar nada. Compartilhe só com quem precisa."
-- **Estado sem token:**
-  - Botão principal: "Gerar link do cliente".
-- **Estado com token:**
-  - Campo de texto somente leitura exibindo a URL completa gerada com a origem canônica (`ALLOWED_ORIGINS[0]`): `${origin}/c/${token}`, com associação de rótulo acessível via `htmlFor` e `id` (UX-13, corrigido na T-37).
-  - Botão "Copiar": copia o link para a área de transferência com feedback sonoro/visual ("Link copiado!") e anúncio de status via Sonner.
-  - Botão "Abrir": abre a URL em uma nova aba com `target="_blank"` e `rel="noopener noreferrer"`.
-  - Botão "Gerar novo link": abre `AlertDialog` com título "Gerar novo link do cliente?" e texto "O link atual deixará de funcionar na hora. Continuar?".
-  - Botão "Desativar link": abre `AlertDialog` com título "Desativar link do cliente?" e texto "Quem usa o link perderá o acesso na hora. Continuar?".
-  - Todos os diálogos possuem suporte a foco acessível e tecla Esc.
-  - Ações de gerar, regenerar ou revogar atualizam o estado do editor sem recarregar a página.
+### 8b.1 Cartões de Link Público e Privado no Editor (`_authenticated.formularios.$id.tsx` e `ShareLinkCard.tsx`)
+- **Diferenciação Visual e Textual (T-44):**
+  - **Cartão 1 — Link público:**
+    - Estilo: neutro (`glass rounded-2xl p-4`).
+    - Título: `"Link público de inscrição"`
+    - Texto de apoio: `"Compartilhe este link com quem vai se inscrever."`
+  - **Cartão 2 — Link privado do cliente (`ShareLinkCard`):**
+    - Estilo: alerta âmbar (`rounded-2xl bg-amber-50/90 p-4 mt-4 ring-1 ring-amber-300/80`) com ícone de alerta/cadeado (`aria-hidden="true"`), mantendo contraste acessível (>= 4,5:1).
+    - Título: `"Link privado do cliente"`
+    - Texto de apoio: `"Mostra os dados dos inscritos. Compartilhe só com o responsável, junto com o código de acesso, de preferência por outro canal."`
+- **Estados do `ShareLinkCard`:**
+  - **Estado sem link (`shareToken === null`):**
+    - Botão primário: `"Gerar link do cliente"`.
+  - **Estado recém-criado / código recém-gerado (exibição única do código):**
+    - Bloco em destaque exibindo o código de 10 caracteres em fonte monoespaçada, botão `"Copiar código"` e o aviso literal:
+      `"Anote ou envie agora. Este código não aparece de novo. Se perder, gere um novo código: o link continua o mesmo, mas quem já entrou precisará digitar o novo código."`
+    - Ao fechar o aviso ou recarregar a página, o código não é mais exibido.
+  - **Estado com link protegido (`shareToken` presente e protegido, após fechar a exibição única):**
+    - Indicador de status: `"Link protegido por código de acesso"`.
+    - Campo somente leitura com a URL `${origin}/c/${token}`, botão `"Copiar"` e link `"Abrir"` (`target="_blank" rel="noopener noreferrer"`).
+    - Ao copiar o link privado: exibe o aviso `"Atenção: este link mostra dados pessoais dos inscritos. Envie só ao responsável."`.
+    - Botões de ação (todos com confirmação via `AlertDialog` interno, nunca `confirm()`):
+      - `"Gerar novo código"` (chama `regenerateAccessCode`: mantém o link e troca apenas o código).
+      - `"Gerar novo link e código"` (chama `createShareLink` com `regenerate: true`: troca o link e o código).
+      - `"Desativar link"` (chama `revokeShareLink`: desativa o link e limpa código/sessões).
+  - **Estado com link legado (`shareToken` presente, mas `share_code_hash === null`):**
+    - Exibe faixa âmbar de alerta: `"Este link não tem código de acesso. Quem tiver o endereço vê os dados."` acompanhada do botão `"Proteger com código"`.
+    - Clicar em `"Proteger com código"` abre `AlertDialog` de confirmação; ao confirmar, chama `regenerateAccessCode`, passa o link para protegido sem alterar a URL e mostra o código gerado uma única vez.
 
 ### 8b.2 Tela Pública do Cliente (`/c/$token`)
-- **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem e baixem relatórios em Excel e PDF em tempo quase real, sem permissão para editar ou excluir dados (o PDF baixado pode ser impresso pelo leitor).
+- **Objetivo:** Permitir que representantes do cliente (ex.: SKF) visualizem, busquem, ordenem e baixem relatórios em Excel e PDF em tempo quase real, exigindo código de acesso em links protegidos e sem permissão para editar ou excluir dados.
 - **Metadados (Head):**
-  - Título: "Inscrições recebidas | Corre Time" (CLIENT_LINK_TAB_TITLE)
-  - `description`: "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
-  - `og:title`: "NÃO COMPARTILHE: lista de inscritos | Corre Time" (CLIENT_LINK_OG_TITLE)
-  - `og:description`: "Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição." (CLIENT_LINK_DESCRIPTION)
-  - `robots`: "noindex, nofollow"
-  - `referrer`: "no-referrer"
-- **Cabeçalho:**
-  - Título do formulário e selo "Somente leitura" (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
-  - Contadores em destaque: "{N} inscrições" (com forma no singular "1 inscrição" quando N = 1; UX-12 corrigido na T-37), "{V} vagas restantes" (apenas se houver limite de vagas configurado) e "Prazo: dd/mm/aaaa às HH:mm" (calculado no fuso de Brasília/São Paulo, apenas se houver prazo final).
-  - Indicador de tempo: "Atualizado às HH:mm" (com atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
-  - Ações globais:
-    - Botão "Baixar Excel": gera planilha XLSX via `exportToExcel` de `exports.ts` considerando `field_type` das perguntas e a ordenação ativa com todas as inscrições.
-    - Botão "Baixar PDF": gera documento PDF via `exportToPDF` de `exports.ts` com a ordenação ativa e todas as inscrições (o layout aprovado em paisagem com cabeçalho roxo pode ser impresso pelo leitor de PDF). Em impressão direta pelo navegador (Ctrl+P), a página aplica classes `print:` para remover barra de rolagem e altura máxima.
-- **Tabela e Detalhes:**
-925:   - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`.
-926:   - CPF completo como gravado no banco de dados (sem truncamento, em uma única linha).
-927:   - Sem botões de editar, excluir ou copiar link de edição em nenhuma parte da tela.
-928:   - Clique na linha (`onRowClick`) abre o `ResponseDetailDialog` sem o slot `actions` (exibição puramente em modo de leitura).
-929:   - Busca rápida e ordenação pelas 4 modalidades mantidas e sincronizadas com as exportações.
-930: - **Estados da Tela:**
-931:   - **Carregando:** feedback com mensagem "Carregando inscrições...".
-932:   - **Não encontrado (`not_found`):** "Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou." (sem expor nenhum dado nem detalhe técnico).
-933:   - **Erro de rede / servidor:** mensagem clara de falha com botão "Tentar de novo".
-934:   - **Responsividade:** em 360 px a página não possui rolagem horizontal; apenas a área interna da tabela rola lateralmente.
+  - Título: `"Inscrições recebidas | Corre Time"` (`CLIENT_LINK_TAB_TITLE`)
+  - `description`: `"Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição."` (`CLIENT_LINK_DESCRIPTION`)
+  - `og:title`: `"NÃO COMPARTILHE: lista de inscritos | Corre Time"` (`CLIENT_LINK_OG_TITLE`)
+  - `og:description`: `"Acesso restrito, só leitura, com dados pessoais. Não é o link de inscrição."` (`CLIENT_LINK_DESCRIPTION`)
+  - `robots`: `"noindex, nofollow"`
+  - `referrer`: `"no-referrer"`
+- **Estado `locked` — Tela de Desbloqueio (T-44):**
+  - Quando `getSharedResponses` retorna `{ state: "locked" }`, nenhum dado do formulário (nem título, nem perguntas, nem respostas) é exibido ou trafegado.
+  - Exibe cartão centralizado (`glass-strong rise w-full max-w-md rounded-2xl p-6 sm:p-8`) com:
+    - Título (`<h1>`): `"Link protegido"`
+    - Texto: `"Digite o código de acesso que o organizador enviou para ver as inscrições."`
+    - Campo de texto com `<label htmlFor="share-access-code">`: `"Código de acesso"`, `autoFocus`, `autoComplete="off"`, `autoCapitalize="characters"`, `spellCheck={false}`.
+    - Botão de envio: `"Acessar"` (desabilitado enquanto verifica ou se o campo estiver vazio).
+    - Mensagens de erro exibidas com `role="alert"`:
+      - Código incorreto (`wrong_code`): `"Código incorreto. Confira e tente novamente."`
+      - Bloqueado por tentativas (`locked_out`): `"Muitas tentativas. Aguarde 15 minutos e tente de novo."`
+      - Erro genérico / falha: `"Não foi possível verificar o código agora. Tente novamente."`
+  - Ao acertar o código (`ok`), recarrega a consulta `["shared-responses", token]` e exibe a tabela de inscrições com atualização automática a cada 30 segundos. Se a sessão expirar ou o código for regenerado durante o uso (nova resposta `locked`), fecha qualquer diálogo aberto e volta imediatamente para a tela `"Link protegido"`.
+- **Estado `ok` — Cabeçalho, Tabela e Detalhes:**
+  - Título do formulário e selo `"Somente leitura"` (`rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-black/5`).
+  - Contadores em destaque: `"{N} inscrições"` (ou `"1 inscrição"` quando N = 1; UX-12), `"{V} vagas restantes"` (se houver limite) e `"Prazo: dd/mm/aaaa às HH:mm"` (fuso de São Paulo, se houver prazo).
+  - Indicador de tempo: `"Atualizado às HH:mm"` (atualização periódica a cada 30 segundos via react-query, sem refetch em segundo plano).
+  - Ações globais: `"Baixar Excel"` e `"Baixar PDF"` (operam sobre os dados já carregados no navegador).
+  - Componente compartilhado `ResponsesTable` (T-26) sem `renderRowActions` e sem `showUpdatedAt`, CPF completo sem máscara (decisão do dono; M-45 adiada), clique na linha abre `ResponseDetailDialog` somente leitura.
+- **Outros Estados da Tela:**
+  - **Carregando:** `"Carregando inscrições..."`.
+  - **Não encontrado (`not_found`):** `"Este link não é válido ou foi desativado. Peça um novo link a quem o compartilhou."`.
+  - **Erro de rede / servidor:** `"Não foi possível carregar as inscrições"` com botão `"Tentar de novo"`.
+  - **Responsividade:** em 360 px a página não possui rolagem horizontal; apenas a área interna da tabela rola lateralmente.
 935: 
 936: ---
 937: 
@@ -1056,6 +1075,7 @@ Conforme verificado em `src/styles.css` e nas rotas existentes:
     - **Validação em tempo real e eliminação do balão nativo:** Atributo `noValidate` nos formulários de inscrição pública e de edição (`$slug.tsx` e `editar.$token.tsx`) para eliminar balões nativos do navegador. Validação inline imediata ao completar 10 caracteres (formato AAAA-MM-DD) e no evento `onBlur` via `validateBirthdateInline`, com exibição da mensagem de erro logo abaixo do campo. Campo incompleto durante a digitação não exibe erro até o `blur`. Na edição, se a data de nascimento não foi alterada pelo participante, os limites não são reaplicados.
     - **Linha do evento completa nos e-mails:** Os e-mails de confirmação de inscrição pública, de edição e de reenvio administrativo pelo painel recebem `event_date`, `event_time` e `event_location` do formulário e exibem no corpo (HTML e texto puro) a linha literal: `"Evento: dd/mm/aaaa às HH:MM · Local"` (ou sem horário/local caso não configurados).
 27. P-NN [Formulário Público] Mensagem de erro do anti-robô orientada ao usuário (T-24e / M-43 versão reduzida), aprovada pelo dono: quando o campo escondido anti-robô (`zq_trap_7f3`, payload `hp`) vem preenchido, o servidor retorna a mensagem literal `"Não foi possível enviar. O seu navegador pode ter preenchido um campo automaticamente. Confira os seus dados e clique em Enviar novamente. Se o erro continuar, apague os campos preenchidos automaticamente e digite as informações você mesmo."`, exibida no alerta geral do topo (`role="alert"`), preservando todas as respostas, confirmações de e-mail e consentimento na tela, limpando o estado `hp` e liberando o botão Enviar para que um novo envio sem recarregar a página funcione imediatamente.
+28. P-NN [Editor e Tela F] Código de acesso no link do cliente e rótulos claros no painel (T-44 / M-44), aprovada pelo dono: links criados ou regenerados nascem protegidos com código de 10 caracteres gerado pelo sistema e exibido uma única vez; links legado continuam abrindo sem código e exibem faixa âmbar com botão `"Proteger com código"`; tela de desbloqueio `"Link protegido"` em `/c/$token` quando `state === "locked"`, com foco automático no campo `"Código de acesso"` (`autoComplete="off"`) e mensagens de erro com `role="alert"`; rótulos e cores distintos no editor (`"Link público de inscrição"` neutro e `"Link privado do cliente"` em alerta âmbar com aviso ao copiar).
 
 
 > **Nota de Privacidade:** A frase sobre fontes do Google no item 10 da Política deve ser removida quando o item C-d hospedar as fontes no próprio site.
