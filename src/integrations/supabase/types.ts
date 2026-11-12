@@ -39,6 +39,9 @@ export type Database = {
           theme: Json
           title: string
           updated_at: string
+          whatsapp_group_link: string | null
+          whatsapp_group_link_updated_at: string | null
+          whatsapp_group_link_updated_by: string | null
         }
         Insert: {
           closes_at?: string | null
@@ -64,6 +67,9 @@ export type Database = {
           theme?: Json
           title?: string
           updated_at?: string
+          whatsapp_group_link?: string | null
+          whatsapp_group_link_updated_at?: string | null
+          whatsapp_group_link_updated_by?: string | null
         }
         Update: {
           closes_at?: string | null
@@ -89,8 +95,110 @@ export type Database = {
           theme?: Json
           title?: string
           updated_at?: string
+          whatsapp_group_link?: string | null
+          whatsapp_group_link_updated_at?: string | null
+          whatsapp_group_link_updated_by?: string | null
         }
         Relationships: []
+      }
+      invite_batches: {
+        Row: {
+          created_at: string
+          created_by: string
+          failed: number
+          form_id: string
+          group_link: string
+          id: string
+          sent: number
+          status: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          failed?: number
+          form_id: string
+          group_link: string
+          id?: string
+          sent?: number
+          status?: string
+          total: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          failed?: number
+          form_id?: string
+          group_link?: string
+          id?: string
+          sent?: number
+          status?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_batches_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_deliveries: {
+        Row: {
+          batch_id: string
+          channel: string
+          error_code: string | null
+          form_id: string
+          id: string
+          response_id: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          channel: string
+          error_code?: string | null
+          form_id: string
+          id?: string
+          response_id: string
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          channel?: string
+          error_code?: string | null
+          form_id?: string
+          id?: string
+          response_id?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_deliveries_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "invite_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_deliveries_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_deliveries_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "responses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -206,6 +314,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      invite_create_batch: {
+        Args: {
+          p_form_id: string
+          p_created_by: string
+          p_response_ids: string[]
+          p_min_interval_minutes?: number
+          p_daily_budget?: number
+          p_resend?: boolean
+        }
+        Returns: Json
+      }
       share_register_failure: {
         Args: {
           p_form_id: string

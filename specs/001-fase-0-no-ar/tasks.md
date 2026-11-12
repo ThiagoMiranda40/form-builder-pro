@@ -859,7 +859,7 @@ Critérios de Aceite:
 
 ## T-45 — Banco: link do grupo, lotes e entregas de convite (M-46) 🧑 ⚖
 
-- **Estado:** a fazer.
+- **Estado:** em andamento.
 - **Ler:** `spec.md RF-17, RF-19, RF-21; data-model.md (seção T-45); architecture.md 3.3, 3.4, 4.1 ARQ-02, ARQ-05; ADR-003; ADR-005; seguranca.md SEC-39, SEC-41; qa-plan.md QA-46-02 a QA-46-07`.
 - **Objetivo:** criar a base de dados da M-46 fechada ao acesso direto e com a regra de limite decidida pelo próprio banco.
 - **Primeiro passo (base):** registrar a saída real de `bunx tsc --noEmit`, `bun run test` e `bun run build` antes de qualquer alteração (linha de base). Falha preexistente é reportada, não corrigida.
