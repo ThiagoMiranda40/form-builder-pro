@@ -1093,7 +1093,7 @@ Melhorias registradas para consideração futura:
 
 ## 12. M-46 — Convite em lote para o grupo do WhatsApp (Telas H a K)
 
-> **Atualização de 12/11/2026 (decisão do dono):** (1) no painel o envio por e-mail vem primeiro e o botão `Convidar` por inscrito é o complemento; (2) a mensagem do botão tem 5 variações sorteadas por inscrito (editar a mensagem a troca por texto único); (3) o botão `Baixar contatos (.vcf)` só entra na T-55; (4) o painel do cliente só entra no Marco 2.
+> **Atualização de 12/11/2026 (decisão do dono):** (1) no painel o envio por e-mail vem primeiro e o botão `Convidar` por inscrito é o complemento; (2) a mensagem do botão tem 5 variações sorteadas por inscrito (editar a mensagem a troca por texto único); (3) o botão `Baixar contatos (.vcf)` é a **primeira entrega** (T-55), na barra de exportações da página de respostas, e depois passa para dentro do painel (T-52); (4) o painel do cliente só entra no Marco 2.
 
 Insumo: `prd-m46-grupo-whatsapp.md` (RF-01 a RF-09). Esta seção é um acréscimo ao `specs/001-fase-0-no-ar/design/ui-ux.md` (telas H a K, letras seguintes às existentes A a G; a numeração duplicada "Tela F" da seção 8b é um defeito antigo do documento e não é corrigida aqui). Nada aqui decide comportamento: tudo que falta no spec está em "Propostas de mudança".
 

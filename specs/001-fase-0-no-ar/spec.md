@@ -121,7 +121,7 @@ Como cliente, quero um botão por inscrito que abre o WhatsApp dele com a mensag
 Como cliente, quero ver quem já foi convidado (por e-mail ou pelo botão do WhatsApp), para não repetir.
 **Critério de aceite:** Dado que o e-mail foi enviado ou toquei em `Convidar`, então a linha mostra `Convidado em <data>`; o filtro `Ainda não convidados` lista só quem falta. Se o registro falhar, o WhatsApp abre do mesmo jeito e a linha apenas não muda.
 
-### RF-22 — Baixar contatos (última prioridade da M-46, T-55)
+### RF-22 — Baixar contatos (primeira entrega da M-46, T-55)
 Como cliente, quero baixar os contatos dos inscritos num arquivo, para importar na agenda de uma vez se eu preferir adicionar manualmente.
 **Critério de aceite:** Dado N inscritos com celular válido, quando toco em `Baixar contatos (.vcf)`, então baixo um arquivo com N contatos (nome e telefone com +55) que abre no Android e no iPhone. Nomes com caracteres especiais não alteram nem criam campos no contato.
 
@@ -138,9 +138,10 @@ Como inscrito, quero saber que receberei o convite do grupo antes de me inscreve
 **Critério de aceite:** Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
 
 ## Ordem de entrega (decisão do dono, 12/11/2026)
-1. **Administrador primeiro:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.
+0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.
+1. **Administrador:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.
 2. **Cliente depois, antes da próxima corrida:** RF-23 e RF-24.
-3. **Por último:** RF-22 (arquivo de contatos).
+3. RF-22 também no link do cliente, junto do RF-23 (T-53).
 
 ## Qualidade e privacidade (nível da spec, sem tecnologia)
 - Nenhum envio mostra a lista de outros inscritos nem seus telefones (RNF-02 do PRD).

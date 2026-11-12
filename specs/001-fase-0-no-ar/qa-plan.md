@@ -692,7 +692,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 - Telefones: 10 dígitos (fixo), 11 válidos, DDD inexistente, com `+55`, com `0` na frente.
 
 ### 15.4 Roteiro manual na prévia (T-54) — formulário de TESTE, e-mails de teste
-**Parte A** (depois da T-51, administrador): MAN-46-01 a MAN-46-06 e MAN-46-10. **Parte B** (depois da T-53, cliente): MAN-46-08 e MAN-46-09. **Parte C** (depois da T-55): MAN-46-07.
+**Parte A** (depois da T-51, administrador): MAN-46-01 a MAN-46-06 e MAN-46-10. **Parte B** (depois da T-53, cliente): MAN-46-08 e MAN-46-09. **Parte C** (depois da T-55, primeira a rodar): MAN-46-07.
 Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails seus e preencher inscrições de teste (o envio dos 57 de teste só se houver cota; do contrário, 3 destinatários e conferir o fatiamento por teste automatizado).
 | ID | Passo | Esperado |
 |---|---|---|

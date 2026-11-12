@@ -158,7 +158,7 @@ Não regenerar `types.ts` por CLI; não migrar dados do projeto Lovable antigo (
 3. **E-mail em lote** em `src/lib/invite-email.ts`: constrói o HTML e o assunto de cada item, faz **um** `POST https://api.resend.com/emails/batch` por fatia (até 50 itens, 1 destinatário por item, cabeçalho `Idempotency-Key`), interpreta a resposta item a item. `fetch` e chave entram por parâmetro (testável).
 4. **Funções de servidor** em `src/lib/invite.functions.ts`, duas entradas que compartilham o mesmo núcleo: administrador (usuário autenticado, dono do formulário) e cliente (token + `share_code_hash` preenchido + cookie de sessão válido; reaproveita o padrão de `getSharedResponses`). Cada fatia reautoriza.
 5. **Telas** em `src/components/GroupInvitePanel.tsx` (organismo único, dados por propriedades), campo no editor (Tela H), cartão de confirmação e e-mail (Tela J), aviso no formulário (Tela K).
-6. **Publicar cedo, administrador primeiro:** a T-45 e a T-46 não mudam nenhum comportamento visível; o primeiro marco de uso é o administrador (T-45, T-46, T-47, T-48, T-50, T-52, T-51); o cliente vem em seguida (T-49, T-53) e o arquivo de contatos por último (T-55). A ordem de execução está na tabela do `tasks.md`.
+6. **Publicar cedo, administrador primeiro:** a T-45 e a T-46 não mudam nenhum comportamento visível; o **Marco 0** é o arquivo de contatos (T-55, sem banco nem servidor); o **Marco 1** é o administrador (T-45, T-46, T-47, T-48, T-50, T-52, T-51); o **Marco 2** é o cliente (T-49, T-53). A ordem de execução está na tabela do `tasks.md`.
 
 ### Arquitetura aplicável (herdada, não reaberta)
 | ID | Como se aplica aqui |
