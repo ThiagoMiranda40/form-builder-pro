@@ -26,6 +26,7 @@ import {
 } from "@/lib/responses-table";
 import { findEmailQuestionWithAnswer } from "@/lib/admin-response";
 import { resendEditLink } from "@/lib/admin-response.functions";
+import { buildVcf, extractVcfContacts, vcfFilename } from "@/lib/invite";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -163,6 +164,30 @@ function Respostas() {
     }
   };
 
+  const handleDownloadVcf = (
+    title: string,
+    qList: { id: string; label: string; field_type?: string }[],
+    rList: { id: string; answers: Record<string, string | string[]>; submitted_at: string }[],
+  ) => {
+    try {
+      const sortedAll = sortRows(rList, qList, sortMode);
+      const contacts = extractVcfContacts(qList, sortedAll);
+      const content = buildVcf(contacts);
+      if (!content) return;
+      const blob = new Blob([content], { type: "text/vcard;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = vcfFilename(title);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Não foi possível baixar os contatos. Tente novamente.");
+    }
+  };
+
   const handleCopyEditLink = async (token: string) => {
     try {
       if (!navigator?.clipboard?.writeText) {
@@ -241,6 +266,7 @@ function Respostas() {
   const displayedResponses = onlyEdited
     ? responses.filter((r) => isEdited(r.submitted_at, r.updated_at))
     : responses;
+  const hasValidVcfContacts = extractVcfContacts(questions, responses).length > 0;
 
   const updatedAtText = formatUpdatedAt(query.dataUpdatedAt);
 
@@ -311,6 +337,19 @@ function Respostas() {
             className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
           >
             Exportar PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDownloadVcf(form.title, questions, responses)}
+            disabled={!hasValidVcfContacts}
+            title={
+              hasValidVcfContacts
+                ? "Arquivo com o nome e o celular de quem informou WhatsApp. Ao importar, os contatos entram na sua agenda."
+                : "Este formulário não tem celular válido para baixar."
+            }
+            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+          >
+            Baixar contatos (.vcf)
           </button>
         </div>
       </div>

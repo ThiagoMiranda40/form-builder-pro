@@ -1027,7 +1027,7 @@ Critérios de Aceite:
 
 ## T-55 — Baixar contatos em .vcf (M-46)
 
-- **Estado:** a fazer. **Ordem 0: primeira da M-46.** Independente das demais (sem banco, sem função de servidor, sem e-mail).
+- **Estado:** concluída (aguardando prova na prévia). **Ordem 0: primeira da M-46.** Independente das demais (sem banco, sem função de servidor, sem e-mail).
 - **Ler:** `spec.md RF-22; design/ui-ux.md Tela I (botão Baixar contatos); seguranca.md SEC-43; qa-plan.md QA-46-18, QA-46-28`.
 - **Objetivo:** o administrador baixa, na página de respostas, um arquivo de contatos dos inscritos com celular válido, para importar na agenda do celular de uma vez e criar o grupo ou convidar manualmente.
 - **Especificações complementares:**

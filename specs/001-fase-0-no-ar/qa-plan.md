@@ -671,7 +671,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-15** | IDOR | I | `batchId` ou `responseId` de outro formulário: recusado em administrador e cliente; para o cliente, o `formId` vem do token, nunca do corpo |
 | **QA-46-16** | Escape do e-mail e do assunto | U | Título com `<script>` e `\r\n`: HTML escapado, assunto sem controle e ≤ 120 caracteres; texto do rodapé não contém "responda este e-mail" |
 | **QA-46-17** | wa.me | U | Só telefone validado por `parseBrazilMobile`; URL `https://wa.me/55<11 dígitos>?text=<texto codificado>`; telefone inválido = sem botão; mensagem editada nunca entra no e-mail |
-| **QA-46-18** | vCard (T-55) | U | Nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; só telefones válidos; N contatos para N válidos |
+| **QA-46-18** | vCard (T-55) — **Implementado (`src/lib/invite.test.ts`)** | U | Nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; só telefones válidos; N contatos para N válidos |
 | **QA-46-19** | Marcar convidado | I | `markInvited` é idempotente; falha de gravação não impede a abertura do WhatsApp (lógica de tela: estado, não exceção) |
 | **QA-46-20** | Link do grupo fora do público | U | As listas de colunas das consultas públicas não contêm `whatsapp_group_link`; o carregamento público só tem `hasGroupInvite` |
 | **QA-46-21** | Confirmação | I | Com link: resultado da inscrição e e-mail trazem `Entrar no grupo de avisos do evento`; sem link: saída idêntica à de hoje; link inválido no banco: ignorado |
