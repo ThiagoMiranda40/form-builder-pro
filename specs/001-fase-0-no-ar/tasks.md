@@ -964,11 +964,6 @@ Critérios de Aceite:
 - **Verificação:** comandos padrão (tsc 0 erros, vitest 587 testes passando, build ok); `grep -n "whatsapp_group_link" src/lib/public-forms.functions.ts src/lib/edit-response.functions.ts src/lib/submit-response.ts src/routes/$slug.tsx src/routes/editar.$token.tsx` sem saída.
 - **O que isso prova:** o link só é aceito no formato certo e quem abre o formulário público não o recebe antes de se inscrever.
 - **Critérios de aceite:** QA-46-01, QA-46-20.
-- **TDD:** teste em `src/lib/routes.test.ts` (padrão do projeto, sem jsdom) garantindo que as listas de colunas públicas não contêm `whatsapp_group_link`; testes do núcleo já cobrem a validação.
-- **Arquivos:** `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
-- **Verificação:** comandos padrão; `grep -n "whatsapp_group_link" src/lib/public-forms.functions.ts` sem saída.
-- **O que isso prova:** o link só é aceito no formato certo e quem abre o formulário público não o recebe antes de se inscrever.
-- **Critérios de aceite:** QA-46-01, QA-46-20.
 
 ---
 
