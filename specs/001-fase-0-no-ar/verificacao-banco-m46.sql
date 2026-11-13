@@ -1,17 +1,15 @@
--- Verificação do banco — M-46 (T-45): link do grupo, lotes e entregas de convite (QA-46-02 a QA-46-06, SEC-39, SEC-41, ARQ-02, ARQ-05).
--- Compatível com o SQL Editor do Supabase e com o psql.
--- Toda a verificação roda dentro de BEGIN ... ROLLBACK para nunca deixar lixo no banco,
--- retornando uma única tabela onde todas as linhas devem começar com PASSOU.
---
--- Se executado ANTES da migração 20261113090000_convite_em_lote_grupo_whatsapp.sql:
--- falha imediatamente (vermelho) porque as colunas whatsapp_group_link*, as tabelas
--- invite_batches / invite_deliveries e a função invite_create_batch ainda não existem.
+-- Verificação do banco — M-46 (T-45), versão para o SQL Editor do Supabase (e psql).
+-- QA-46-02 a QA-46-06, SEC-39, SEC-41, ARQ-02, ARQ-05.
+-- Uso: colar este arquivo inteiro no SQL Editor -> Run (botão "Run without RLS": a tabela de resultados é temporária).
+-- O resultado é UMA tabela; toda linha deve começar com PASSOU e a última é o RESUMO.
+-- NÃO usa BEGIN/ROLLBACK (o editor não mantém a transação entre comandos): cria formulários de teste
+-- (slugs "teste-m46*"), usa só dados deles e apaga tudo no final. Não altera nenhum dado real.
+-- Pré-requisito: migração 20261113090000 aplicada e pelo menos 1 usuário em auth.users.
 
-BEGIN;
 
-SELECT set_config('app.owner', (SELECT id::text FROM auth.users ORDER BY created_at LIMIT 1), true);
+SELECT set_config('app.owner', (SELECT id::text FROM auth.users ORDER BY created_at LIMIT 1), false);
 
-CREATE TEMP TABLE resultados_m46 (n serial, linha text) ON COMMIT DROP;
+CREATE TEMP TABLE resultados_m46 (n serial, linha text);
 
 CREATE FUNCTION pg_temp.chk(label text, got text, want text) RETURNS text LANGUAGE sql AS $$
   SELECT CASE WHEN got IS NOT DISTINCT FROM want THEN 'PASSOU — ' || label
@@ -40,6 +38,13 @@ END $$;
 
 DELETE FROM public.forms WHERE slug LIKE 'teste-m46%';
 
+INSERT INTO pg_temp.resultados_m46(linha)
+SELECT pg_temp.chk(
+  'pré-condição: nenhuma entrega de convite real nas últimas 24 h (senão o teste de orçamento não vale)',
+  (SELECT count(*)::text FROM public.invite_deliveries WHERE updated_at > now() - interval '24 hours'),
+  '0'
+);
+
 INSERT INTO public.forms (owner_id, slug, title, status)
 VALUES (current_setting('app.owner')::uuid, 'teste-m46-form', 'Corrida M46', 'published');
 
@@ -52,8 +57,8 @@ VALUES (
   'https://chat.whatsapp.com/OutroGrupoValido123'
 );
 
-SELECT set_config('app.form_m46', (SELECT id::text FROM public.forms WHERE slug = 'teste-m46-form'), true);
-SELECT set_config('app.form_outro', (SELECT id::text FROM public.forms WHERE slug = 'teste-m46-outro'), true);
+SELECT set_config('app.form_m46', (SELECT id::text FROM public.forms WHERE slug = 'teste-m46-form'), false);
+SELECT set_config('app.form_outro', (SELECT id::text FROM public.forms WHERE slug = 'teste-m46-outro'), false);
 
 -- ===== 1. QA-46-02 — CHECK do banco em forms.whatsapp_group_link =====
 INSERT INTO pg_temp.resultados_m46(linha)
@@ -196,9 +201,6 @@ SELECT pg_temp.chk(
 );
 
 -- 2c. Cenário de 57 candidatos onde 10 já possuem entrega sent em lote anterior (> 10 min atrás)
--- Isola eventuais lotes reais das últimas 24h movendo-os temporariamente na transação (desfeito pelo ROLLBACK)
-UPDATE public.invite_batches SET created_at = now() - interval '3 days' WHERE created_at > now() - interval '2 days';
-UPDATE public.invite_deliveries SET updated_at = now() - interval '3 days' WHERE updated_at > now() - interval '2 days';
 
 INSERT INTO public.invite_batches (id, form_id, created_at, created_by, group_link, total, sent, failed, status)
 VALUES (
@@ -235,7 +237,7 @@ SELECT set_config(
     80,
     false
   )::text),
-  true
+  false
 );
 
 INSERT INTO pg_temp.resultados_m46(linha)
@@ -353,7 +355,7 @@ SELECT set_config(
     80,
     true
   )::text),
-  true
+  false
 );
 
 INSERT INTO pg_temp.resultados_m46(linha)
@@ -406,7 +408,7 @@ SELECT set_config(
     80,
     false
   )::text),
-  true
+  false
 );
 
 INSERT INTO pg_temp.resultados_m46(linha)
@@ -531,6 +533,8 @@ SELECT pg_temp.chk(
   'true'
 );
 
+DELETE FROM public.forms WHERE slug LIKE 'teste-m46%';
+
 -- ===== Resultado final (uma única tabela) =====
 SELECT resultado FROM (
   SELECT n, linha AS resultado FROM pg_temp.resultados_m46
@@ -541,6 +545,3 @@ SELECT resultado FROM (
     count(*) FILTER (WHERE linha LIKE 'FALHOU%') || ' FALHOU =='
   FROM pg_temp.resultados_m46
 ) r ORDER BY n;
-
-ROLLBACK;
-

@@ -655,12 +655,12 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | ID | Descrição | Camada | Resultado esperado |
 |---|---|---|---|
 | **QA-46-01** | Validação do link do grupo (RF-17, ARQ-07) | U | Aceita `https://chat.whatsapp.com/AbC123`; recusa `http://chat.whatsapp.com/x`, `https://chat.whatsapp.com.evil.com/x`, `https://evil.com/chat.whatsapp.com/x`, `https://chat.whatsapp.com/x?a=1`, `https://chat.whatsapp.com/x y`, `https://chat.whatsapp.com/@x`, `javascript:alert(1)`, texto com quebra de linha, 201 caracteres; vazio = remover |
-| **QA-46-02** | `CHECK` do banco recusa link inválido | B | `UPDATE forms SET whatsapp_group_link='https://evil.com/x'` falha; link válido passa |
-| **QA-46-03** | Tabelas e função fechadas | B | Como `anon` e `authenticated`: `SELECT/INSERT/UPDATE/DELETE` em `invite_batches` e `invite_deliveries` negados; `EXECUTE invite_create_batch` negado; `service_role` funciona |
-| **QA-46-04** | Criação do lote | B | Com 57 candidatos (10 já com entrega `sent`): lote com 47 entregas `pending`; com `p_resend = true`, 57 |
-| **QA-46-05** | Intervalo mínimo | B | Segunda chamada em menos de 10 min devolve `too_soon`; após 10 min, cria |
-| **QA-46-06** | Orçamento diário | B | Com 70 já enviados nas últimas 24 h e 57 candidatos: lote com 10 e `deferred = 47`; com 80, `budget_exhausted` |
-| **QA-46-07** | Concorrência | B | Duas chamadas simultâneas para o mesmo formulário: exatamente um lote |
+| **QA-46-02** | `CHECK` do banco recusa link inválido (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | `UPDATE forms SET whatsapp_group_link='https://evil.com/x'` falha; link válido passa |
+| **QA-46-03** | Tabelas e função fechadas (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Como `anon` e `authenticated`: `SELECT/INSERT/UPDATE/DELETE` em `invite_batches` e `invite_deliveries` negados; `EXECUTE invite_create_batch` negado; `service_role` funciona |
+| **QA-46-04** | Criação do lote (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Com 57 candidatos (10 já com entrega `sent`): lote com 47 entregas `pending`; com `p_resend = true`, 57; lote `open` com entregas `pending` devolve `nobody_eligible` mesmo com `p_resend = true` |
+| **QA-46-05** | Intervalo mínimo (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Segunda chamada em menos de 10 min devolve `too_soon`; após 10 min, cria |
+| **QA-46-06** | Orçamento diário (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Com 70 já enviados nas últimas 24 h e 57 candidatos: lote com 10 e `deferred = 47`; com 80, `budget_exhausted` |
+| **QA-46-07** | Concorrência (T-45) — **Provado (5 chamadas simultâneas: 1 lote criado, 4 `too_soon`; `specs/001-fase-0-no-ar/verificacao-concorrencia-m46.mjs`)** | B | Duas chamadas simultâneas para o mesmo formulário: exatamente um lote |
 | **QA-46-08** | Fatias e chamadas externas | I | 57 inscritos = 2 fatias (50 e 7), 1 chamada ao Resend por fatia, no máximo 20 chamadas externas por requisição |
 | **QA-46-09** | Um destinatário por item, sem vazar | I | Corpo enviado: cada item com `to` de 1 endereço, sem `cc`/`bcc`, sem anexos; nenhum item contém dado de outro inscrito |
 | **QA-46-10** | Idempotency-Key | I | Reenvio da mesma fatia usa a mesma chave `<batchId>:<fatia>`; fatias diferentes, chaves diferentes; chave ≤ 256 caracteres |
