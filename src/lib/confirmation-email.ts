@@ -2,6 +2,7 @@ import { isValidEmail } from "./validators";
 import { hideDocument } from "./inscricao";
 import { formatAnswer } from "./answer-format";
 import { hasValidGroupLink, validateGroupLink } from "./group-link";
+import { resolveGroupInviteText, GROUP_PRIVACY_NOTICE } from "./group-texts";
 
 /**
  * Escapa caracteres especiais HTML para prevenir XSS em e-mails (SEC-09).
@@ -50,6 +51,7 @@ export interface BuildConfirmationEmailParams {
   editUrl: string;
   kind?: "confirmada" | "atualizada" | undefined;
   groupLink?: string | null | undefined;
+  groupInviteText?: string | null | undefined;
 }
 
 export interface BuiltEmail {
@@ -139,7 +141,7 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
     ? `\n    <p style="font-size: 14px; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #374151;">${escapeHtml(eventLine)}</p>`
     : "";
 
-  // Bloco do Grupo de avisos do WhatsApp (T-51 / SEC-38 / SEC-42)
+  // Bloco do Grupo de avisos do WhatsApp (T-51 / T-56 / SEC-38 / SEC-42 / SEC-49)
   let groupBlockHtml = "";
   let groupBlockText = "";
 
@@ -147,25 +149,29 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
     const validated = validateGroupLink(params.groupLink);
     if (validated.ok && validated.link) {
       const safeGroupLink = escapeHtml(validated.link);
+      const inviteText = resolveGroupInviteText(params.groupInviteText);
+      const safeInviteText = escapeHtml(inviteText);
+      const safePrivacyNotice = escapeHtml(GROUP_PRIVACY_NOTICE);
+
       groupBlockHtml = `
 
     <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 20px; margin-top: 24px; text-align: left;">
       <h2 style="font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: #065f46;">Grupo de avisos do evento</h2>
-      <p style="font-size: 14px; margin: 0 0 16px 0; color: #047857; line-height: 1.5;">Entre no grupo para receber as informações da corrida. Entrar é opcional.</p>
+      <p style="font-size: 14px; margin: 0 0 16px 0; color: #047857; line-height: 1.5;">${safeInviteText}</p>
       <div style="margin-bottom: 12px;">
         <a href="${safeGroupLink}" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 6px;">Entrar no grupo do WhatsApp</a>
       </div>
       <p style="font-size: 12px; margin: 0 0 8px 0; color: #065f46; word-break: break-all;">Se o botão não abrir, copie este endereço: ${safeGroupLink}</p>
-      <p style="font-size: 11px; margin: 0; color: #047857;">Quem entra no grupo vê o número de WhatsApp dos outros participantes.</p>
+      <p style="font-size: 11px; margin: 0; color: #047857;">${safePrivacyNotice}</p>
     </div>`;
 
       groupBlockText = `
 
 Grupo de avisos do evento
-Entre no grupo para receber as informações da corrida. Entrar é opcional.
+${inviteText}
 Entrar no grupo do WhatsApp: ${validated.link}
 Se o botão não abrir, copie este endereço: ${validated.link}
-Quem entra no grupo vê o número de WhatsApp dos outros participantes.`;
+${GROUP_PRIVACY_NOTICE}`;
     }
   }
 

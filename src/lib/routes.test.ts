@@ -438,18 +438,26 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
     }
   });
 
-  it("public-forms.functions.ts não possui chave de objeto whatsapp_group_link: nem groupLink: e contém a coluna apenas uma vez no select interno", () => {
+  it("public-forms.functions.ts não possui chave whatsapp_group_link: nem groupLink: no retorno de getPublicForm e contém a coluna nos selects internos (T-50 / T-56 / SEC-46)", () => {
     const publicFormsContent = fs.readFileSync(publicFormsPath, "utf-8");
 
-    // 1. Nenhuma chave de objeto whatsapp_group_link: nem groupLink: no arquivo
+    // 1. Nenhuma chave de objeto whatsapp_group_link: nem groupLink: no retorno de getPublicForm
+    const getPublicFormSection = publicFormsContent.slice(
+      publicFormsContent.indexOf("export const getPublicForm"),
+      publicFormsContent.indexOf("export const submitResponse"),
+    );
+    const returnIndex = getPublicFormSection.indexOf("return {");
+    expect(returnIndex).toBeGreaterThan(-1);
+    const returnBlock = getPublicFormSection.slice(returnIndex);
     const keyAssignmentRegex = /whatsapp_group_link\s*:|groupLink\s*:/;
-    expect(keyAssignmentRegex.test(publicFormsContent)).toBe(false);
+    expect(keyAssignmentRegex.test(returnBlock)).toBe(false);
 
-    // 2. A palavra whatsapp_group_link aparece no arquivo uma única vez, dentro do select de loadPublicFormAndQuestions
-    const occurrences = (publicFormsContent.match(/whatsapp_group_link/g) || []).length;
-    expect(occurrences).toBe(1);
+    // 2. A palavra whatsapp_group_link aparece no arquivo apenas nos selects internos e no mapeamento de loadPublicFormAndQuestions
     expect(publicFormsContent).toMatch(
       /loadPublicFormAndQuestions[\s\S]*?\.select\([\s\S]*?whatsapp_group_link[\s\S]*?\)/,
+    );
+    expect(publicFormsContent).toMatch(
+      /getPublicForm[\s\S]*?\.select\([\s\S]*?whatsapp_group_link[\s\S]*?\)/,
     );
   });
 
@@ -461,12 +469,14 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
     expect(editarContent).not.toContain("whatsapp_group_link");
   });
 
-  it("src/routes/$slug.tsx contém os textos literais da confirmação e NÃO contém hasGroupInvite (T-51 / RF-18 / RF-25 dispensado)", () => {
+  it("src/routes/$slug.tsx contém os textos literais da confirmação, renderiza groupNotice e NÃO contém hasGroupInvite nem whatsapp_group_link (T-51 / T-56 / RF-18 / RF-26)", () => {
     const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
 
     expect(slugContent).toContain("Grupo de avisos do evento");
     expect(slugContent).toContain("Entrar no grupo do WhatsApp");
+    expect(slugContent).toContain("form.groupNotice");
     expect(slugContent).not.toContain("hasGroupInvite");
+    expect(slugContent).not.toContain("whatsapp_group_link");
   });
 
   it("o select do carregamento do editor contém whatsapp_group_link", () => {

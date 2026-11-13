@@ -216,4 +216,43 @@ describe("editor-dirty (T-34b / M-32 / M-35)", () => {
       expect(isEditorDirty(snapEmpty, snapNull)).toBe(false);
     });
   });
+
+  describe("T-56 (M-46): textos personalizáveis do grupo no snapshot do editor", () => {
+    it("mudar whatsapp_group_notice_text suja o snapshot", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = {
+        ...baseForm,
+        whatsapp_group_notice_text: "Aviso importante antes de enviar",
+      };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mudar whatsapp_group_invite_text suja o snapshot", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = {
+        ...baseForm,
+        whatsapp_group_invite_text: "Convite personalizado para o grupo",
+      };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("null e string vazia nos textos são equivalentes e não sujam", () => {
+      const formNull = {
+        ...baseForm,
+        whatsapp_group_notice_text: null,
+        whatsapp_group_invite_text: null,
+      };
+      const formEmpty = {
+        ...baseForm,
+        whatsapp_group_notice_text: "",
+        whatsapp_group_invite_text: "",
+      };
+
+      const snapNull = editorSnapshot(formNull, baseQuestions);
+      const snapEmpty = editorSnapshot(formEmpty, baseQuestions);
+
+      expect(snapEmpty).toBe(snapNull);
+      expect(isEditorDirty(snapEmpty, snapNull)).toBe(false);
+    });
+  });
 });

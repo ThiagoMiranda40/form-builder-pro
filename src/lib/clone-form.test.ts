@@ -82,6 +82,8 @@ describe("buildCloneFormPayload (T-41)", () => {
       "event_date",
       "event_time",
       "event_location",
+      "whatsapp_group_notice_text",
+      "whatsapp_group_invite_text",
     ].sort();
 
     expect(Object.keys(payload).sort()).toEqual(allowedKeys);
@@ -122,6 +124,24 @@ describe("buildCloneFormPayload (T-41)", () => {
 
     const payload = buildCloneFormPayload(source as any, "owner-abc", "xyz123");
 
+    expect((payload as Record<string, unknown>)["whatsapp_group_link"]).toBeUndefined();
+    expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_at"]).toBeUndefined();
+    expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_by"]).toBeUndefined();
+  });
+
+  it("T-56 (M-46): copia whatsapp_group_notice_text e whatsapp_group_invite_text ao clonar formulário", () => {
+    const source = {
+      title: "Corrida Com Textos",
+      whatsapp_group_notice_text: "Aviso para inscritos",
+      whatsapp_group_invite_text: "Convite especial para o grupo",
+      whatsapp_group_link: "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A",
+      whatsapp_group_link_updated_at: "2026-11-13T10:00:00Z",
+      whatsapp_group_link_updated_by: "admin",
+    };
+    const payload = buildCloneFormPayload(source as any, "user-owner", "abc12345");
+    expect(payload.whatsapp_group_notice_text).toBe("Aviso para inscritos");
+    expect(payload.whatsapp_group_invite_text).toBe("Convite especial para o grupo");
+    // Garante que link e metadados continuam fora
     expect((payload as Record<string, unknown>)["whatsapp_group_link"]).toBeUndefined();
     expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_at"]).toBeUndefined();
     expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_by"]).toBeUndefined();

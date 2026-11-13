@@ -135,7 +135,15 @@ Como cliente, quero colar eu mesmo o link do grupo no meu painel, sem depender d
 
 ### RF-25 — Aviso no formulário público
 Como inscrito, quero saber que receberei o convite do grupo antes de me inscrever.
-**Critério de aceite:** *(Dispensado em 13/11/2026 por decisão do dono; texto opcional poderá voltar na T-56)* Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
+**Critério de aceite:** *(Substituído pelo RF-26: aviso opcional e personalizável na T-56)* Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
+
+### RF-26 — Textos do grupo personalizáveis (T-56)
+Como administrador, quero definir uma frase de aviso no formulário público e um texto de convite personalizado, para adequar a comunicação de cada evento.
+**Critério de aceite:**
+- Dado um formulário com link de grupo válido e frase de aviso preenchida, o formulário público exibe o texto acima do botão `Enviar inscrição`. Se o campo de aviso estiver vazio, nenhuma frase é exibida. Sem link de grupo válido, a frase nunca aparece.
+- Dado um formulário com link de grupo válido e texto de convite preenchido, a tela de confirmação e o e-mail de confirmação exibem esse texto acima do botão do grupo. Se o campo estiver vazio, o sistema exibe o texto padrão (`Entre no grupo para receber as informações da corrida. Entrar é opcional.`).
+- Em qualquer caso, o aviso de privacidade (`Quem entra no grupo vê o número de WhatsApp dos outros participantes.`) permanece obrigatório e inalterável.
+- Endereços (links) digitados nos textos de aviso ou convite são rejeitados na validação.
 
 ## Ordem de entrega (decisão do dono, 12/11/2026)
 0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.

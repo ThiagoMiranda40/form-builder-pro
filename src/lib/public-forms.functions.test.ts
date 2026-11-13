@@ -332,10 +332,12 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
 
       const res = await loadPublicFormAndQuestions(fakeSupabase as any, "form-teste");
       expect(selectCols).toContain("whatsapp_group_link");
+      expect(selectCols).toContain("whatsapp_group_notice_text");
+      expect(selectCols).toContain("whatsapp_group_invite_text");
       expect(res.form?.whatsapp_group_link).toBe(validGroupLink);
     });
 
-    it("(b) getPublicForm com registro que contém link no banco NÃO expõe o link nem qualquer chave do grupo", async () => {
+    it("(b) getPublicForm com link válido e aviso preenchido devolve groupNotice mas NÃO expõe link no payload (T-50 / T-56 / SEC-46)", async () => {
       let selectColsUsed = "";
       mockSupabaseAdmin.from
         .mockReturnValueOnce({
@@ -355,6 +357,7 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
                     consent_text: null,
                     theme: {},
                     whatsapp_group_link: validGroupLink,
+                    whatsapp_group_notice_text: "Temos grupo de avisos no WhatsApp.",
                   },
                   error: null,
                 }),
@@ -383,15 +386,104 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
 
       const res = await getPublicForm({ data: { slug: "corrida-2026" } });
 
-      // O select do getPublicForm NÃO deve conter whatsapp_group_link
-      expect(selectColsUsed).not.toContain("whatsapp_group_link");
+      // O select do getPublicForm contém whatsapp_group_link e whatsapp_group_notice_text no servidor
+      expect(selectColsUsed).toContain("whatsapp_group_link");
+      expect(selectColsUsed).toContain("whatsapp_group_notice_text");
 
-      // A serialização do retorno não deve conter dados do link
+      // groupNotice vem com o texto sanitizado
+      expect(res.state).toBe("open");
+      expect(res.form?.groupNotice).toBe("Temos grupo de avisos no WhatsApp.");
+
+      // A serialização do retorno NÃO deve conter o link real nem dados vazados
       const serialized = JSON.stringify(res);
       expect(serialized).not.toContain("chat.whatsapp.com");
       expect(serialized).not.toContain("whatsapp_group_link");
       expect(serialized).not.toContain("groupLink");
       expect(serialized).not.toContain("hasGroupInvite");
+    });
+
+    it("(c) getPublicForm com aviso preenchido mas link nulo ou inválido devolve groupNotice: null (T-56 / SEC-46)", async () => {
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-1",
+                  title: "Form",
+                  description: "Desc",
+                  status: "published",
+                  closes_at: null,
+                  max_responses: null,
+                  success_message: "Sucesso",
+                  consent_text: null,
+                  theme: {},
+                  whatsapp_group_link: null,
+                  whatsapp_group_notice_text: "Temos grupo de avisos no WhatsApp.",
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({ count: 0, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res = await getPublicForm({ data: { slug: "corrida-2026" } });
+      expect(res.state).toBe("open");
+      expect(res.form?.groupNotice).toBeNull();
+    });
+
+    it("(d) getPublicForm com link válido mas aviso vazio ou contendo URL devolve groupNotice: null (T-56 / SEC-49)", async () => {
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-1",
+                  title: "Form",
+                  description: "Desc",
+                  status: "published",
+                  closes_at: null,
+                  max_responses: null,
+                  success_message: "Sucesso",
+                  consent_text: null,
+                  theme: {},
+                  whatsapp_group_link: validGroupLink,
+                  whatsapp_group_notice_text: "Acesse https://malicious.com para ver",
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({ count: 0, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res = await getPublicForm({ data: { slug: "corrida-2026" } });
+      expect(res.state).toBe("open");
+      expect(res.form?.groupNotice).toBeNull();
     });
   });
 

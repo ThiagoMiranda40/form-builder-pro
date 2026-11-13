@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ALLOWED_ORIGINS,
   handleSubmission,
@@ -9,8 +10,9 @@ import {
 } from "./submit-response";
 
 import { resolvePublicState } from "./form-state";
+import { resolveGroupNotice } from "./group-texts";
 
-import type { Json } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 export type { SubmitResult };
 
@@ -22,7 +24,7 @@ export type PublicQuestion = {
   required: boolean;
   options: string[];
   position: number;
-  settings?: Json;
+  settings?: Json | undefined;
 };
 
 export type PublicFormPayload = {
@@ -40,6 +42,7 @@ export type PublicFormPayload = {
     event_date?: string | null;
     event_time?: string | null;
     event_location?: string | null;
+    groupNotice?: string | null;
   };
   questions?: PublicQuestion[];
 };
@@ -51,15 +54,15 @@ const slugSchema = z.object({ slug: z.string().min(1).max(120) });
  * Lança erro genérico caso o banco devolva erro, sem expor mensagens internas.
  */
 export async function loadPublicFormAndQuestions(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   slug: string,
 ): Promise<{
-  form: (SubmissionForm & { [key: string]: unknown }) | null;
+  form: SubmissionForm | null;
   questions: PublicQuestion[];
 }> {
   const { data: form, error: formError } = await supabase
     .from("forms")
-    .select("id, title, status, closes_at, max_responses, success_message, consent_text, event_date, event_time, event_location, whatsapp_group_link")
+    .select("id, title, status, closes_at, max_responses, success_message, consent_text, event_date, event_time, event_location, whatsapp_group_link, whatsapp_group_notice_text, whatsapp_group_invite_text")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -79,24 +82,23 @@ export async function loadPublicFormAndQuestions(
     throw new Error("Não foi possível carregar o formulário.");
   }
 
-  const normalizedForm: any = {
-    id: form.id,
-    title: form.title,
-    status: form.status,
-    closes_at: form.closes_at,
-    max_responses: form.max_responses,
-    success_message: form.success_message,
-    consent_text: (form.consent_text as string | null) ?? null,
-    event_date: (form.event_date as string | null) ?? null,
-    event_time: (form.event_time as string | null) ?? null,
-    event_location: (form.event_location as string | null) ?? null,
-  };
-  const linkKey = ["whatsapp", "group", "link"].join("_");
-  normalizedForm[linkKey] = (form[linkKey] as string | null) ?? null;
-
   return {
-    form: normalizedForm,
-    questions: (questions ?? []).map((q: any) => ({
+    form: {
+      id: form.id,
+      title: form.title,
+      status: form.status,
+      closes_at: form.closes_at,
+      max_responses: form.max_responses,
+      success_message: form.success_message,
+      consent_text: form.consent_text,
+      event_date: form.event_date,
+      event_time: form.event_time,
+      event_location: form.event_location,
+      whatsapp_group_link: form.whatsapp_group_link,
+      whatsapp_group_notice_text: form.whatsapp_group_notice_text,
+      whatsapp_group_invite_text: form.whatsapp_group_invite_text,
+    },
+    questions: (questions ?? []).map((q) => ({
       id: q.id,
       label: q.label,
       help_text: q.help_text ?? "",
@@ -104,7 +106,7 @@ export async function loadPublicFormAndQuestions(
       required: Boolean(q.required),
       options: Array.isArray(q.options) ? (q.options as string[]) : [],
       position: q.position,
-      settings: q.settings,
+      settings: (q.settings as Json | undefined) ?? null,
     })),
   };
 }
@@ -116,7 +118,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
 
     const { data: form, error: formError } = await supabaseAdmin
       .from("forms")
-      .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text, event_date, event_time, event_location")
+      .select("id, title, description, status, closes_at, max_responses, theme, success_message, consent_text, event_date, event_time, event_location, whatsapp_group_link, whatsapp_group_notice_text")
       .eq("slug", data.slug)
       .maybeSingle();
 
@@ -152,6 +154,10 @@ export const getPublicForm = createServerFn({ method: "GET" })
     }
 
     const state = resolvePublicState(form, responsesCount, new Date());
+    const groupNotice = resolveGroupNotice(
+      form.whatsapp_group_link,
+      form.whatsapp_group_notice_text,
+    );
 
     return {
       state,
@@ -172,11 +178,17 @@ export const getPublicForm = createServerFn({ method: "GET" })
         event_date: (form.event_date as string | null) ?? null,
         event_time: (form.event_time as string | null) ?? null,
         event_location: (form.event_location as string | null) ?? null,
+        groupNotice,
       },
-      questions: (questions ?? []).map((q: any) => ({
-        ...q,
+      questions: (questions ?? []).map((q) => ({
+        id: q.id,
+        label: q.label,
+        help_text: q.help_text ?? "",
+        field_type: q.field_type,
+        required: Boolean(q.required),
         options: Array.isArray(q.options) ? (q.options as string[]) : [],
-        settings: q.settings,
+        position: q.position,
+        settings: (q.settings as Json | undefined) ?? null,
       })),
     };
   });

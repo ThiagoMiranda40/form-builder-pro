@@ -14,6 +14,7 @@ import {
   sendConfirmationEmail,
 } from "./confirmation-email";
 import { validateGroupLink } from "./group-link";
+import { resolveGroupInviteText } from "./group-texts";
 
 export const ALLOWED_ORIGINS = [
   "https://inscricoes.corretime.com.br",
@@ -83,7 +84,14 @@ export const submitSchema = z.object({
 export type SubmitInput = z.infer<typeof submitSchema>;
 
 export type SubmitResult =
-  | { ok: true; message: string; editUrl?: string; emailSent: boolean; groupLink?: string }
+  | {
+      ok: true;
+      message: string;
+      editUrl?: string;
+      emailSent: boolean;
+      groupLink?: string;
+      groupInviteText?: string;
+    }
   | { ok: false; error: string; field?: string };
 
 export interface SubmissionForm {
@@ -98,6 +106,8 @@ export interface SubmissionForm {
   event_time?: string | null;
   event_location?: string | null;
   whatsapp_group_link?: string | null;
+  whatsapp_group_notice_text?: string | null;
+  whatsapp_group_invite_text?: string | null;
 }
 
 export interface SubmissionQuestion {
@@ -414,6 +424,9 @@ export async function handleSubmission(
   const groupLinkCheck = validateGroupLink(form.whatsapp_group_link ?? "");
   const groupLink =
     groupLinkCheck.ok && groupLinkCheck.link ? groupLinkCheck.link : undefined;
+  const groupInviteText = groupLink
+    ? resolveGroupInviteText(form.whatsapp_group_invite_text)
+    : undefined;
 
   // 8. E-mail de confirmação com tempo limite
   let emailSent = false;
@@ -435,6 +448,7 @@ export async function handleSubmission(
       editUrl,
       kind: "confirmada",
       groupLink,
+      groupInviteText,
     });
 
     const timedFetch = createTimedFetch(deps.fetchFn, 5000);
@@ -459,6 +473,7 @@ export async function handleSubmission(
     message: rpcData.success_message || form.success_message || "Inscrição confirmada!",
     ...(editUrl ? { editUrl } : {}),
     ...(groupLink ? { groupLink } : {}),
+    ...(groupInviteText ? { groupInviteText } : {}),
     emailSent,
   };
 }
@@ -471,6 +486,7 @@ export type SubmitClientOutcome =
         editUrl?: string | undefined;
         emailSent: boolean;
         groupLink?: string | undefined;
+        groupInviteText?: string | undefined;
       };
     }
   | {
@@ -508,6 +524,7 @@ export function resolveSubmitOutcome(
         editUrl: result.editUrl,
         emailSent: Boolean(result.emailSent),
         ...(result.groupLink ? { groupLink: result.groupLink } : {}),
+        ...(result.groupInviteText ? { groupInviteText: result.groupInviteText } : {}),
       },
     };
   }

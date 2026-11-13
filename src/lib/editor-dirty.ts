@@ -17,6 +17,8 @@ export interface FormSnapshotInput {
   event_time?: string | null;
   event_location?: string | null;
   whatsapp_group_link?: string | null | undefined;
+  whatsapp_group_notice_text?: string | null | undefined;
+  whatsapp_group_invite_text?: string | null | undefined;
   [key: string]: unknown;
 }
 
@@ -53,7 +55,7 @@ function stableSort(value: unknown): unknown {
 
 /**
  * Devolve uma string JSON estável contendo SÓ o que o save() grava:
- * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location, whatsapp_group_link
+ * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location, whatsapp_group_link, whatsapp_group_notice_text, whatsapp_group_invite_text
  * - de cada pergunta, na ordem da lista: id, label, help_text, field_type, required, options, position, settings
  */
 export function editorSnapshot(
@@ -77,6 +79,8 @@ export function editorSnapshot(
       event_time: form.event_time ?? null,
       event_location: form.event_location ?? null,
       whatsapp_group_link: form.whatsapp_group_link || null,
+      whatsapp_group_notice_text: form.whatsapp_group_notice_text || null,
+      whatsapp_group_invite_text: form.whatsapp_group_invite_text || null,
     },
     questions: (questions ?? []).map((q) => ({
       id: q.id,

@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { HONEYPOT_ERROR_MESSAGE, resolveSubmitOutcome } from "@/lib/submit-response";
 import { hasValidGroupLink } from "@/lib/group-link";
+import { DEFAULT_GROUP_INVITE_TEXT, GROUP_PRIVACY_NOTICE } from "@/lib/group-texts";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
 import { findEmailQuestion } from "@/lib/inscricao";
@@ -84,6 +85,7 @@ type DoneState = {
   editUrl?: string | undefined;
   emailSent: boolean;
   groupLink?: string | undefined;
+  groupInviteText?: string | undefined;
 };
 
 function PublicForm() {
@@ -251,7 +253,7 @@ function PublicForm() {
                 Grupo de avisos do evento
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Entre no grupo para receber as informações da corrida. Entrar é opcional.
+                {done.groupInviteText ?? DEFAULT_GROUP_INVITE_TEXT}
               </p>
               <div className="mt-4">
                 <a
@@ -266,7 +268,7 @@ function PublicForm() {
                 </a>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Quem entra no grupo vê o número de WhatsApp dos outros participantes.
+                {GROUP_PRIVACY_NOTICE}
               </p>
             </div>
           )}
@@ -872,6 +874,10 @@ function PublicForm() {
             <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-red-800">
               {errors["__form"]}
             </p>
+          )}
+
+          {form.groupNotice && (
+            <p className="text-xs text-muted-foreground">{form.groupNotice}</p>
           )}
 
           <button

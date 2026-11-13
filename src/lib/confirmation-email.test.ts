@@ -276,6 +276,37 @@ describe("confirmation-email (T-08)", () => {
           expect(email.text).not.toContain("Grupo de avisos do evento");
         }
       });
+
+      it("com groupInviteText personalizado, renderiza o texto customizado escapado e não usa o padrão (T-56)", () => {
+        const link = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+        const email = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: link,
+          groupInviteText: "Avisos rápidos sobre a largada <5km & 10km>.",
+        });
+
+        expect(email.html).toContain("Avisos rápidos sobre a largada &lt;5km &amp; 10km&gt;.");
+        expect(email.html).not.toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+        expect(email.html).toContain("Quem entra no grupo vê o número de WhatsApp dos outros participantes.");
+
+        expect(email.text).toContain("Avisos rápidos sobre a largada <5km & 10km>.");
+        expect(email.text).not.toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+        expect(email.text).toContain("Quem entra no grupo vê o número de WhatsApp dos outros participantes.");
+      });
+
+      it("com groupInviteText vazio ou inválido, usa o texto padrão (T-56)", () => {
+        const link = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+        const email = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: link,
+          groupInviteText: "   ",
+        });
+
+        expect(email.html).toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+        expect(email.text).toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+      });
     });
   });
 

@@ -852,6 +852,7 @@ Critérios de Aceite:
 | 5 | T-50 Campo no editor | T-46 | |
 | 6 | T-52 Painel do administrador (e-mail + botão por inscrito; o botão do `.vcf` passa a viver no painel) | T-48, T-50 | |
 | 7 | T-51 Confirmação e aviso | T-46, T-50 | **Marco 1: administrador usa** (após prova da T-54 parte A) |
+| 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -978,6 +979,28 @@ Critérios de Aceite:
 - **Verificação:** comandos padrão (tsc 0 erros, vitest 604 testes passando, build ok); `grep` garante ausência de `whatsapp_group_link` e `hasGroupInvite` nas rotas públicas e em `edit-response`.
 - **O que isso prova:** quem conclui a inscrição recebe o acesso ao grupo de avisos na tela e no e-mail; antes da inscrição nada vaza nem muda na tela pública; e formulários sem grupo continuam exatamente como eram.
 - **Critérios de aceite:** QA-46-20, QA-46-21.
+
+---
+
+## T-56 — Textos personalizáveis do grupo (aviso no formulário e texto do convite) 🧑
+
+- **Estado:** concluída (provada pelo dono).
+- **Ler:** `spec.md RF-26; design/ui-ux.md Tela H, Tela J; data-model.md; seguranca.md SEC-38, SEC-42, SEC-46, SEC-49; qa-plan.md QA-46-30 a QA-46-33`.
+- **Objetivo:** permitir ao administrador personalizar a frase de aviso no formulário público e o texto do convite na confirmação e no e-mail, mantendo a privacidade fixa e removendo gambiarras da T-51.
+- **Especificações complementares:**
+  - Banco: colunas `whatsapp_group_notice_text` e `whatsapp_group_invite_text` em `forms`, ambas anuláveis, com `CHECK` de até 200 caracteres e sem caracteres de controle (`!~ '[[:cntrl:]]'`).
+  - Núcleo puro em `src/lib/group-texts.ts`: sanitização (remove quebras de linha/tabs substituindo por espaço, remove bidi/zero-width/controle, recusa URLs `http://`, `https://`, `www.`), `resolveGroupNotice` (só devolve texto se houver link válido) e `resolveGroupInviteText` (vazio = padrão).
+  - Editor: dois campos textarea (2 linhas) com contador `n/200` e validação antes do salvamento; `editorSnapshot` atualizado.
+  - Carregamento público (`getPublicForm`): lê as colunas no servidor apenas para computar `groupNotice: string | null`, sem expor o link nem booleano.
+  - Confirmação e e-mail: `handleSubmission` e `buildConfirmationEmail` recebem `groupInviteText` sanitizado (ou padrão); aviso de privacidade fixo `GROUP_PRIVACY_NOTICE`.
+  - Duplicação (`cloneForm`): copia os dois textos personalizáveis, mantendo link e campos de auditoria limpos.
+  - Limpeza da T-51: remover chave computada `linkKey` e `any` em `public-forms.functions.ts`.
+- **TDD:** novos testes em `src/lib/group-texts.test.ts` e extensões em `confirmation-email.test.ts`, `submit-response.test.ts`, `public-forms.functions.test.ts`, `clone-form.test.ts`, `editor-dirty.test.ts` e `routes.test.ts`.
+- **Arquivos:** `supabase/migrations/20261113150000_textos_grupo_whatsapp.sql`, `specs/001-fase-0-no-ar/verificacao-banco-m56.sql`, `src/integrations/supabase/types.ts`, `src/lib/group-texts.ts`, `src/lib/group-texts.test.ts`, `src/lib/group-link.ts`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/submit-response.ts`, `src/lib/submit-response.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/$slug.tsx`, `src/lib/editor-dirty.ts`, `src/lib/editor-dirty.test.ts`, `src/lib/clone-form.ts`, `src/lib/clone-form.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/data-model.md`.
+- **Verificação:** comandos padrão verdes; `grep` confirma ausência de `linkKey`, `any` da limpeza e ausência de `whatsapp_group_link` nas rotas públicas.
+- **O que isso prova:** o administrador ajusta o tom da mensagem para cada corrida sem risco de injeção de links maliciosos e sem expor dados do grupo antes da inscrição.
+- **🧑 Manual:** aplicar migração `20261113150000_textos_grupo_whatsapp.sql` no Supabase e executar `verificacao-banco-m56.sql` com "Run without RLS".
+- **Critérios de aceite:** QA-46-30 a QA-46-33.
 
 ---
 

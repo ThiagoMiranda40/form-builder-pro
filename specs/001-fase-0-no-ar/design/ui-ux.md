@@ -1149,6 +1149,23 @@ Computador (painel lateral) e celular (mesma ordem, coluna única):
 | [ https://chat.whatsapp.com/XXXXXXXXXXXX    ] |
 | (erro, se houver, em vermelho)                |
 | [Limpar link]                                 |
+|                                               |
+| Aviso no formulário (opcional)                |
+| Mostrado antes de enviar. Só aparece se o     |
+| formulário tiver um link do grupo cadastrado. |
+| [Temos um grupo no WhatsApp para avisos...  ] |
+| (erro se houver)                      0/200   |
+|                                               |
+| Texto do convite (opcional)                   |
+| Mostrado na confirmação e no e-mail logo      |
+| antes do botão de entrar.                     |
+| [Entre no grupo para receber as informaçõ... ] |
+| (erro se houver)                      0/200   |
+|                                               |
+| O aviso de privacidade "Quem entra no grupo   |
+| vê o número de WhatsApp dos outros           |
+| participantes." é fixo e sempre exibido na    |
+| confirmação e no e-mail.                      |
 +-----------------------------------------------+
 ```
 
@@ -1346,9 +1363,10 @@ Tela de sucesso (abaixo do bloco verde do e-mail e acima do link de edição):
  +----------------------------------------+
  +----------------------------------------+
  | Grupo de avisos do evento              |
- | Entre no grupo para receber as         |
- | informações da corrida. Entrar é       |
- | opcional.                              |
+ | {texto do convite personalizado ou     |
+ | padrão: "Entre no grupo para receber   |
+ | as informações da corrida. Entrar é    |
+ | opcional."}                            |
  | [ Entrar no grupo do WhatsApp  ↗ ]     |   <- cor do tema
  | Quem entra no grupo vê o número de     |
  | WhatsApp dos outros participantes.     |

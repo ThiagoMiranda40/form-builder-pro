@@ -196,3 +196,19 @@ Nas duas tabelas novas: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` sem políti
 
 ### Verificação do banco (T-45)
 Arquivo `specs/001-fase-0-no-ar/verificacao-banco-m46.sql`: sem `BEGIN/ROLLBACK` (o SQL Editor não mantém transação entre comandos): cria formulário de teste `teste-m46*` com dados só dele e apaga tudo no final; resultado esperado: 36 PASSOU, 0 FALHOU; rodar com "Run without RLS" porque a tabela de resultados é temporária. Prova (a) `anon` e `authenticated` não leem nem escrevem as tabelas, (b) a função recusa chamada de `anon` e `authenticated`, (c) `CHECK` recusa link inválido, (d) intervalo, orçamento, reenvio, elegibilidade e trava global; mais `verificacao-concorrencia-m46.mjs` (duas ou mais chamadas simultâneas, exatamente um lote criado; opcional pois exige `DATABASE_URL`).
+
+---
+
+## Migração T-56: Textos personalizáveis do grupo (`20261113150000_textos_grupo_whatsapp.sql`)
+
+### Entidades alteradas
+| Entidade | Mudança | Dono do dado |
+|---|---|---|
+| `forms` | colunas `whatsapp_group_notice_text text null` e `whatsapp_group_invite_text text null`, ambas anuláveis, com `CHECK` de tamanho até 200 caracteres (`char_length <= 200` e sem string vazia) e sem caracteres de controle (`!~ '[[:cntrl:]]'`) | o formulário |
+
+### Segurança e Isolamento
+- As colunas novas em `forms` herdam as RLS de `forms` (dono autenticado pode ler e atualizar).
+- O carregamento público `getPublicForm` consulta as colunas apenas no servidor e não as expõe diretamente: `whatsapp_group_notice_text` alimenta `groupNotice: string | null` (apenas se houver `whatsapp_group_link` válido); `whatsapp_group_invite_text` só é lido no envio da submissão para compor o e-mail e o cartão de confirmação.
+
+### Verificação do banco (T-56)
+Arquivo `specs/001-fase-0-no-ar/verificacao-banco-m56.sql`: sem `BEGIN/ROLLBACK`, limpa tudo ao final; resultado esperado: `== RESUMO M-56: 11 PASSOU, 0 FALHOU ==`. Prova: colunas existem, aceitam texto válido até 200 caracteres, recusam texto > 200 caracteres, recusam caracteres de controle (`\r`, `\n`, `\t`), recusam string vazia `''`, aceitam nulo, preservam emoji e caracteres acentuados.

@@ -42,6 +42,8 @@ export type Database = {
           whatsapp_group_link: string | null
           whatsapp_group_link_updated_at: string | null
           whatsapp_group_link_updated_by: string | null
+          whatsapp_group_notice_text: string | null
+          whatsapp_group_invite_text: string | null
         }
         Insert: {
           closes_at?: string | null
@@ -70,6 +72,8 @@ export type Database = {
           whatsapp_group_link?: string | null
           whatsapp_group_link_updated_at?: string | null
           whatsapp_group_link_updated_by?: string | null
+          whatsapp_group_notice_text?: string | null
+          whatsapp_group_invite_text?: string | null
         }
         Update: {
           closes_at?: string | null
@@ -98,6 +102,8 @@ export type Database = {
           whatsapp_group_link?: string | null
           whatsapp_group_link_updated_at?: string | null
           whatsapp_group_link_updated_by?: string | null
+          whatsapp_group_notice_text?: string | null
+          whatsapp_group_invite_text?: string | null
         }
         Relationships: []
       }

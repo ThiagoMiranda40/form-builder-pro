@@ -9,6 +9,12 @@ import { cloneForm } from "@/lib/clone-form";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
 import { validateGroupLink } from "@/lib/invite";
+import {
+  sanitizeGroupText,
+  GROUP_TEXT_ERRORS,
+  DEFAULT_GROUP_INVITE_TEXT,
+  GROUP_PRIVACY_NOTICE,
+} from "@/lib/group-texts";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
 import {
   normalizePositions,
@@ -84,6 +90,8 @@ type FormState = {
   event_time: string | null;
   event_location: string | null;
   whatsapp_group_link: string | null;
+  whatsapp_group_notice_text: string | null;
+  whatsapp_group_invite_text: string | null;
 };
 
 const toLocalInput = (value: string | null) =>
@@ -124,8 +132,12 @@ function Editor() {
   const [slugError, setSlugError] = useState<string | null>(null);
   const [groupLinkError, setGroupLinkError] = useState<string | null>(null);
   const [loadedGroupLink, setLoadedGroupLink] = useState<string | null>(null);
+  const [groupNoticeError, setGroupNoticeError] = useState<string | null>(null);
+  const [groupInviteError, setGroupInviteError] = useState<string | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const groupLinkInputRef = useRef<HTMLInputElement | null>(null);
+  const groupNoticeInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const groupInviteInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Estados de arrastar (DND nativo) e acessibilidade
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -205,7 +217,7 @@ function Editor() {
         supabase
           .from("forms")
           .select(
-            "id, title, description, slug, status, theme, max_responses, closes_at, consent_text, success_message, share_token, event_date, event_time, event_location, whatsapp_group_link",
+            "id, title, description, slug, status, theme, max_responses, closes_at, consent_text, success_message, share_token, event_date, event_time, event_location, whatsapp_group_link, whatsapp_group_notice_text, whatsapp_group_invite_text",
           )
           .eq("id", id)
           .single(),
@@ -222,9 +234,13 @@ function Editor() {
     const f = query.data.form as Record<string, unknown>;
     const loadedSlug = (f["slug"] as string) ?? "";
     const rawGroupLink = (f["whatsapp_group_link"] as string | null) ?? null;
+    const rawGroupNotice = (f["whatsapp_group_notice_text"] as string | null) ?? null;
+    const rawGroupInvite = (f["whatsapp_group_invite_text"] as string | null) ?? null;
     setInitialSlug(loadedSlug);
     setSlugError(null);
     setGroupLinkError(null);
+    setGroupNoticeError(null);
+    setGroupInviteError(null);
     setLoadedGroupLink(rawGroupLink);
     const loadedForm: FormState = {
       title: f["title"] as string,
@@ -241,6 +257,8 @@ function Editor() {
       event_time: (f["event_time"] as string | null) ?? null,
       event_location: (f["event_location"] as string | null) ?? null,
       whatsapp_group_link: rawGroupLink,
+      whatsapp_group_notice_text: rawGroupNotice,
+      whatsapp_group_invite_text: rawGroupInvite,
     };
     const loadedQuestions: Question[] = (query.data.questions as Record<string, unknown>[]).map((q) => ({
       id: q["id"] as string,
@@ -422,7 +440,33 @@ function Editor() {
       return;
     }
 
+    const noticeValidation = sanitizeGroupText(form.whatsapp_group_notice_text ?? "");
+    if (!noticeValidation.ok) {
+      const errorMsg = GROUP_TEXT_ERRORS[noticeValidation.reason];
+      setGroupNoticeError(errorMsg);
+      setTab("limites");
+      requestAnimationFrame(() => {
+        groupNoticeInputRef.current?.focus();
+      });
+      toast.error(errorMsg);
+      return;
+    }
+
+    const inviteValidation = sanitizeGroupText(form.whatsapp_group_invite_text ?? "");
+    if (!inviteValidation.ok) {
+      const errorMsg = GROUP_TEXT_ERRORS[inviteValidation.reason];
+      setGroupInviteError(errorMsg);
+      setTab("limites");
+      requestAnimationFrame(() => {
+        groupInviteInputRef.current?.focus();
+      });
+      toast.error(errorMsg);
+      return;
+    }
+
     const validGroupLink: string | null = groupLinkValidation.link || null;
+    const validGroupNotice: string | null = noticeValidation.text;
+    const validGroupInvite: string | null = inviteValidation.text;
 
     const cleanSlug = trimSlugEdges(form.slug);
     const validationError = validateSlug(cleanSlug);
@@ -451,6 +495,8 @@ function Editor() {
         event_time: form.event_time || null,
         event_location: form.event_location?.trim() ? form.event_location.trim() : null,
         whatsapp_group_link: validGroupLink,
+        whatsapp_group_notice_text: validGroupNotice,
+        whatsapp_group_invite_text: validGroupInvite,
       };
 
       if (groupLinkChanged) {
@@ -490,6 +536,8 @@ function Editor() {
       setInitialSlug(cleanSlug);
       setSlugError(null);
       setGroupLinkError(null);
+      setGroupNoticeError(null);
+      setGroupInviteError(null);
       setLoadedGroupLink(validGroupLink);
       const updatedForm: FormState = {
         ...form,
@@ -501,6 +549,8 @@ function Editor() {
         event_time: form.event_time || null,
         event_location: form.event_location?.trim() ? form.event_location.trim() : null,
         whatsapp_group_link: validGroupLink,
+        whatsapp_group_notice_text: validGroupNotice,
+        whatsapp_group_invite_text: validGroupInvite,
       };
       setForm(updatedForm);
       setSavedSnapshot(editorSnapshot(updatedForm, questions));
@@ -1144,6 +1194,107 @@ function Editor() {
                     Limpar link
                   </button>
                 )}
+
+                {/* Campos de texto personalizáveis (T-56 / RF-26) */}
+                <div className="pt-2 border-t border-slate-200/60 space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label
+                        htmlFor="form-whatsapp-group-notice-text"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Frase de aviso no formulário (opcional)
+                      </label>
+                      <span className="text-[10px] text-muted-foreground">
+                        {(form.whatsapp_group_notice_text ?? "").length}/200
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-1.5">
+                      Aparece acima do botão &quot;Enviar inscrição&quot;, só quando há link do grupo. Deixe vazio para não mostrar nada. Não coloque endereços (links) aqui.
+                    </p>
+                    <textarea
+                      id="form-whatsapp-group-notice-text"
+                      ref={groupNoticeInputRef}
+                      rows={2}
+                      value={form.whatsapp_group_notice_text ?? ""}
+                      onChange={(e) => {
+                        if (groupNoticeError) setGroupNoticeError(null);
+                        setForm({
+                          ...form,
+                          whatsapp_group_notice_text: e.target.value,
+                        });
+                      }}
+                      placeholder="Ex.: Depois da inscrição você poderá entrar no grupo de avisos do evento."
+                      className={inputClass}
+                      aria-invalid={Boolean(groupNoticeError)}
+                      aria-describedby={
+                        groupNoticeError
+                          ? "form-whatsapp-group-notice-error"
+                          : undefined
+                      }
+                    />
+                    {groupNoticeError && (
+                      <p
+                        id="form-whatsapp-group-notice-error"
+                        role="alert"
+                        className="mt-1.5 text-xs text-destructive"
+                      >
+                        {groupNoticeError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label
+                        htmlFor="form-whatsapp-group-invite-text"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Texto do convite (opcional)
+                      </label>
+                      <span className="text-[10px] text-muted-foreground">
+                        {(form.whatsapp_group_invite_text ?? "").length}/200
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mb-1.5">
+                      Aparece na tela de confirmação e no e-mail de confirmação, acima do botão do grupo. Vazio usa: &quot;{DEFAULT_GROUP_INVITE_TEXT}&quot;
+                    </p>
+                    <textarea
+                      id="form-whatsapp-group-invite-text"
+                      ref={groupInviteInputRef}
+                      rows={2}
+                      value={form.whatsapp_group_invite_text ?? ""}
+                      onChange={(e) => {
+                        if (groupInviteError) setGroupInviteError(null);
+                        setForm({
+                          ...form,
+                          whatsapp_group_invite_text: e.target.value,
+                        });
+                      }}
+                      placeholder={DEFAULT_GROUP_INVITE_TEXT}
+                      className={inputClass}
+                      aria-invalid={Boolean(groupInviteError)}
+                      aria-describedby={
+                        groupInviteError
+                          ? "form-whatsapp-group-invite-error"
+                          : undefined
+                      }
+                    />
+                    {groupInviteError && (
+                      <p
+                        id="form-whatsapp-group-invite-error"
+                        role="alert"
+                        className="mt-1.5 text-xs text-destructive"
+                      >
+                        {groupInviteError}
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-slate-200/40">
+                    O aviso &quot;{GROUP_PRIVACY_NOTICE}&quot; sempre aparece e não pode ser alterado.
+                  </p>
+                </div>
               </div>
 
               <Field label="Limite de respostas / vagas">

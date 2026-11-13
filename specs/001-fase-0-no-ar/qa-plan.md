@@ -683,6 +683,10 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-27** | Cliente define link | I/M | Grava com autoria `client_link` e data; link inválido recusado; e-mails já enviados mantêm o link antigo |
 | **QA-46-29** | Variações da mensagem (T-46) — **Implementado (`src/lib/invite.test.ts`)** | U | Existem 5 variações; todas contêm o primeiro nome e o link do grupo; o sorteio é estável (mesmo `responseId`, mesma variação) e cobre mais de uma variação em 57 inscritos; mensagem editada pelo usuário vira texto único |
 | **QA-46-28** | Mobile e acessibilidade | M | 360 px sem rolagem horizontal; alvos ≥ 44 px; `AlertDialog` com foco e teclado; contraste AA; mensagens com `role="alert"` |
+| **QA-46-30** | Sanitização de textos do grupo (T-56 / SEC-49) — **Implementado (`src/lib/group-texts.test.ts`)** | U | Quebras e tabs viram espaço; bidi, zero-width e controle removidos; URLs (`http://`, `https://`, `www.`) rejeitadas; limite de 200 caracteres |
+| **QA-46-31** | Editor: campos de texto do grupo (T-56) — **Implementado (`editor-dirty.test.ts`, `clone-form.test.ts`)** | U/M | Dois textareas de 2 linhas na aba Limites e Termos; contador `n/200`; validação impede salvamento com texto inválido; duplicação preserva os textos |
+| **QA-46-32** | Aviso no formulário público só com link (T-56 / RF-26 / SEC-46) — **Implementado (`public-forms.functions.test.ts`, `routes.test.ts`)** | U/I | `form.groupNotice` só é devolvido quando há link válido no WhatsApp; sem link válido ou com aviso vazio, retorna `null`; link real nunca vaza no payload público |
+| **QA-46-33** | Texto de convite na confirmação e no e-mail (T-56 / RF-26) — **Implementado (`submit-response.test.ts`, `confirmation-email.test.ts`)** | U/I | Texto personalizado exibido na tela de confirmação e no e-mail; se vazio ou inválido, cai no padrão; aviso de privacidade `GROUP_PRIVACY_NOTICE` permanece inalterado |
 
 ### 15.3 Fronteiras e valores limite
 - Inscritos: 0, 1, 50, 51 (duas fatias), 57, 100, 101 (orçamento).
@@ -706,6 +710,7 @@ Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails s
 | MAN-46-08 | Link do cliente legado | Painel só leitura com o texto da P-08 |
 | MAN-46-09 | `Proteger com código`, desbloquear e enviar pelo cliente | Painel completo; autoria `cliente via link` |
 | MAN-46-10 | Conferir Resend (Usage) e Cloudflare (logs) | Contagem coerente com os envios; sem erro de CPU ou de subrequests |
+| MAN-46-11 | Personalização de textos do grupo (T-56) | Editor salva textos personalizados com contador; formulário público exibe aviso somente quando há link; confirmação e e-mail exibem texto personalizado ou padrão; aviso de privacidade segue visível |
 
 ### 15.5 Pronto para produção — M-46 (versão para quem não lê código)
 Está pronto quando: (1) ninguém sem o código do cliente consegue mandar convite (QA-46-14, MAN-46-08); (2) cada pessoa recebe só o próprio convite (QA-46-09, MAN-46-04); (3) dois toques não duplicam (QA-46-07, MAN-46-05); (4) o link do grupo só aparece depois da inscrição (QA-46-20, MAN-46-02); (5) o limite do Resend foi conferido na sua conta (MAN-46-10); (6) o texto jurídico do e-mail foi decidido; (7) o roteiro MAN-46-01 a 10 foi aprovado na prévia.

@@ -1326,6 +1326,71 @@ describe("T-09: Servidor de inscrição via banco", () => {
       expect(outcomeWithout.kind).toBe("success");
       if (outcomeWithout.kind === "success") {
         expect("groupLink" in outcomeWithout.done).toBe(false);
+        expect("groupInviteText" in outcomeWithout.done).toBe(false);
+      }
+    });
+
+    it("(g) form com link e whatsapp_group_invite_text devolve groupInviteText resolvido e repassa ao e-mail (T-56)", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: {
+            ...testForm,
+            whatsapp_group_link: validGroupLink,
+            whatsapp_group_invite_text: "Venha participar do grupo oficial!",
+          },
+          questions: testQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.groupLink).toBe(validGroupLink);
+        expect(res.groupInviteText).toBe("Venha participar do grupo oficial!");
+      }
+
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.html).toContain("Venha participar do grupo oficial!");
+      expect(body.text).toContain("Venha participar do grupo oficial!");
+    });
+
+    it("(h) form sem link NÃO devolve groupInviteText mesmo se whatsapp_group_invite_text estiver preenchido (T-56 / SEC-46)", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: {
+            ...testForm,
+            whatsapp_group_link: null,
+            whatsapp_group_invite_text: "Venha participar do grupo oficial!",
+          },
+          questions: testQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect("groupLink" in res).toBe(false);
+        expect("groupInviteText" in res).toBe(false);
+      }
+    });
+
+    it("(i) resolveSubmitOutcome repassa groupInviteText para done quando presente (T-56)", () => {
+      const qIds = ["q1"];
+      const outcome = resolveSubmitOutcome(
+        {
+          ok: true,
+          message: "Sucesso",
+          emailSent: true,
+          groupLink: validGroupLink,
+          groupInviteText: "Mensagem personalizada",
+        },
+        qIds,
+      );
+      expect(outcome.kind).toBe("success");
+      if (outcome.kind === "success") {
+        expect(outcome.done.groupLink).toBe(validGroupLink);
+        expect(outcome.done.groupInviteText).toBe("Mensagem personalizada");
       }
     });
   });

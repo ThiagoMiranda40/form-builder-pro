@@ -64,6 +64,8 @@ export function buildCloneFormPayload(
     event_date: null,
     event_time: null,
     event_location: null,
+    whatsapp_group_notice_text: source.whatsapp_group_notice_text ?? null,
+    whatsapp_group_invite_text: source.whatsapp_group_invite_text ?? null,
   };
 }
 
