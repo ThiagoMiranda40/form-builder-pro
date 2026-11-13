@@ -3,11 +3,12 @@ import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { cloneForm } from "@/lib/clone-form";
 import { FIELD_TYPES, type FieldType } from "@/lib/validators";
 import { mapSlugDbError, sanitizeSlugInput, trimSlugEdges, validateSlug } from "@/lib/slug";
+import { validateGroupLink } from "@/lib/invite";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
 import {
   normalizePositions,
@@ -66,6 +67,8 @@ type Question = {
 
 type Theme = { color: string; font: string; logo_url: string | null };
 
+type FormsUpdate = Database["public"]["Tables"]["forms"]["Update"];
+
 type FormState = {
   title: string;
   description: string;
@@ -80,6 +83,7 @@ type FormState = {
   event_date: string | null;
   event_time: string | null;
   event_location: string | null;
+  whatsapp_group_link: string | null;
 };
 
 const toLocalInput = (value: string | null) =>
@@ -118,7 +122,10 @@ function Editor() {
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const [initialSlug, setInitialSlug] = useState<string>("");
   const [slugError, setSlugError] = useState<string | null>(null);
+  const [groupLinkError, setGroupLinkError] = useState<string | null>(null);
+  const [loadedGroupLink, setLoadedGroupLink] = useState<string | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const groupLinkInputRef = useRef<HTMLInputElement | null>(null);
 
   // Estados de arrastar (DND nativo) e acessibilidade
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -198,7 +205,7 @@ function Editor() {
         supabase
           .from("forms")
           .select(
-            "id, title, description, slug, status, theme, max_responses, closes_at, consent_text, success_message, share_token, event_date, event_time, event_location",
+            "id, title, description, slug, status, theme, max_responses, closes_at, consent_text, success_message, share_token, event_date, event_time, event_location, whatsapp_group_link",
           )
           .eq("id", id)
           .single(),
@@ -214,8 +221,11 @@ function Editor() {
     if (!query.data) return;
     const f = query.data.form as Record<string, unknown>;
     const loadedSlug = (f["slug"] as string) ?? "";
+    const rawGroupLink = (f["whatsapp_group_link"] as string | null) ?? null;
     setInitialSlug(loadedSlug);
     setSlugError(null);
+    setGroupLinkError(null);
+    setLoadedGroupLink(rawGroupLink);
     const loadedForm: FormState = {
       title: f["title"] as string,
       description: (f["description"] as string) ?? "",
@@ -230,6 +240,7 @@ function Editor() {
       event_date: (f["event_date"] as string | null) ?? null,
       event_time: (f["event_time"] as string | null) ?? null,
       event_location: (f["event_location"] as string | null) ?? null,
+      whatsapp_group_link: rawGroupLink,
     };
     const loadedQuestions: Question[] = (query.data.questions as Record<string, unknown>[]).map((q) => ({
       id: q["id"] as string,
@@ -397,6 +408,22 @@ function Editor() {
       toast.error("A idade mínima não pode ser maior que a máxima.");
       return;
     }
+
+    const groupLinkValidation = validateGroupLink(form.whatsapp_group_link ?? "");
+    if (!groupLinkValidation.ok) {
+      const errorMsg =
+        "Cole o link completo do convite, que começa com https://chat.whatsapp.com/";
+      setGroupLinkError(errorMsg);
+      setTab("limites");
+      requestAnimationFrame(() => {
+        groupLinkInputRef.current?.focus();
+      });
+      toast.error(errorMsg);
+      return;
+    }
+
+    const validGroupLink: string | null = groupLinkValidation.link || null;
+
     const cleanSlug = trimSlugEdges(form.slug);
     const validationError = validateSlug(cleanSlug);
     if (validationError) {
@@ -409,22 +436,31 @@ function Editor() {
     }
     setSaving(true);
     try {
+      const groupLinkChanged = validGroupLink !== loadedGroupLink;
+      const formUpdatePayload: FormsUpdate = {
+        title: form.title.trim() || "Sem título",
+        description: form.description,
+        slug: cleanSlug,
+        theme: form.theme as Json,
+        max_responses: form.max_responses,
+        closes_at: form.closes_at,
+        consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
+        success_message: form.success_message,
+        status: nextStatus ?? form.status,
+        event_date: form.event_date || null,
+        event_time: form.event_time || null,
+        event_location: form.event_location?.trim() ? form.event_location.trim() : null,
+        whatsapp_group_link: validGroupLink,
+      };
+
+      if (groupLinkChanged) {
+        formUpdatePayload.whatsapp_group_link_updated_at = new Date().toISOString();
+        formUpdatePayload.whatsapp_group_link_updated_by = "admin";
+      }
+
       const { error } = await supabase
         .from("forms")
-        .update({
-          title: form.title.trim() || "Sem título",
-          description: form.description,
-          slug: cleanSlug,
-          theme: form.theme,
-          max_responses: form.max_responses,
-          closes_at: form.closes_at,
-          consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
-          success_message: form.success_message,
-          status: nextStatus ?? form.status,
-          event_date: form.event_date || null,
-          event_time: form.event_time || null,
-          event_location: form.event_location?.trim() ? form.event_location.trim() : null,
-        })
+        .update(formUpdatePayload)
         .eq("id", id);
       if (error) {
         const slugDbError = mapSlugDbError(error);
@@ -453,6 +489,8 @@ function Editor() {
       }
       setInitialSlug(cleanSlug);
       setSlugError(null);
+      setGroupLinkError(null);
+      setLoadedGroupLink(validGroupLink);
       const updatedForm: FormState = {
         ...form,
         title: form.title.trim() || "Sem título",
@@ -462,6 +500,7 @@ function Editor() {
         event_date: form.event_date || null,
         event_time: form.event_time || null,
         event_location: form.event_location?.trim() ? form.event_location.trim() : null,
+        whatsapp_group_link: validGroupLink,
       };
       setForm(updatedForm);
       setSavedSnapshot(editorSnapshot(updatedForm, questions));
@@ -1046,6 +1085,65 @@ function Editor() {
                     className={inputClass}
                   />
                 </Field>
+              </div>
+
+              {/* Seção Grupo do WhatsApp (opcional) - T-50 / Tela H */}
+              <div className="space-y-3 rounded-xl bg-slate-50/80 p-3 ring-1 ring-black/5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Grupo do WhatsApp (opcional)
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Crie o grupo no WhatsApp e cole aqui o link de convite. No WhatsApp: abra o grupo, toque no nome do grupo, escolha &quot;Convidar via link do grupo&quot; e copie o link.
+                </p>
+                <div>
+                  <label
+                    htmlFor="form-whatsapp-group-link"
+                    className="mb-1.5 block text-xs font-medium text-muted-foreground"
+                  >
+                    Link do grupo do WhatsApp
+                  </label>
+                  <input
+                    id="form-whatsapp-group-link"
+                    ref={groupLinkInputRef}
+                    type="text"
+                    inputMode="url"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={form.whatsapp_group_link ?? ""}
+                    onChange={(e) => {
+                      if (groupLinkError) setGroupLinkError(null);
+                      setForm({
+                        ...form,
+                        whatsapp_group_link: e.target.value,
+                      });
+                    }}
+                    placeholder="https://chat.whatsapp.com/..."
+                    className={inputClass}
+                    aria-invalid={Boolean(groupLinkError)}
+                    aria-describedby={groupLinkError ? "form-whatsapp-group-link-error" : undefined}
+                  />
+                  {groupLinkError && (
+                    <p
+                      id="form-whatsapp-group-link-error"
+                      role="alert"
+                      className="mt-1.5 text-xs text-destructive"
+                    >
+                      {groupLinkError}
+                    </p>
+                  )}
+                </div>
+                {Boolean(form.whatsapp_group_link) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (groupLinkError) setGroupLinkError(null);
+                      setForm({ ...form, whatsapp_group_link: "" });
+                    }}
+                    className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-medium text-slate-700 ring-1 ring-black/10 hover:bg-white cursor-pointer"
+                  >
+                    Limpar link
+                  </button>
+                )}
               </div>
 
               <Field label="Limite de respostas / vagas">

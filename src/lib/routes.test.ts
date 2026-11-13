@@ -408,4 +408,53 @@ describe("Rotas e hierarquia do TanStack Router (T-12 / BUG-03)", () => {
   });
 });
 
+describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)", () => {
+  const rootDir = process.cwd();
+  const publicFormsPath = path.join(rootDir, "src/lib/public-forms.functions.ts");
+  const editResponsePath = path.join(rootDir, "src/lib/edit-response.functions.ts");
+  const slugRoutePath = path.join(rootDir, "src/routes/$slug.tsx");
+  const editarTokenPath = path.join(rootDir, "src/routes/editar.$token.tsx");
+  const editorRoutePath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+
+  // Nota: a T-51 vai adicionar leitura no servidor só para devolver hasGroupInvite/groupLink no resultado da inscrição; ao fazê-la, ajustar este teste, nunca removê-lo.
+  it("nenhuma chamada .select(...) em public-forms.functions.ts e edit-response.functions.ts contém whatsapp_group_link", () => {
+    const publicFormsContent = fs.readFileSync(publicFormsPath, "utf-8");
+    const editResponseContent = fs.readFileSync(editResponsePath, "utf-8");
+
+    const extractSelectStrings = (content: string): string[] => {
+      const matches: string[] = [];
+      const regex = /\.select\(\s*(["'`])([\s\S]*?)\1\s*\)/g;
+      let m: RegExpExecArray | null;
+      while ((m = regex.exec(content)) !== null) {
+        if (m[2]) matches.push(m[2]);
+      }
+      return matches;
+    };
+
+    const publicSelects = extractSelectStrings(publicFormsContent);
+    const editSelects = extractSelectStrings(editResponseContent);
+
+    expect(publicSelects.length).toBeGreaterThan(0);
+    expect(editSelects.length).toBeGreaterThan(0);
+
+    for (const s of [...publicSelects, ...editSelects]) {
+      expect(s).not.toContain("whatsapp_group_link");
+    }
+  });
+
+  it("src/routes/$slug.tsx e src/routes/editar.$token.tsx não contêm a palavra whatsapp_group_link", () => {
+    const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
+    const editarContent = fs.readFileSync(editarTokenPath, "utf-8");
+
+    expect(slugContent).not.toContain("whatsapp_group_link");
+    expect(editarContent).not.toContain("whatsapp_group_link");
+  });
+
+  it("o select do carregamento do editor contém whatsapp_group_link", () => {
+    const editorContent = fs.readFileSync(editorRoutePath, "utf-8");
+    // Garante que o select do carregamento inicial do formulário no editor inclui whatsapp_group_link
+    expect(editorContent).toMatch(/\.select\([\s\S]*?whatsapp_group_link[\s\S]*?\)/);
+  });
+});
+
 

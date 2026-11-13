@@ -111,6 +111,21 @@ describe("buildCloneFormPayload (T-41)", () => {
     expect((payload as Record<string, unknown>)["created_at"]).toBeUndefined();
     expect((payload as Record<string, unknown>)["updated_at"]).toBeUndefined();
   });
+
+  it("T-50 (M-46): com origem contendo whatsapp_group_link, NÃO traz whatsapp_group_link nem _updated_at/_updated_by no resultado", () => {
+    const source = {
+      title: "Inscrição com Grupo",
+      whatsapp_group_link: "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A",
+      whatsapp_group_link_updated_at: "2026-11-13T12:00:00Z",
+      whatsapp_group_link_updated_by: "admin",
+    };
+
+    const payload = buildCloneFormPayload(source as any, "owner-abc", "xyz123");
+
+    expect((payload as Record<string, unknown>)["whatsapp_group_link"]).toBeUndefined();
+    expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_at"]).toBeUndefined();
+    expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_by"]).toBeUndefined();
+  });
 });
 
 describe("buildCloneQuestions (T-41, T-24c)", () => {

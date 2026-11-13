@@ -181,4 +181,39 @@ describe("editor-dirty (T-34b / M-32 / M-35)", () => {
       expect(isEditorDirty(editorSnapshot(baseForm, modifiedQuestions), saved)).toBe(true);
     });
   });
+
+  describe("T-50 (M-46): whatsapp_group_link no snapshot do editor", () => {
+    it("mudar whatsapp_group_link suja o snapshot", () => {
+      const saved = editorSnapshot(baseForm, baseQuestions);
+      const modified = {
+        ...baseForm,
+        whatsapp_group_link: "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A",
+      };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mesmo whatsapp_group_link mantém o snapshot igual", () => {
+      const formWithLink = {
+        ...baseForm,
+        whatsapp_group_link: "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A",
+      };
+      const saved = editorSnapshot(formWithLink, baseQuestions);
+      const current = editorSnapshot({ ...formWithLink }, [...baseQuestions]);
+      expect(isEditorDirty(current, saved)).toBe(false);
+    });
+
+    it("null e string vazia são tratados de forma equivalente e não sujam", () => {
+      const formNull = { ...baseForm, whatsapp_group_link: null };
+      const formEmpty = { ...baseForm, whatsapp_group_link: "" };
+      const formUndefined = { ...baseForm, whatsapp_group_link: undefined };
+
+      const snapNull = editorSnapshot(formNull, baseQuestions);
+      const snapEmpty = editorSnapshot(formEmpty, baseQuestions);
+      const snapUndefined = editorSnapshot(formUndefined, baseQuestions);
+
+      expect(snapEmpty).toBe(snapNull);
+      expect(snapUndefined).toBe(snapNull);
+      expect(isEditorDirty(snapEmpty, snapNull)).toBe(false);
+    });
+  });
 });

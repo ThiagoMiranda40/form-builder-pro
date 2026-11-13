@@ -1,5 +1,5 @@
 /**
- * Funções puras para detecção de alterações (dirty state) no editor de formulários (T-34b / M-32 / M-35).
+ * Funções puras para detecção de alterações (dirty state) no editor de formulários (T-34b / M-32 / M-35 / T-50).
  * Gera um snapshot JSON determinístico contendo apenas os campos persistidos pela operação de salvar.
  */
 
@@ -16,6 +16,7 @@ export interface FormSnapshotInput {
   event_date?: string | null;
   event_time?: string | null;
   event_location?: string | null;
+  whatsapp_group_link?: string | null | undefined;
   [key: string]: unknown;
 }
 
@@ -52,7 +53,7 @@ function stableSort(value: unknown): unknown {
 
 /**
  * Devolve uma string JSON estável contendo SÓ o que o save() grava:
- * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location
+ * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location, whatsapp_group_link
  * - de cada pergunta, na ordem da lista: id, label, help_text, field_type, required, options, position, settings
  */
 export function editorSnapshot(
@@ -75,6 +76,7 @@ export function editorSnapshot(
       event_date: form.event_date ?? null,
       event_time: form.event_time ?? null,
       event_location: form.event_location ?? null,
+      whatsapp_group_link: form.whatsapp_group_link || null,
     },
     questions: (questions ?? []).map((q) => ({
       id: q.id,

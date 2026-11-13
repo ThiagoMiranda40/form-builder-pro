@@ -955,10 +955,15 @@ Critérios de Aceite:
 
 ## T-50 — Campo "Grupo do WhatsApp" no editor e fora do carregamento público (M-46)
 
-- **Estado:** a fazer. Depende da T-46.
+- **Estado:** concluída em 13/11/2026.
 - **Ler:** `spec.md RF-17; design/ui-ux.md Tela H; seguranca.md SEC-38, SEC-46; qa-plan.md QA-46-01, QA-46-20`.
 - **Objetivo:** o administrador cola o link do grupo na aba `Limites e Termos`; o link não vai ao carregamento público do formulário.
-- **Especificações complementares:** seção `Grupo do WhatsApp (opcional)` com os textos literais da Tela H do `ui-ux.md`; validação com `validateGroupLink` antes de salvar e mensagem `Cole o endereço completo do convite do grupo, que começa com https://chat.whatsapp.com/`; carregar e salvar `whatsapp_group_link` junto do restante do formulário (lista de colunas do carregamento do editor, linha 201 do arquivo); **não** adicionar a coluna a nenhuma consulta de `public-forms.functions.ts`.
+- **Especificações complementares:** seção `Grupo do WhatsApp (opcional)` com os textos literais da Tela H do `ui-ux.md`; validação com `validateGroupLink` antes de salvar e mensagem `Cole o link completo do convite, que começa com https://chat.whatsapp.com/`; carregar e salvar `whatsapp_group_link` junto do restante do formulário (lista de colunas do carregamento do editor, linha 201 do arquivo); **não** adicionar a coluna a nenhuma consulta de `public-forms.functions.ts`.
+- **TDD:** teste em `src/lib/routes.test.ts` (padrão do projeto, sem jsdom) garantindo que as listas de colunas públicas não contêm `whatsapp_group_link`; testes do núcleo já cobrem a validação.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/editor-dirty.ts`, `src/lib/editor-dirty.test.ts`, `src/lib/clone-form.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão (tsc 0 erros, vitest 587 testes passando, build ok); `grep -n "whatsapp_group_link" src/lib/public-forms.functions.ts src/lib/edit-response.functions.ts src/lib/submit-response.ts src/routes/$slug.tsx src/routes/editar.$token.tsx` sem saída.
+- **O que isso prova:** o link só é aceito no formato certo e quem abre o formulário público não o recebe antes de se inscrever.
+- **Critérios de aceite:** QA-46-01, QA-46-20.
 - **TDD:** teste em `src/lib/routes.test.ts` (padrão do projeto, sem jsdom) garantindo que as listas de colunas públicas não contêm `whatsapp_group_link`; testes do núcleo já cobrem a validação.
 - **Arquivos:** `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; `grep -n "whatsapp_group_link" src/lib/public-forms.functions.ts` sem saída.
