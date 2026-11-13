@@ -1128,5 +1128,206 @@ describe("T-09: Servidor de inscrição via banco", () => {
       expect(res.ok).toBe(true);
     });
   });
+
+  describe("T-51 (M-46): groupLink em handleSubmission e resolveSubmitOutcome", () => {
+    const validGroupLink = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+    const testForm = {
+      id: "form-group-123",
+      title: "Corrida Grupo 2026",
+      status: "published",
+      closes_at: null,
+      max_responses: 100,
+      success_message: "Inscrição confirmada!",
+      consent_text: null,
+    };
+    const testQuestions: SubmissionQuestion[] = [
+      {
+        id: "q-nome",
+        label: "Nome",
+        field_type: "short_text",
+        required: true,
+        options: [],
+        position: 0,
+      },
+      {
+        id: "q-email",
+        label: "E-mail",
+        field_type: "email",
+        required: true,
+        options: [],
+        position: 1,
+      },
+    ];
+
+    function createTestDeps(overrides: Partial<SubmissionDeps> = {}): SubmissionDeps {
+      return {
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: testForm,
+          questions: testQuestions,
+        }),
+        rpcSubmitResponse: vi.fn().mockResolvedValue({
+          data: {
+            status: "ok",
+            edit_token: "tok_secret_1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+            success_message: "Inscrição confirmada!",
+          },
+          error: null,
+        }),
+        fetchFn: vi.fn().mockResolvedValue(new Response("ok", { status: 200 })),
+        getOrigin: vi.fn().mockReturnValue("https://inscricoes.corretime.com.br"),
+        readEnv: vi.fn((key: string) => {
+          if (key === "RESEND_API_KEY") return "re_12345678901234567890";
+          if (key === "EMAIL_FROM") return "inscricoes@envio.corretime.com.br";
+          return undefined;
+        }),
+        logError: vi.fn(),
+        ...overrides,
+      };
+    }
+
+    const testSubmission: SubmitInput = {
+      slug: "corrida-grupo",
+      answers: {
+        "q-nome": "Maria Souza",
+        "q-email": "maria@example.com",
+      },
+      consent: false,
+      hp: "",
+    };
+
+    it("(a) formulário com link válido e inscrição ok traz groupLink e o e-mail contém o link", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: validGroupLink },
+          questions: testQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.groupLink).toBe(validGroupLink);
+      }
+
+      expect(deps.fetchFn).toHaveBeenCalled();
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.html).toContain(validGroupLink);
+      expect(body.text).toContain(validGroupLink);
+    });
+
+    it("(b) formulário sem link traz resultado SEM a chave groupLink e e-mail igual", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: null },
+          questions: testQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect("groupLink" in res).toBe(false);
+      }
+
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.html).not.toContain("chat.whatsapp.com");
+      expect(body.text).not.toContain("chat.whatsapp.com");
+    });
+
+    it("(c) link inválido no banco é ignorado em resultado e e-mail", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: "https://evil.com/fake-group" },
+          questions: testQuestions,
+        }),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect("groupLink" in res).toBe(false);
+      }
+
+      const fetchCall = vi.mocked(deps.fetchFn).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      expect(body.html).not.toContain("evil.com");
+    });
+
+    it("(d) e-mail falha mas groupLink continua no resultado de sucesso", async () => {
+      const deps = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: validGroupLink },
+          questions: testQuestions,
+        }),
+        fetchFn: vi.fn().mockRejectedValue(new Error("Resend unavailable")),
+      });
+
+      const res = await handleSubmission(deps, testSubmission);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.emailSent).toBe(false);
+        expect(res.groupLink).toBe(validGroupLink);
+      }
+    });
+
+    it("(e) retorno ok:false (cpf repetido, honeypot, form indisponível, vagas esgotadas) NÃO tem groupLink", async () => {
+      const depsRepeat = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: validGroupLink },
+          questions: testQuestions,
+        }),
+        rpcSubmitResponse: vi.fn().mockResolvedValue({
+          data: { status: "duplicate_cpf" },
+          error: null,
+        }),
+      });
+      const resRepeat = await handleSubmission(depsRepeat, testSubmission);
+      expect(resRepeat.ok).toBe(false);
+      expect("groupLink" in resRepeat).toBe(false);
+
+      const depsHp = createTestDeps({
+        loadFormAndQuestions: vi.fn().mockResolvedValue({
+          form: { ...testForm, whatsapp_group_link: validGroupLink },
+          questions: testQuestions,
+        }),
+      });
+      const resHp = await handleSubmission(depsHp, { ...testSubmission, hp: "trap_value" });
+      expect(resHp.ok).toBe(false);
+      expect("groupLink" in resHp).toBe(false);
+    });
+
+    it("(f) resolveSubmitOutcome repassa groupLink quando presente e não cria a chave quando ausente", () => {
+      const qIds = ["q1"];
+
+      const outcomeWith = resolveSubmitOutcome(
+        {
+          ok: true,
+          message: "Sucesso",
+          emailSent: true,
+          groupLink: validGroupLink,
+        },
+        qIds,
+      );
+      expect(outcomeWith.kind).toBe("success");
+      if (outcomeWith.kind === "success") {
+        expect(outcomeWith.done.groupLink).toBe(validGroupLink);
+      }
+
+      const outcomeWithout = resolveSubmitOutcome(
+        {
+          ok: true,
+          message: "Sucesso",
+          emailSent: true,
+        },
+        qIds,
+      );
+      expect(outcomeWithout.kind).toBe("success");
+      if (outcomeWithout.kind === "success") {
+        expect("groupLink" in outcomeWithout.done).toBe(false);
+      }
+    });
+  });
 });
 

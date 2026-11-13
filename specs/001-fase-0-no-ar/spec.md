@@ -135,7 +135,7 @@ Como cliente, quero colar eu mesmo o link do grupo no meu painel, sem depender d
 
 ### RF-25 — Aviso no formulário público
 Como inscrito, quero saber que receberei o convite do grupo antes de me inscrever.
-**Critério de aceite:** Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
+**Critério de aceite:** *(Dispensado em 13/11/2026 por decisão do dono; texto opcional poderá voltar na T-56)* Dado um formulário com link do grupo, o formulário público mostra a frase `Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.` Sem link, a frase não aparece.
 
 ## Ordem de entrega (decisão do dono, 12/11/2026)
 0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.

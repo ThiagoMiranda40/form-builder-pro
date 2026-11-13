@@ -967,17 +967,17 @@ Critérios de Aceite:
 
 ---
 
-## T-51 — Link do grupo na confirmação, no e-mail de confirmação e aviso no formulário (M-46)
+## T-51 — Link do grupo na confirmação e no e-mail de confirmação sem aviso prévio no formulário (M-46)
 
-- **Estado:** a fazer. Depende das T-46 e T-50.
+- **Estado:** concluída em 13/11/2026.
 - **Ler:** `spec.md RF-18, RF-25; design/ui-ux.md Tela J, Tela K; seguranca.md SEC-38, SEC-42, SEC-46; qa-plan.md QA-46-20, QA-46-21, QA-46-22`.
-- **Objetivo:** depois de concluir a inscrição, o inscrito vê e recebe o botão `Entrar no grupo de avisos do evento`; antes, só vê o aviso.
-- **Especificações complementares:** o aviso (RF-25) precisa saber se há link **sem revelá-lo**: o carregamento público passa só um booleano `hasGroupInvite` (consulta explícita; decisão local: ler a coluna no servidor e devolver apenas o booleano). O link em si sai só no resultado de `submitResponse` bem-sucedido (`groupLink?: string`) e entra no e-mail de confirmação como botão; HTML escapado e `validateGroupLink` reaplicado antes de usar (defesa se o valor do banco for alterado por fora). Sem link, nenhuma mudança visível. Medir antes como `submit-response.ts` carrega o formulário (por injeção `deps`) e reaproveitar o mesmo caminho.
-- **TDD:** estender `src/lib/submit-response.test.ts` e `src/lib/confirmation-email.test.ts` (já existem): com link → resultado e e-mail trazem o botão; sem link → idênticos ao de hoje; link inválido no banco → ignorado.
-- **Arquivos:** `src/lib/submit-response.ts`, `src/lib/submit-response.test.ts`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/routes/$slug.tsx`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
-- **Verificação:** comandos padrão; os testes de submissão existentes continuam verdes sem alteração de expectativa para formulário sem link.
-- **O que isso prova:** quem acabou de se inscrever recebe o caminho para o grupo, quem ainda não se inscreveu não vê o link, e formulários sem grupo ficam exatamente como são hoje.
-- **Critérios de aceite:** QA-46-20, QA-46-21, QA-46-22.
+- **Objetivo:** depois de concluir a inscrição, o inscrito vê e recebe o botão `Entrar no grupo de avisos do evento`; sem aviso prévio no formulário público (RF-25 dispensado por decisão do dono).
+- **Especificações complementares:** o link não sai no carregamento público (`getPublicForm` não lê a coluna nem devolve booleano). O link sai apenas no resultado de `submitResponse` bem-sucedido (`groupLink?: string`) e entra no e-mail de confirmação (`kind: "confirmada"`) como botão e link em texto puro; HTML escapado e `validateGroupLink` reaplicado antes de usar. Sem link, saída idêntica à anterior. `validateGroupLink` e `hasValidGroupLink` extraídos para `src/lib/group-link.ts` sem dependências evitando ciclo.
+- **TDD:** testes em `src/lib/group-link.test.ts`, `src/lib/submit-response.test.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/public-forms.functions.test.ts` e `src/lib/routes.test.ts`. Com link → resultado e e-mail trazem o botão; sem link → idênticos ao de hoje; link inválido no banco → ignorado; `kind: "atualizada"` sem bloco do grupo.
+- **Arquivos:** `src/lib/group-link.ts`, `src/lib/group-link.test.ts`, `src/lib/invite.ts`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/submit-response.ts`, `src/lib/submit-response.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/routes/$slug.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`.
+- **Verificação:** comandos padrão (tsc 0 erros, vitest 604 testes passando, build ok); `grep` garante ausência de `whatsapp_group_link` e `hasGroupInvite` nas rotas públicas e em `edit-response`.
+- **O que isso prova:** quem conclui a inscrição recebe o acesso ao grupo de avisos na tela e no e-mail; antes da inscrição nada vaza nem muda na tela pública; e formulários sem grupo continuam exatamente como eram.
+- **Critérios de aceite:** QA-46-20, QA-46-21.
 
 ---
 

@@ -286,6 +286,115 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
     });
   });
 
+  describe("T-51 (M-46): Coluna whatsapp_group_link e isolamento de carregamento público", () => {
+    const validGroupLink = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+
+    it("(a) loadPublicFormAndQuestions devolve whatsapp_group_link no objeto form e o select contém a coluna", async () => {
+      let selectCols = "";
+      const fakeSupabase = {
+        from: (table: string) => {
+          if (table === "forms") {
+            return {
+              select: (cols: string) => {
+                selectCols = cols;
+                return {
+                  eq: () => ({
+                    maybeSingle: async () => ({
+                      data: {
+                        id: "form-abc",
+                        title: "Form Teste",
+                        status: "published",
+                        closes_at: null,
+                        max_responses: null,
+                        success_message: "OK",
+                        consent_text: null,
+                        whatsapp_group_link: validGroupLink,
+                      },
+                      error: null,
+                    }),
+                  }),
+                };
+              },
+            };
+          }
+          if (table === "questions") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  order: async () => ({ data: [], error: null }),
+                }),
+              }),
+            };
+          }
+          throw new Error(`Tabela inesperada: ${table}`);
+        },
+      };
+
+      const res = await loadPublicFormAndQuestions(fakeSupabase as any, "form-teste");
+      expect(selectCols).toContain("whatsapp_group_link");
+      expect(res.form?.whatsapp_group_link).toBe(validGroupLink);
+    });
+
+    it("(b) getPublicForm com registro que contém link no banco NÃO expõe o link nem qualquer chave do grupo", async () => {
+      let selectColsUsed = "";
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn((cols: string) => {
+            selectColsUsed = cols;
+            return {
+              eq: vi.fn().mockReturnValueOnce({
+                maybeSingle: vi.fn().mockResolvedValueOnce({
+                  data: {
+                    id: "f-1",
+                    title: "Form",
+                    description: "Desc",
+                    status: "published",
+                    closes_at: null,
+                    max_responses: null,
+                    success_message: "Sucesso",
+                    consent_text: null,
+                    theme: {},
+                    whatsapp_group_link: validGroupLink,
+                  },
+                  error: null,
+                }),
+              }),
+            };
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({
+              count: 0,
+              error: null,
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        });
+
+      const res = await getPublicForm({ data: { slug: "corrida-2026" } });
+
+      // O select do getPublicForm NÃO deve conter whatsapp_group_link
+      expect(selectColsUsed).not.toContain("whatsapp_group_link");
+
+      // A serialização do retorno não deve conter dados do link
+      const serialized = JSON.stringify(res);
+      expect(serialized).not.toContain("chat.whatsapp.com");
+      expect(serialized).not.toContain("whatsapp_group_link");
+      expect(serialized).not.toContain("groupLink");
+      expect(serialized).not.toContain("hasGroupInvite");
+    });
+  });
+
   describe("loadPublicFormAndQuestions - tratamento de erros na submissão (SEC-19)", () => {
     it("lança erro genérico quando a consulta de forms retorna erro", async () => {
       mockSupabaseAdmin.from.mockReturnValueOnce({

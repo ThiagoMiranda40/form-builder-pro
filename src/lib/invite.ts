@@ -3,6 +3,9 @@ import { findNameQuestion, type TableQuestion } from "./responses-table";
 import { findEmailQuestionWithAnswer } from "./admin-response";
 import { isSafeRecipient } from "./confirmation-email";
 import { slug } from "./slug";
+import { validateGroupLink, hasValidGroupLink, MAX_GROUP_LINK_LENGTH } from "./group-link";
+
+export { validateGroupLink, hasValidGroupLink, MAX_GROUP_LINK_LENGTH };
 
 export interface VcfContactInput {
   name: string;
@@ -124,38 +127,8 @@ export function vcfFilename(formTitle: string): string {
   return `contatos-${slug(formTitle)}.vcf`;
 }
 
-const GROUP_LINK_REGEX = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/;
-const MAX_GROUP_LINK_LENGTH = 200;
 const MAX_FORM_TITLE_IN_MESSAGE = 80;
 const MAX_SUBJECT_LENGTH = 120;
-
-/**
- * Valida o link de convite do grupo do WhatsApp (RF-17, ARQ-07, SEC-38).
- * Aceita apenas https://chat.whatsapp.com/<código alfanumérico> com até 200 caracteres após trim.
- * String vazia após trim devolve { ok: true, link: "" } (tratado pelo chamador como remover link).
- */
-export function validateGroupLink(
-  input: unknown,
-): { ok: true; link: string } | { ok: false } {
-  if (typeof input !== "string") {
-    return { ok: false };
-  }
-
-  const trimmed = input.trim();
-  if (trimmed === "") {
-    return { ok: true, link: "" };
-  }
-
-  if (trimmed.length > MAX_GROUP_LINK_LENGTH) {
-    return { ok: false };
-  }
-
-  if (!GROUP_LINK_REGEX.test(trimmed)) {
-    return { ok: false };
-  }
-
-  return { ok: true, link: trimmed };
-}
 
 /**
  * Cinco variações de redação em português do Brasil para o convite individual via WhatsApp (RF-20, QA-46-29).

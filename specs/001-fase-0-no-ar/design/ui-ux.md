@@ -1385,18 +1385,18 @@ Cartão `rounded-xl bg-white/70 p-5 text-left ring-1 ring-black/5` (mesmo do blo
 - Nielsen: 1 e 6 (o botão diz o que faz e para onde vai); 3 (entrar é opcional, dito na tela); 10 (aviso de privacidade antes do clique).
 - WCAG: 1.4.3 contraste do botão pela função `readableTextColor`; 2.4.4 propósito do link claro; 3.2.5 aviso de nova aba no rótulo acessível; no e-mail, endereço em texto puro como alternativa.
 
-### 5. Tela K — Texto de ciência no formulário público
+### 5. Tela K — Texto de ciência no formulário público *(Dispensada em 13/11/2026 por decisão do dono; texto opcional poderá voltar na T-56)*
 
 #### 5.1 Objetivo e fluxo
-Objetivo: a pessoa sabe, antes de enviar, que receberá o convite (RF-09). Só aparece quando há link do grupo.
+Objetivo: a pessoa sabe, antes de enviar, que receberá o convite (RF-09/RF-25). Só aparece quando há link do grupo. Nota: dispensada em 13/11/2026 para manter o formulário público sem ruído prévio antes da inscrição.
 
 #### 5.2 Wireframe
 Acima do botão de envio e abaixo do consentimento LGPD (ordem do formulário atual):
 ```
 [ ] Li e concordo com os Termos...        (consentimento atual)
-Depois de se inscrever, você poderá entrar no
-grupo de avisos do evento no WhatsApp. Entrar é
-opcional.
+Você poderá receber por e-mail o convite
+para o grupo de avisos deste evento.
+Entrar é opcional.
 [            Enviar inscrição            ]
 ```
 
@@ -1404,7 +1404,7 @@ opcional.
 Padrão: texto `text-xs` em cor `text-muted-foreground`, sem checkbox (não é consentimento). Vazio: sem link do grupo, nada aparece. Demais estados: não se aplicam.
 
 #### 5.4 Textos exatos (novo)
-`Depois de se inscrever, você poderá entrar no grupo de avisos do evento no WhatsApp. Entrar é opcional.`
+`Você poderá receber por e-mail o convite para o grupo de avisos deste evento. Entrar é opcional.`
 
 #### 5.5 Markup e classes reutilizados
 `<p className="text-xs text-muted-foreground">` como os textos de apoio do formulário.

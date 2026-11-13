@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { HONEYPOT_ERROR_MESSAGE, resolveSubmitOutcome } from "@/lib/submit-response";
+import { hasValidGroupLink } from "@/lib/group-link";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
 import { findEmailQuestion } from "@/lib/inscricao";
@@ -82,6 +83,7 @@ type DoneState = {
   message: string;
   editUrl?: string | undefined;
   emailSent: boolean;
+  groupLink?: string | undefined;
 };
 
 function PublicForm() {
@@ -240,6 +242,32 @@ function PublicForm() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {done.groupLink && hasValidGroupLink(done.groupLink) && (
+            <div className="mt-6 rounded-xl bg-white/70 p-5 text-left ring-1 ring-black/5">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">
+                Grupo de avisos do evento
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Entre no grupo para receber as informações da corrida. Entrar é opcional.
+              </p>
+              <div className="mt-4">
+                <a
+                  href={done.groupLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Entrar no grupo do WhatsApp (abre em nova aba)"
+                  className="block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent, color: readableTextColor(accent) }}
+                >
+                  Entrar no grupo do WhatsApp
+                </a>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Quem entra no grupo vê o número de WhatsApp dos outros participantes.
+              </p>
             </div>
           )}
 

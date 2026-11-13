@@ -170,6 +170,113 @@ describe("confirmation-email (T-08)", () => {
       expect(email.text).not.toContain("Evento:");
       expect(email.html).not.toContain("Evento:");
     });
+
+    describe("T-51 (M-46): bloco do Grupo de avisos do WhatsApp", () => {
+      const baseEmailInput = {
+        form: { title: "Corrida Noturna" },
+        questions: [{ id: "q1", label: "Nome", field_type: "short_text", position: 1 }],
+        answers: { q1: "Atleta" },
+        editUrl: "https://triade.app.br/editar/token123",
+      };
+
+      it("com kind:'confirmada' e link válido, html e text contêm bloco do grupo antes de 'Para corrigir seus dados'", () => {
+        const link = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+        const email = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: link,
+        });
+
+        // Título, textos e link presentes no HTML
+        expect(email.html).toContain("Grupo de avisos do evento");
+        expect(email.html).toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+        expect(email.html).toContain("Entrar no grupo do WhatsApp");
+        expect(email.html).toContain(`href="${link}"`);
+        expect(email.html).toContain(`Se o botão não abrir, copie este endereço: ${link}`);
+        expect(email.html).toContain("Quem entra no grupo vê o número de WhatsApp dos outros participantes.");
+
+        // Ordem: o bloco do grupo deve vir ANTES de "Para corrigir seus dados"
+        const groupBlockIdxHtml = email.html.indexOf("Grupo de avisos do evento");
+        const editBlockIdxHtml = email.html.indexOf("Para corrigir seus dados");
+        expect(groupBlockIdxHtml).toBeGreaterThan(-1);
+        expect(editBlockIdxHtml).toBeGreaterThan(-1);
+        expect(groupBlockIdxHtml).toBeLessThan(editBlockIdxHtml);
+
+        // Versão em texto puro
+        expect(email.text).toContain("Grupo de avisos do evento");
+        expect(email.text).toContain("Entre no grupo para receber as informações da corrida. Entrar é opcional.");
+        expect(email.text).toContain(`Entrar no grupo do WhatsApp: ${link}`);
+        expect(email.text).toContain(`Se o botão não abrir, copie este endereço: ${link}`);
+        expect(email.text).toContain("Quem entra no grupo vê o número de WhatsApp dos outros participantes.");
+
+        const groupBlockIdxText = email.text.indexOf("Grupo de avisos do evento");
+        const editBlockIdxText = email.text.indexOf("Para corrigir seus dados");
+        expect(groupBlockIdxText).toBeGreaterThan(-1);
+        expect(editBlockIdxText).toBeGreaterThan(-1);
+        expect(groupBlockIdxText).toBeLessThan(editBlockIdxText);
+      });
+
+      it("com kind:'atualizada' e link válido, NÃO inclui bloco do grupo", () => {
+        const link = "https://chat.whatsapp.com/LPUC195Oj4n7Gi4v60rS3A";
+        const email = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "atualizada",
+          groupLink: link,
+        });
+
+        expect(email.html).not.toContain("Grupo de avisos do evento");
+        expect(email.html).not.toContain("Entrar no grupo do WhatsApp");
+        expect(email.text).not.toContain("Grupo de avisos do evento");
+        expect(email.text).not.toContain(link);
+      });
+
+      it("sem groupLink, saída é byte a byte IDÊNTICA à chamada sem o parâmetro", () => {
+        const withoutParam = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+        });
+        const withUndefined = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: undefined,
+        });
+        const withNull = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: null,
+        });
+        const withEmpty = buildConfirmationEmail({
+          ...baseEmailInput,
+          kind: "confirmada",
+          groupLink: "",
+        });
+
+        expect(withUndefined).toEqual(withoutParam);
+        expect(withNull).toEqual(withoutParam);
+        expect(withEmpty).toEqual(withoutParam);
+      });
+
+      it("link inválido ou tentativa de injeção é ignorado (sem bloco e sem script)", () => {
+        const badLinks = [
+          "http://chat.whatsapp.com/x",
+          "https://evil.com/",
+          "javascript:alert(1)",
+          'https://chat.whatsapp.com/x"><script>',
+        ];
+
+        for (const bad of badLinks) {
+          const email = buildConfirmationEmail({
+            ...baseEmailInput,
+            kind: "confirmada",
+            groupLink: bad,
+          });
+
+          expect(email.html).not.toContain("Grupo de avisos do evento");
+          expect(email.html).not.toContain("<script>");
+          expect(email.text).not.toContain("Grupo de avisos do evento");
+        }
+      });
+    });
   });
 
 

@@ -1,6 +1,7 @@
 import { isValidEmail } from "./validators";
 import { hideDocument } from "./inscricao";
 import { formatAnswer } from "./answer-format";
+import { hasValidGroupLink, validateGroupLink } from "./group-link";
 
 /**
  * Escapa caracteres especiais HTML para prevenir XSS em e-mails (SEC-09).
@@ -48,6 +49,7 @@ export interface BuildConfirmationEmailParams {
   answers: Record<string, unknown>;
   editUrl: string;
   kind?: "confirmada" | "atualizada" | undefined;
+  groupLink?: string | null | undefined;
 }
 
 export interface BuiltEmail {
@@ -137,6 +139,36 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
     ? `\n    <p style="font-size: 14px; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #374151;">${escapeHtml(eventLine)}</p>`
     : "";
 
+  // Bloco do Grupo de avisos do WhatsApp (T-51 / SEC-38 / SEC-42)
+  let groupBlockHtml = "";
+  let groupBlockText = "";
+
+  if (!isUpdate && params.groupLink && hasValidGroupLink(params.groupLink)) {
+    const validated = validateGroupLink(params.groupLink);
+    if (validated.ok && validated.link) {
+      const safeGroupLink = escapeHtml(validated.link);
+      groupBlockHtml = `
+
+    <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 20px; margin-top: 24px; text-align: left;">
+      <h2 style="font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: #065f46;">Grupo de avisos do evento</h2>
+      <p style="font-size: 14px; margin: 0 0 16px 0; color: #047857; line-height: 1.5;">Entre no grupo para receber as informações da corrida. Entrar é opcional.</p>
+      <div style="margin-bottom: 12px;">
+        <a href="${safeGroupLink}" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 6px;">Entrar no grupo do WhatsApp</a>
+      </div>
+      <p style="font-size: 12px; margin: 0 0 8px 0; color: #065f46; word-break: break-all;">Se o botão não abrir, copie este endereço: ${safeGroupLink}</p>
+      <p style="font-size: 11px; margin: 0; color: #047857;">Quem entra no grupo vê o número de WhatsApp dos outros participantes.</p>
+    </div>`;
+
+      groupBlockText = `
+
+Grupo de avisos do evento
+Entre no grupo para receber as informações da corrida. Entrar é opcional.
+Entrar no grupo do WhatsApp: ${validated.link}
+Se o botão não abrir, copie este endereço: ${validated.link}
+Quem entra no grupo vê o número de WhatsApp dos outros participantes.`;
+    }
+  }
+
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -153,7 +185,7 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
       <tbody>
         ${htmlItems}
       </tbody>
-    </table>
+    </table>${groupBlockHtml}
 
     <div style="background-color: #f3f4f6; border-radius: 6px; padding: 16px; margin-top: 24px;">
       <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151; font-weight: 600;">Para corrigir seus dados, acesse:</p>
@@ -176,7 +208,7 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
 ${introText}
 
 Resumo dos dados enviados:
-${textItems}
+${textItems}${groupBlockText}
 
 Para corrigir seus dados, acesse:
 ${params.editUrl}

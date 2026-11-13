@@ -13,6 +13,7 @@ import {
   isSafeRecipient,
   sendConfirmationEmail,
 } from "./confirmation-email";
+import { validateGroupLink } from "./group-link";
 
 export const ALLOWED_ORIGINS = [
   "https://inscricoes.corretime.com.br",
@@ -82,7 +83,7 @@ export const submitSchema = z.object({
 export type SubmitInput = z.infer<typeof submitSchema>;
 
 export type SubmitResult =
-  | { ok: true; message: string; editUrl?: string; emailSent: boolean }
+  | { ok: true; message: string; editUrl?: string; emailSent: boolean; groupLink?: string }
   | { ok: false; error: string; field?: string };
 
 export interface SubmissionForm {
@@ -96,6 +97,7 @@ export interface SubmissionForm {
   event_date?: string | null;
   event_time?: string | null;
   event_location?: string | null;
+  whatsapp_group_link?: string | null;
 }
 
 export interface SubmissionQuestion {
@@ -408,6 +410,11 @@ export async function handleSubmission(
   const safeOrigin = getOrigin(rawOrigin);
   const editUrl = rpcData.edit_token ? `${safeOrigin}/editar/${rpcData.edit_token}` : undefined;
 
+  // Validação do link do grupo do WhatsApp (T-51 / SEC-38 / SEC-46)
+  const groupLinkCheck = validateGroupLink(form.whatsapp_group_link ?? "");
+  const groupLink =
+    groupLinkCheck.ok && groupLinkCheck.link ? groupLinkCheck.link : undefined;
+
   // 8. E-mail de confirmação com tempo limite
   let emailSent = false;
   const emailQuestion = findEmailQuestion(questions);
@@ -427,6 +434,7 @@ export async function handleSubmission(
       answers: cleanAnswers,
       editUrl,
       kind: "confirmada",
+      groupLink,
     });
 
     const timedFetch = createTimedFetch(deps.fetchFn, 5000);
@@ -450,6 +458,7 @@ export async function handleSubmission(
     ok: true,
     message: rpcData.success_message || form.success_message || "Inscrição confirmada!",
     ...(editUrl ? { editUrl } : {}),
+    ...(groupLink ? { groupLink } : {}),
     emailSent,
   };
 }
@@ -461,6 +470,7 @@ export type SubmitClientOutcome =
         message: string;
         editUrl?: string | undefined;
         emailSent: boolean;
+        groupLink?: string | undefined;
       };
     }
   | {
@@ -497,6 +507,7 @@ export function resolveSubmitOutcome(
         message: result.message || "Inscrição confirmada!",
         editUrl: result.editUrl,
         emailSent: Boolean(result.emailSent),
+        ...(result.groupLink ? { groupLink: result.groupLink } : {}),
       },
     };
   }

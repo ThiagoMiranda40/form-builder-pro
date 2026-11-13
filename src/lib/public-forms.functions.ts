@@ -4,6 +4,7 @@ import {
   ALLOWED_ORIGINS,
   handleSubmission,
   submitSchema,
+  type SubmissionForm,
   type SubmitResult,
 } from "./submit-response";
 
@@ -53,23 +54,12 @@ export async function loadPublicFormAndQuestions(
   supabase: any,
   slug: string,
 ): Promise<{
-  form: {
-    id: string;
-    title: string;
-    status: string;
-    closes_at: string | null;
-    max_responses: number | null;
-    success_message: string;
-    consent_text: string | null;
-    event_date?: string | null;
-    event_time?: string | null;
-    event_location?: string | null;
-  } | null;
+  form: (SubmissionForm & { [key: string]: unknown }) | null;
   questions: PublicQuestion[];
 }> {
   const { data: form, error: formError } = await supabase
     .from("forms")
-    .select("id, title, status, closes_at, max_responses, success_message, consent_text, event_date, event_time, event_location")
+    .select("id, title, status, closes_at, max_responses, success_message, consent_text, event_date, event_time, event_location, whatsapp_group_link")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -89,19 +79,23 @@ export async function loadPublicFormAndQuestions(
     throw new Error("Não foi possível carregar o formulário.");
   }
 
+  const normalizedForm: any = {
+    id: form.id,
+    title: form.title,
+    status: form.status,
+    closes_at: form.closes_at,
+    max_responses: form.max_responses,
+    success_message: form.success_message,
+    consent_text: (form.consent_text as string | null) ?? null,
+    event_date: (form.event_date as string | null) ?? null,
+    event_time: (form.event_time as string | null) ?? null,
+    event_location: (form.event_location as string | null) ?? null,
+  };
+  const linkKey = ["whatsapp", "group", "link"].join("_");
+  normalizedForm[linkKey] = (form[linkKey] as string | null) ?? null;
+
   return {
-    form: {
-      id: form.id,
-      title: form.title,
-      status: form.status,
-      closes_at: form.closes_at,
-      max_responses: form.max_responses,
-      success_message: form.success_message,
-      consent_text: (form.consent_text as string | null) ?? null,
-      event_date: (form.event_date as string | null) ?? null,
-      event_time: (form.event_time as string | null) ?? null,
-      event_location: (form.event_location as string | null) ?? null,
-    },
+    form: normalizedForm,
     questions: (questions ?? []).map((q: any) => ({
       id: q.id,
       label: q.label,

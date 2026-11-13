@@ -673,9 +673,9 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-17** | wa.me (T-46) — **Implementado (`src/lib/invite.test.ts`)** | U | Só telefone validado por `parseBrazilMobile`; URL `https://wa.me/55<11 dígitos>?text=<texto codificado>`; telefone inválido = sem botão; mensagem editada nunca entra no e-mail |
 | **QA-46-18** | vCard (T-55) — **Implementado (`src/lib/invite.test.ts`)** | U | Nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; só telefones válidos; N contatos para N válidos |
 | **QA-46-19** | Marcar convidado | I | `markInvited` é idempotente; falha de gravação não impede a abertura do WhatsApp (lógica de tela: estado, não exceção) |
-| **QA-46-20** | Link do grupo fora do público — **Parcial: colunas públicas verificadas por teste (T-50); resposta pública só com hasGroupInvite na T-51** | U | As listas de colunas das consultas públicas não contêm `whatsapp_group_link`; o carregamento público só tem `hasGroupInvite` |
-| **QA-46-21** | Confirmação | I | Com link: resultado da inscrição e e-mail trazem `Entrar no grupo de avisos do evento`; sem link: saída idêntica à de hoje; link inválido no banco: ignorado |
-| **QA-46-22** | Aviso no formulário | I/M | Frase de ciência só quando `hasGroupInvite` |
+| **QA-46-20** | Link do grupo fora do público (T-50 / T-51) — **Implementado (testes: carregamento público sem link nem booleano; link só no resultado da inscrição e no e-mail)** | U | As listas de colunas das consultas públicas não contêm `whatsapp_group_link`; o carregamento público `getPublicForm` não contém `whatsapp_group_link`, `groupLink` nem booleano |
+| **QA-46-21** | Confirmação (T-51) — **Implementado nos testes; confirmação visual no MAN-46-02** | I | Com link: resultado da inscrição e e-mail trazem `Entrar no grupo de avisos do evento`; sem link: saída idêntica à de hoje; link inválido no banco: ignorado |
+| **QA-46-22** | Aviso no formulário | I/M | Dispensado em 13/11/2026 por decisão do dono; texto opcional poderá voltar na T-56 |
 | **QA-46-23** | Estados do painel | U/M | Cada estado (sem link, sem elegíveis, orçamento, interrompido, legado, concluído) mostra o texto literal da Tela I |
 | **QA-46-24** | Logs sem dado pessoal | I | Nenhum registro contém e-mail, telefone, token do link, cookie ou link do grupo; só `formId`, `batchId`, código |
 | **QA-46-25** | Dependências | U | `git diff -- package.json bun.lock` vazio; `grep -inE "baileys\|whatsapp-web\|wppconnect\|venom-bot\|@whiskeysockets" package.json \| wc -l` = 0 |

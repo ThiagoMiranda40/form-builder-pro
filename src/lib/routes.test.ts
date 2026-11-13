@@ -416,9 +416,8 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
   const editarTokenPath = path.join(rootDir, "src/routes/editar.$token.tsx");
   const editorRoutePath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
 
-  // Nota: a T-51 vai adicionar leitura no servidor só para devolver hasGroupInvite/groupLink no resultado da inscrição; ao fazê-la, ajustar este teste, nunca removê-lo.
-  it("nenhuma chamada .select(...) em public-forms.functions.ts e edit-response.functions.ts contém whatsapp_group_link", () => {
-    const publicFormsContent = fs.readFileSync(publicFormsPath, "utf-8");
+  // Nota: a T-51 adicionou leitura no servidor para devolver groupLink no resultado da inscrição e e-mail (QA-46-20).
+  it("nenhuma chamada .select(...) em edit-response.functions.ts contém whatsapp_group_link", () => {
     const editResponseContent = fs.readFileSync(editResponsePath, "utf-8");
 
     const extractSelectStrings = (content: string): string[] => {
@@ -431,15 +430,27 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
       return matches;
     };
 
-    const publicSelects = extractSelectStrings(publicFormsContent);
     const editSelects = extractSelectStrings(editResponseContent);
-
-    expect(publicSelects.length).toBeGreaterThan(0);
     expect(editSelects.length).toBeGreaterThan(0);
 
-    for (const s of [...publicSelects, ...editSelects]) {
+    for (const s of editSelects) {
       expect(s).not.toContain("whatsapp_group_link");
     }
+  });
+
+  it("public-forms.functions.ts não possui chave de objeto whatsapp_group_link: nem groupLink: e contém a coluna apenas uma vez no select interno", () => {
+    const publicFormsContent = fs.readFileSync(publicFormsPath, "utf-8");
+
+    // 1. Nenhuma chave de objeto whatsapp_group_link: nem groupLink: no arquivo
+    const keyAssignmentRegex = /whatsapp_group_link\s*:|groupLink\s*:/;
+    expect(keyAssignmentRegex.test(publicFormsContent)).toBe(false);
+
+    // 2. A palavra whatsapp_group_link aparece no arquivo uma única vez, dentro do select de loadPublicFormAndQuestions
+    const occurrences = (publicFormsContent.match(/whatsapp_group_link/g) || []).length;
+    expect(occurrences).toBe(1);
+    expect(publicFormsContent).toMatch(
+      /loadPublicFormAndQuestions[\s\S]*?\.select\([\s\S]*?whatsapp_group_link[\s\S]*?\)/,
+    );
   });
 
   it("src/routes/$slug.tsx e src/routes/editar.$token.tsx não contêm a palavra whatsapp_group_link", () => {
@@ -448,6 +459,14 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
 
     expect(slugContent).not.toContain("whatsapp_group_link");
     expect(editarContent).not.toContain("whatsapp_group_link");
+  });
+
+  it("src/routes/$slug.tsx contém os textos literais da confirmação e NÃO contém hasGroupInvite (T-51 / RF-18 / RF-25 dispensado)", () => {
+    const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
+
+    expect(slugContent).toContain("Grupo de avisos do evento");
+    expect(slugContent).toContain("Entrar no grupo do WhatsApp");
+    expect(slugContent).not.toContain("hasGroupInvite");
   });
 
   it("o select do carregamento do editor contém whatsapp_group_link", () => {
