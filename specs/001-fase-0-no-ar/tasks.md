@@ -875,7 +875,7 @@ Critérios de Aceite:
 
 ## T-46 — Núcleo puro: link do grupo, mensagens variadas, wa.me, elegíveis (M-46)
 
-- **Estado:** a fazer.
+- **Estado:** concluída.
 - **Ler:** `spec.md RF-17, RF-20; architecture.md 4.1 ARQ-04, ARQ-07; ADR-004; seguranca.md SEC-38, SEC-48; qa-plan.md QA-46-01, QA-46-17, QA-46-29`.
 - **Objetivo:** concentrar em funções puras tudo o que não toca rede, banco ou cookie.
 - **Especificações complementares:**

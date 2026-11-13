@@ -654,7 +654,7 @@ Para manter o foco estrito na entrega da Fase 0, as seguintes melhorias de QA e 
 Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **B** banco real (arquivo SQL/Node rodado pelo dono), **M** manual.
 | ID | Descrição | Camada | Resultado esperado |
 |---|---|---|---|
-| **QA-46-01** | Validação do link do grupo (RF-17, ARQ-07) | U | Aceita `https://chat.whatsapp.com/AbC123`; recusa `http://chat.whatsapp.com/x`, `https://chat.whatsapp.com.evil.com/x`, `https://evil.com/chat.whatsapp.com/x`, `https://chat.whatsapp.com/x?a=1`, `https://chat.whatsapp.com/x y`, `https://chat.whatsapp.com/@x`, `javascript:alert(1)`, texto com quebra de linha, 201 caracteres; vazio = remover |
+| **QA-46-01** | Validação do link do grupo (RF-17, ARQ-07, T-46) — **Implementado (`src/lib/invite.test.ts`)** | U | Aceita `https://chat.whatsapp.com/AbC123`; recusa `http://chat.whatsapp.com/x`, `https://chat.whatsapp.com.evil.com/x`, `https://evil.com/chat.whatsapp.com/x`, `https://chat.whatsapp.com/x?a=1`, `https://chat.whatsapp.com/x y`, `https://chat.whatsapp.com/@x`, `javascript:alert(1)`, texto com quebra de linha, 201 caracteres; vazio = remover |
 | **QA-46-02** | `CHECK` do banco recusa link inválido (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | `UPDATE forms SET whatsapp_group_link='https://evil.com/x'` falha; link válido passa |
 | **QA-46-03** | Tabelas e função fechadas (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Como `anon` e `authenticated`: `SELECT/INSERT/UPDATE/DELETE` em `invite_batches` e `invite_deliveries` negados; `EXECUTE invite_create_batch` negado; `service_role` funciona |
 | **QA-46-04** | Criação do lote (T-45) — **Implementado (`specs/001-fase-0-no-ar/verificacao-banco-m46.sql`)** | B | Com 57 candidatos (10 já com entrega `sent`): lote com 47 entregas `pending`; com `p_resend = true`, 57; lote `open` com entregas `pending` devolve `nobody_eligible` mesmo com `p_resend = true` |
@@ -670,7 +670,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-14** | Escrita do cliente só com link protegido | I | Para **cada** função do cliente: link legado → `legacy_read_only`; sem cookie, cookie de outro formulário, versão antiga ou expirado → `locked`; válido → ok. Nenhum e-mail é enviado nos casos recusados |
 | **QA-46-15** | IDOR | I | `batchId` ou `responseId` de outro formulário: recusado em administrador e cliente; para o cliente, o `formId` vem do token, nunca do corpo |
 | **QA-46-16** | Escape do e-mail e do assunto | U | Título com `<script>` e `\r\n`: HTML escapado, assunto sem controle e ≤ 120 caracteres; texto do rodapé não contém "responda este e-mail" |
-| **QA-46-17** | wa.me | U | Só telefone validado por `parseBrazilMobile`; URL `https://wa.me/55<11 dígitos>?text=<texto codificado>`; telefone inválido = sem botão; mensagem editada nunca entra no e-mail |
+| **QA-46-17** | wa.me (T-46) — **Implementado (`src/lib/invite.test.ts`)** | U | Só telefone validado por `parseBrazilMobile`; URL `https://wa.me/55<11 dígitos>?text=<texto codificado>`; telefone inválido = sem botão; mensagem editada nunca entra no e-mail |
 | **QA-46-18** | vCard (T-55) — **Implementado (`src/lib/invite.test.ts`)** | U | Nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; só telefones válidos; N contatos para N válidos |
 | **QA-46-19** | Marcar convidado | I | `markInvited` é idempotente; falha de gravação não impede a abertura do WhatsApp (lógica de tela: estado, não exceção) |
 | **QA-46-20** | Link do grupo fora do público | U | As listas de colunas das consultas públicas não contêm `whatsapp_group_link`; o carregamento público só tem `hasGroupInvite` |
@@ -681,7 +681,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-25** | Dependências | U | `git diff -- package.json bun.lock` vazio; `grep -inE "baileys\|whatsapp-web\|wppconnect\|venom-bot\|@whiskeysockets" package.json \| wc -l` = 0 |
 | **QA-46-26** | Painel do cliente | M | Sem sessão: só `Link protegido`; legado: só leitura e texto da P-08; com sessão: painel completo |
 | **QA-46-27** | Cliente define link | I/M | Grava com autoria `client_link` e data; link inválido recusado; e-mails já enviados mantêm o link antigo |
-| **QA-46-29** | Variações da mensagem | U | Existem 5 variações; todas contêm o primeiro nome e o link do grupo; o sorteio é estável (mesmo `responseId`, mesma variação) e cobre mais de uma variação em 57 inscritos; mensagem editada pelo usuário vira texto único |
+| **QA-46-29** | Variações da mensagem (T-46) — **Implementado (`src/lib/invite.test.ts`)** | U | Existem 5 variações; todas contêm o primeiro nome e o link do grupo; o sorteio é estável (mesmo `responseId`, mesma variação) e cobre mais de uma variação em 57 inscritos; mensagem editada pelo usuário vira texto único |
 | **QA-46-28** | Mobile e acessibilidade | M | 360 px sem rolagem horizontal; alvos ≥ 44 px; `AlertDialog` com foco e teclado; contraste AA; mensagens com `role="alert"` |
 
 ### 15.3 Fronteiras e valores limite

@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildInviteWhatsappUrl,
   buildVcf,
+  chunk,
   extractVcfContacts,
   findPhoneQuestion,
+  INVITE_MESSAGE_VARIANTS,
+  pickEligible,
+  pickInviteMessage,
+  sanitizeSubject,
+  validateGroupLink,
   vcfFilename,
 } from "./invite";
 
@@ -147,5 +154,243 @@ describe("invite — T-55: Baixar contatos (.vcf) (RF-22, SEC-43, QA-46-18)", ()
     expect(vcfFilename("Corrida de Rua São Paulo 2026!")).toBe(
       "contatos-corrida-de-rua-sao-paulo-2026.vcf",
     );
+  });
+});
+
+describe("invite — T-46: Núcleo puro do convite (RF-17, RF-20, ARQ-04, ARQ-07, SEC-38, SEC-48, QA-46-01, QA-46-17, QA-46-29)", () => {
+  describe("validateGroupLink (QA-46-01, ARQ-07, SEC-38)", () => {
+    it("aceita links válidos https://chat.whatsapp.com/<código> até 200 caracteres e aplica trim", () => {
+      expect(validateGroupLink("https://chat.whatsapp.com/AbC123")).toEqual({
+        ok: true,
+        link: "https://chat.whatsapp.com/AbC123",
+      });
+      expect(
+        validateGroupLink("   https://chat.whatsapp.com/GrupoCorrida2026XYZ987   "),
+      ).toEqual({
+        ok: true,
+        link: "https://chat.whatsapp.com/GrupoCorrida2026XYZ987",
+      });
+
+      const exact200 = `https://chat.whatsapp.com/${"a".repeat(174)}`;
+      expect(exact200).toHaveLength(200);
+      expect(validateGroupLink(exact200)).toEqual({
+        ok: true,
+        link: exact200,
+      });
+    });
+
+    it("devolve { ok: true, link: '' } para string vazia ou só espaços (remover link)", () => {
+      expect(validateGroupLink("")).toEqual({ ok: true, link: "" });
+      expect(validateGroupLink("   \t  ")).toEqual({ ok: true, link: "" });
+    });
+
+    it("devolve { ok: false } para entradas que não são string", () => {
+      expect(validateGroupLink(null)).toEqual({ ok: false });
+      expect(validateGroupLink(undefined)).toEqual({ ok: false });
+      expect(validateGroupLink(12345)).toEqual({ ok: false });
+      expect(validateGroupLink({ link: "https://chat.whatsapp.com/AbC123" })).toEqual({
+        ok: false,
+      });
+    });
+
+    it("recusa links inválidos (http, subdomínio falso, outro domínio, query, espaço, @, javascript:, quebra de linha, 201 chars, barra final, etc.)", () => {
+      const invalidLinks = [
+        "http://chat.whatsapp.com/x",
+        "https://chat.whatsapp.com.evil.com/x",
+        "https://evil.com/chat.whatsapp.com/x",
+        "https://chat.whatsapp.com/x?a=1",
+        "https://chat.whatsapp.com/x y",
+        "https://chat.whatsapp.com/@x",
+        "javascript:alert(1)",
+        "https://chat.whatsapp.com/AbC\n123",
+        "https://chat.whatsapp.com/AbC\r\n123",
+        `https://chat.whatsapp.com/${"a".repeat(175)}`, // 201 caracteres
+        "https://chat.whatsapp.com/AbC123/", // barra final extra
+        "https://chat.whatsapp.com/", // sem código
+        "https://CHAT.WHATSAPP.COM/AbC123", // maiúsculas no host
+        "https://user@chat.whatsapp.com/AbC123", // usuário@
+        "https://chat.whatsapp.com:443/AbC123", // porta explícita
+        "https://chat.whatsapp.com/AbC%20123", // %
+      ];
+
+      for (const bad of invalidLinks) {
+        expect(validateGroupLink(bad), `deveria recusar: ${bad}`).toEqual({
+          ok: false,
+        });
+      }
+    });
+  });
+
+  describe("INVITE_MESSAGE_VARIANTS e pickInviteMessage (QA-46-29)", () => {
+    it("possui exatamente 5 variações contendo os marcadores {primeiro nome}, {título} e {link}", () => {
+      expect(INVITE_MESSAGE_VARIANTS).toHaveLength(5);
+      for (const tpl of INVITE_MESSAGE_VARIANTS) {
+        expect(tpl).toContain("{primeiro nome}");
+        expect(tpl).toContain("{título}");
+        expect(tpl).toContain("{link}");
+      }
+    });
+
+    it("monta a mensagem com primeiro nome capitalizado, título cortado em 80 caracteres e link do grupo", () => {
+      const longTitle = "C".repeat(95);
+      const link = "https://chat.whatsapp.com/AbCdEf123456";
+      const msg = pickInviteMessage("resp-001", "MARIA APARECIDA SOUZA", longTitle, link);
+
+      expect(msg).toContain("Maria");
+      expect(msg).not.toContain("APARECIDA");
+      expect(msg).toContain(`${"C".repeat(80)}…`);
+      expect(msg).not.toContain("C".repeat(81));
+      expect(msg).toContain(link);
+      expect(msg).not.toContain("{primeiro nome}");
+      expect(msg).not.toContain("{título}");
+      expect(msg).not.toContain("{link}");
+    });
+
+    it("sorteia de forma determinística (mesmo responseId = mesma variação) e distribui entre as 5 variações em 57 inscritos", () => {
+      const link = "https://chat.whatsapp.com/GrupoTeste57";
+      const id = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+      const firstCall = pickInviteMessage(id, "Carlos", "Corrida 10K", link);
+      for (let i = 0; i < 10; i++) {
+        expect(pickInviteMessage(id, "Carlos", "Corrida 10K", link)).toBe(firstCall);
+      }
+
+      const seenMessages = new Set<string>();
+      const counts = [0, 0, 0, 0, 0];
+      const expectedByVariant = INVITE_MESSAGE_VARIANTS.map((tpl) =>
+        tpl
+          .replace("{primeiro nome}", "Maria")
+          .replace("{título}", "Corrida de Rua Dezembro")
+          .replace("{link}", link),
+      );
+
+      for (let i = 1; i <= 57; i++) {
+        const respId = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+        const m = pickInviteMessage(respId, "Maria", "Corrida de Rua Dezembro", link);
+        expect(m).toContain("Maria");
+        expect(m).toContain("Corrida de Rua Dezembro");
+        expect(m).toContain(link);
+        seenMessages.add(m);
+        const variantIdx = expectedByVariant.indexOf(m);
+        expect(variantIdx).toBeGreaterThanOrEqual(0);
+        counts[variantIdx] = (counts[variantIdx] ?? 0) + 1;
+      }
+
+      expect(seenMessages.size).toBe(5);
+      expect(counts).toEqual([11, 9, 11, 13, 13]);
+    });
+  });
+
+  describe("buildInviteWhatsappUrl (QA-46-17, SEC-48)", () => {
+    it("gera URL https://wa.me/55<11 dígitos>?text=<codificado> para celular válido", () => {
+      const msg =
+        'Oi, Maria! Aqui é a organização de "Corrida de Rua". Entre no nosso grupo: https://chat.whatsapp.com/AbC123';
+      const url = buildInviteWhatsappUrl("(11) 98765-4321", msg);
+      expect(url).toBe(
+        `https://wa.me/5511987654321?text=${encodeURIComponent(msg)}`,
+      );
+    });
+
+    it("devolve null para telefone fixo, vazio ou inválido", () => {
+      expect(buildInviteWhatsappUrl("(11) 3333-4444", "Oi")).toBeNull();
+      expect(buildInviteWhatsappUrl("", "Oi")).toBeNull();
+      expect(buildInviteWhatsappUrl("12345", "Oi")).toBeNull();
+      expect(buildInviteWhatsappUrl("(00) 98765-4321", "Oi")).toBeNull();
+    });
+  });
+
+  describe("pickEligible", () => {
+    const questions = [
+      { id: "q-nome", label: "Nome completo", field_type: "short_text" },
+      { id: "q-email", label: "E-mail", field_type: "email" },
+      { id: "q-tel", label: "Celular / WhatsApp", field_type: "phone" },
+      { id: "q-cpf", label: "CPF", field_type: "cpf" },
+    ];
+
+    it("extrai { id, firstName, email, phone } validando e-mail com isSafeRecipient e telefone com parseBrazilMobile, sem copiar outros campos", () => {
+      const responses = [
+        {
+          id: "r-1",
+          answers: {
+            "q-nome": "Maria Clara Silva",
+            "q-email": "  maria@exemplo.com.br ",
+            "q-tel": "(11) 98765-4321",
+            "q-cpf": "123.456.789-00",
+          },
+        },
+        {
+          id: "r-2",
+          answers: {
+            "q-nome": "JOÃO PEDRO",
+            "q-email": "invalido@@exemplo..com",
+            "q-tel": "(11) 3333-4444", // fixo -> null
+            "q-cpf": "111.222.333-44",
+          },
+        },
+        {
+          id: "r-3",
+          answers: {
+            "q-nome": "   ",
+            "q-email": "ana@exemplo.com,outro@exemplo.com", // inseguro -> null
+            "q-tel": "+55 21 99876-5432",
+          },
+        },
+      ];
+
+      const result = pickEligible(responses, questions);
+      expect(result).toEqual([
+        {
+          id: "r-1",
+          firstName: "Maria",
+          email: "maria@exemplo.com.br",
+          phone: "11987654321",
+        },
+        {
+          id: "r-2",
+          firstName: "João",
+          email: null,
+          phone: null,
+        },
+        {
+          id: "r-3",
+          firstName: "",
+          email: null,
+          phone: "21998765432",
+        },
+      ]);
+
+      for (const item of result) {
+        expect(Object.keys(item).sort()).toEqual(["email", "firstName", "id", "phone"]);
+      }
+    });
+  });
+
+  describe("chunk", () => {
+    it("divide 57 itens em partes de 50 e 7 (tamanho padrão 50) e devolve [] para lista vazia", () => {
+      const items = Array.from({ length: 57 }, (_, i) => i + 1);
+      const parts = chunk(items);
+      expect(parts).toHaveLength(2);
+      expect(parts[0]).toHaveLength(50);
+      expect(parts[1]).toHaveLength(7);
+      expect(parts[0]?.[0]).toBe(1);
+      expect(parts[0]?.[49]).toBe(50);
+      expect(parts[1]?.[0]).toBe(51);
+      expect(parts[1]?.[6]).toBe(57);
+
+      expect(chunk([])).toEqual([]);
+      expect(chunk([1, 2, 3], 2)).toEqual([[1, 2], [3]]);
+    });
+  });
+
+  describe("sanitizeSubject", () => {
+    it("remove caracteres de controle (inclusive \\r e \\n) e limita a 120 caracteres", () => {
+      const dirty = "Convite para o grupo:\r\nCorrida\u0000\u0007\t2026";
+      const clean = sanitizeSubject(dirty);
+      expect(clean).not.toMatch(/[\u0000-\u001F\u007F]/);
+      expect(clean).toBe("Convite para o grupo: Corrida 2026");
+
+      const longSubject = "A".repeat(150);
+      expect(sanitizeSubject(longSubject)).toHaveLength(120);
+      expect(sanitizeSubject(longSubject)).toBe("A".repeat(120));
+    });
   });
 });
