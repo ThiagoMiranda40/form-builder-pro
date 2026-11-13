@@ -222,12 +222,42 @@ describe("invite — T-46: Núcleo puro do convite (RF-17, RF-20, ARQ-04, ARQ-07
   });
 
   describe("INVITE_MESSAGE_VARIANTS e pickInviteMessage (QA-46-29)", () => {
-    it("possui exatamente 5 variações contendo os marcadores {primeiro nome}, {título} e {link}", () => {
+    it("possui exatamente 5 variações contendo os marcadores {primeiro nome}, {título} e {link} e a 4ª redação exata", () => {
       expect(INVITE_MESSAGE_VARIANTS).toHaveLength(5);
       for (const tpl of INVITE_MESSAGE_VARIANTS) {
         expect(tpl).toContain("{primeiro nome}");
         expect(tpl).toContain("{título}");
         expect(tpl).toContain("{link}");
+      }
+      expect(INVITE_MESSAGE_VARIANTS[3]).toBe(
+        'Passando para avisar, {primeiro nome}: o grupo de comunicados de "{título}" já está aberto. Entre por aqui para receber as informações: {link}',
+      );
+    });
+
+    it("usa 'participante' quando firstName é vazio, só espaços ou undefined em todas as 5 variações (sem vírgula solta nem saudação quebrada)", () => {
+      const link = "https://chat.whatsapp.com/GrupoSemNome123";
+      // Seleciona 5 responseIds que caem nos 5 índices (0 a 4)
+      const idsByVariant: string[] = [];
+      const seen = new Set<string>();
+      for (let i = 1; i <= 57 && idsByVariant.length < 5; i++) {
+        const respId = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+        const probe = pickInviteMessage(respId, "Maria", "Evento", link);
+        if (!seen.has(probe)) {
+          seen.add(probe);
+          idsByVariant.push(respId);
+        }
+      }
+      expect(idsByVariant).toHaveLength(5);
+
+      for (const emptyInput of ["", "   \t  ", undefined as unknown as string]) {
+        for (const respId of idsByVariant) {
+          const msg = pickInviteMessage(respId, emptyInput, "Corrida 10K", link);
+          expect(msg).toContain("participante");
+          expect(msg).not.toMatch(/^\s*,/);
+          expect(msg).not.toContain("Olá, !");
+          expect(msg).not.toContain("Oi, !");
+          expect(msg).not.toContain("avisar, :");
+        }
       }
     });
 
@@ -379,14 +409,46 @@ describe("invite — T-46: Núcleo puro do convite (RF-17, RF-20, ARQ-04, ARQ-07
       expect(chunk([])).toEqual([]);
       expect(chunk([1, 2, 3], 2)).toEqual([[1, 2], [3]]);
     });
+
+    it("usa tamanho padrão 50 quando size não é finito ou é menor que 1 (0.5, 0, -4, NaN) sem travar", () => {
+      const guardedArray = (arr: number[]) => {
+        const copy = [...arr];
+        let calls = 0;
+        const origSlice = copy.slice.bind(copy);
+        copy.slice = (start?: number, end?: number) => {
+          if (++calls > 10) {
+            throw new Error("loop infinito em chunk: step inválido");
+          }
+          return origSlice(start, end);
+        };
+        return copy;
+      };
+
+      for (const invalidSize of [0.5, 0, -4, Number.NaN]) {
+        const res = chunk(guardedArray([1, 2, 3]), invalidSize);
+        expect(res).toEqual([[1, 2, 3]]);
+        expect(res.every((part) => part.length > 0)).toBe(true);
+      }
+    });
   });
 
   describe("sanitizeSubject", () => {
-    it("remove caracteres de controle (inclusive \\r e \\n) e limita a 120 caracteres", () => {
+    it("remove caracteres de controle (inclusive \\r, \\n, U+2028, U+2029 e bidi U+200E..U+2069) e limita a 120 caracteres", () => {
       const dirty = "Convite para o grupo:\r\nCorrida\u0000\u0007\t2026";
       const clean = sanitizeSubject(dirty);
       expect(clean).not.toMatch(/[\u0000-\u001F\u007F]/);
       expect(clean).toBe("Convite para o grupo: Corrida 2026");
+
+      const bidiAndSep =
+        "Corrida \u202Eevil\u2028linha\u2029fim\u200E\u200F\u202A\u202B\u202C\u202D\u2066\u2067\u2068\u2069";
+      const cleanBidi = sanitizeSubject(bidiAndSep);
+      expect(cleanBidi).not.toMatch(
+        /[\u200E\u200F\u2028-\u202E\u2066-\u2069]/,
+      );
+      expect(cleanBidi.length).toBeLessThanOrEqual(120);
+      expect(cleanBidi).toContain("Corrida");
+      expect(cleanBidi).toContain("evil");
+      expect(cleanBidi).toContain("linha");
 
       const longSubject = "A".repeat(150);
       expect(sanitizeSubject(longSubject)).toHaveLength(120);

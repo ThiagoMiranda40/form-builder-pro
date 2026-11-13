@@ -165,7 +165,7 @@ export const INVITE_MESSAGE_VARIANTS: readonly [string, string, string, string, 
   'Oi, {primeiro nome}! Aqui é a organização de "{título}". Entre no nosso grupo de avisos do evento: {link}',
   'Olá, {primeiro nome}! Segue o convite para o grupo de avisos de "{título}": {link} Nos vemos no evento.',
   '{primeiro nome}, tudo bem? Para acompanhar os avisos de "{título}", acesse o grupo da organização pelo link: {link}',
-  'Bom dia, {primeiro nome}! O grupo de comunicados de "{título}" já está aberto. Entre por aqui para receber as informações: {link}',
+  'Passando para avisar, {primeiro nome}: o grupo de comunicados de "{título}" já está aberto. Entre por aqui para receber as informações: {link}',
   'Olá, {primeiro nome}! Confirmamos sua inscrição em "{título}". Caso queira receber os avisos no celular, entre no grupo do evento: {link}',
 ];
 
@@ -195,7 +195,7 @@ export function pickInviteMessage(
   const index = stableVariantIndex(idStr, INVITE_MESSAGE_VARIANTS.length);
   const template = INVITE_MESSAGE_VARIANTS[index] ?? INVITE_MESSAGE_VARIANTS[0];
 
-  const cleanName = firstNameOf(firstName);
+  const cleanName = firstNameOf(firstName) || "participante";
   const rawTitle = typeof formTitle === "string" ? formTitle.trim() : "";
   const truncatedTitle =
     rawTitle.length > MAX_FORM_TITLE_IN_MESSAGE
@@ -281,7 +281,10 @@ export function pickEligible(
  */
 export function chunk<T>(items: readonly T[], size = 50): T[][] {
   if (!Array.isArray(items) || items.length === 0) return [];
-  const step = size > 0 ? Math.floor(size) : 50;
+  const step =
+    typeof size === "number" && Number.isFinite(size) && size >= 1
+      ? Math.max(1, Math.floor(size))
+      : 50;
   const result: T[][] = [];
   for (let i = 0; i < items.length; i += step) {
     result.push(items.slice(i, i + step));
@@ -290,14 +293,15 @@ export function chunk<T>(items: readonly T[], size = 50): T[][] {
 }
 
 /**
- * Remove caracteres de controle ASCII (convertendo quebras de linha e tabs em espaço)
+ * Remove caracteres de controle ASCII (convertendo quebras de linha e tabs em espaço),
+ * separadores Unicode (U+2028, U+2029) e controles bidi (U+200E, U+200F, U+202A..U+202E, U+2066..U+2069),
  * e limita o assunto de e-mail a 120 caracteres (SEC-42).
  */
 export function sanitizeSubject(text: string): string {
   if (typeof text !== "string") return "";
   return text
     .replace(/[\r\n\t]+/g, " ")
-    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .replace(/[\u0000-\u001F\u007F\u200E\u200F\u2028-\u202E\u2066-\u2069]/g, "")
     .trim()
     .slice(0, MAX_SUBJECT_LENGTH);
 }
