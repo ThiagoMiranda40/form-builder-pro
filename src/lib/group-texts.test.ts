@@ -3,6 +3,10 @@ import {
   DEFAULT_GROUP_INVITE_TEXT,
   GROUP_PRIVACY_NOTICE,
   GROUP_TEXT_ERRORS,
+  WHATSAPP_BUTTON_BG,
+  WHATSAPP_BUTTON_FG,
+  WHATSAPP_BUTTON_BG_HOVER,
+  calculateContrastRatio,
   resolveGroupInviteText,
   resolveGroupNotice,
   sanitizeGroupText,
@@ -136,6 +140,21 @@ describe("group-texts (T-56 / RF-26 / SEC-49)", () => {
       expect(GROUP_PRIVACY_NOTICE).toBe(
         "Quem entra no grupo vê o número de WhatsApp dos outros participantes.",
       );
+    });
+
+    it("constantes do botão do WhatsApp e contraste acessível (T-57 / WCAG AA)", () => {
+      expect(WHATSAPP_BUTTON_BG).toBe("#25D366");
+      expect(WHATSAPP_BUTTON_FG).toBe("#073B2A");
+      expect(WHATSAPP_BUTTON_BG_HOVER).toBe("#20BD5A");
+
+      const ratio = calculateContrastRatio(WHATSAPP_BUTTON_FG, WHATSAPP_BUTTON_BG);
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+      // Razão esperada ~6.3:1
+      expect(ratio).toBeGreaterThan(6.0);
+
+      // Prova que branco (#FFFFFF) sobre #25D366 falha no critério AA (< 4.5)
+      const whiteRatio = calculateContrastRatio("#FFFFFF", WHATSAPP_BUTTON_BG);
+      expect(whiteRatio).toBeLessThan(4.5);
     });
   });
 });

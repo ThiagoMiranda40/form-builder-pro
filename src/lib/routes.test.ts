@@ -484,6 +484,35 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
     // Garante que o select do carregamento inicial do formulário no editor inclui whatsapp_group_link
     expect(editorContent).toMatch(/\.select\([\s\S]*?whatsapp_group_link[\s\S]*?\)/);
   });
+
+  it("src/routes/$slug.tsx usa constantes WHATSAPP_BUTTON_* e o botão do grupo não usa accent nem readableTextColor (T-57)", () => {
+    const slugContent = fs.readFileSync(slugRoutePath, "utf-8");
+
+    expect(slugContent).toContain("WHATSAPP_BUTTON_BG");
+    expect(slugContent).toContain("WHATSAPP_BUTTON_FG");
+
+    // Encontra o elemento <a> do grupo do WhatsApp
+    const groupAnchorMatch = slugContent.match(
+      /<a[\s\S]*?done\.groupLink[\s\S]*?Entrar no grupo do WhatsApp[\s\S]*?<\/a>/,
+    );
+    expect(groupAnchorMatch).not.toBeNull();
+    const anchorCode = groupAnchorMatch ? groupAnchorMatch[0] : "";
+
+    expect(anchorCode).not.toContain("accent");
+    expect(anchorCode).not.toContain("readableTextColor");
+  });
+
+  it("public/whatsapp-icon.png existe e possui assinatura de arquivo PNG (T-57)", () => {
+    const pngPath = path.join(rootDir, "public/whatsapp-icon.png");
+    expect(fs.existsSync(pngPath)).toBe(true);
+
+    const buffer = fs.readFileSync(pngPath);
+    // Assinatura PNG: 0x89, 0x50, 0x4E, 0x47
+    expect(buffer[0]).toBe(0x89);
+    expect(buffer[1]).toBe(0x50);
+    expect(buffer[2]).toBe(0x4E);
+    expect(buffer[3]).toBe(0x47);
+  });
 });
 
 

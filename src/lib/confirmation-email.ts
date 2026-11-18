@@ -2,7 +2,12 @@ import { isValidEmail } from "./validators";
 import { hideDocument } from "./inscricao";
 import { formatAnswer } from "./answer-format";
 import { hasValidGroupLink, validateGroupLink } from "./group-link";
-import { resolveGroupInviteText, GROUP_PRIVACY_NOTICE } from "./group-texts";
+import {
+  resolveGroupInviteText,
+  GROUP_PRIVACY_NOTICE,
+  WHATSAPP_BUTTON_BG,
+  WHATSAPP_BUTTON_FG,
+} from "./group-texts";
 
 /**
  * Escapa caracteres especiais HTML para prevenir XSS em e-mails (SEC-09).
@@ -58,6 +63,18 @@ export interface BuiltEmail {
   subject: string;
   html: string;
   text: string;
+}
+
+function resolveIconUrl(editUrl?: string | null): string {
+  if (editUrl) {
+    try {
+      const parsed = new URL(editUrl);
+      return `${parsed.origin}/whatsapp-icon.png`;
+    } catch {
+      // continua para a origem padrão
+    }
+  }
+  return "https://inscricoes.corretime.com.br/whatsapp-icon.png";
 }
 
 /**
@@ -153,13 +170,15 @@ export function buildConfirmationEmail(params: BuildConfirmationEmailParams): Bu
       const safeInviteText = escapeHtml(inviteText);
       const safePrivacyNotice = escapeHtml(GROUP_PRIVACY_NOTICE);
 
+      const iconUrl = resolveIconUrl(params.editUrl);
+
       groupBlockHtml = `
 
     <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 20px; margin-top: 24px; text-align: left;">
       <h2 style="font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: #065f46;">Grupo de avisos do evento</h2>
       <p style="font-size: 14px; margin: 0 0 16px 0; color: #047857; line-height: 1.5;">${safeInviteText}</p>
       <div style="margin-bottom: 12px;">
-        <a href="${safeGroupLink}" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 6px;">Entrar no grupo do WhatsApp</a>
+        <a href="${safeGroupLink}" style="display: inline-block; background-color: ${WHATSAPP_BUTTON_BG}; color: ${WHATSAPP_BUTTON_FG}; text-decoration: none; font-size: 14px; font-weight: 700; padding: 10px 18px; border-radius: 6px; line-height: 20px;"><img src="${iconUrl}" width="20" height="20" alt="" style="vertical-align: middle; border: 0; margin-right: 8px;"><span style="vertical-align: middle; color: ${WHATSAPP_BUTTON_FG};">Entrar no grupo do WhatsApp</span></a>
       </div>
       <p style="font-size: 12px; margin: 0 0 8px 0; color: #065f46; word-break: break-all;">Se o botão não abrir, copie este endereço: ${safeGroupLink}</p>
       <p style="font-size: 11px; margin: 0; color: #047857;">${safePrivacyNotice}</p>

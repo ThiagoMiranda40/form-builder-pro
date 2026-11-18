@@ -5,7 +5,14 @@ import { useState, useRef, useEffect } from "react";
 import { getPublicForm, submitResponse } from "@/lib/public-forms.functions";
 import { HONEYPOT_ERROR_MESSAGE, resolveSubmitOutcome } from "@/lib/submit-response";
 import { hasValidGroupLink } from "@/lib/group-link";
-import { DEFAULT_GROUP_INVITE_TEXT, GROUP_PRIVACY_NOTICE } from "@/lib/group-texts";
+import {
+  DEFAULT_GROUP_INVITE_TEXT,
+  GROUP_PRIVACY_NOTICE,
+  WHATSAPP_BUTTON_BG,
+  WHATSAPP_BUTTON_FG,
+  WHATSAPP_BUTTON_BG_HOVER,
+} from "@/lib/group-texts";
+import { WhatsAppIcon } from "@/components/whatsapp-icon";
 import { applyMask, validateAnswer, type FieldType } from "@/lib/validators";
 import { readableTextColor } from "@/lib/theme";
 import { findEmailQuestion } from "@/lib/inscricao";
@@ -103,6 +110,7 @@ function PublicForm() {
   const [done, setDone] = useState<DoneState | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const [groupBtnHover, setGroupBtnHover] = useState(false);
 
   const successTitleRef = useRef<HTMLHeadingElement>(null);
   const isSubmittingRef = useRef(false);
@@ -261,10 +269,16 @@ function PublicForm() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Entrar no grupo do WhatsApp (abre em nova aba)"
-                  className="block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: accent, color: readableTextColor(accent) }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#073B2A]"
+                  style={{
+                    backgroundColor: groupBtnHover ? WHATSAPP_BUTTON_BG_HOVER : WHATSAPP_BUTTON_BG,
+                    color: WHATSAPP_BUTTON_FG,
+                  }}
+                  onMouseEnter={() => setGroupBtnHover(true)}
+                  onMouseLeave={() => setGroupBtnHover(false)}
                 >
-                  Entrar no grupo do WhatsApp
+                  <WhatsAppIcon className="h-5 w-5 shrink-0" aria-hidden="true" focusable="false" />
+                  <span>Entrar no grupo do WhatsApp</span>
                 </a>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">

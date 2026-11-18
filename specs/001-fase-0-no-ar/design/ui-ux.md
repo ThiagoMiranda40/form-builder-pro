@@ -1367,13 +1367,19 @@ Tela de sucesso (abaixo do bloco verde do e-mail e acima do link de edição):
  | padrão: "Entre no grupo para receber   |
  | as informações da corrida. Entrar é    |
  | opcional."}                            |
- | [ Entrar no grupo do WhatsApp  ↗ ]     |   <- cor do tema
+ | [ (o) Entrar no grupo do WhatsApp  ↗ ] |   <- verde WhatsApp #25D366, texto #073B2A (T-57)
  | Quem entra no grupo vê o número de     |
  | WhatsApp dos outros participantes.     |
  +----------------------------------------+
  | Link para editar sua inscrição: ...    |
 ```
-E-mail (texto e HTML do `buildConfirmationEmail`): bloco com o mesmo título, a frase, um botão (link) e, logo abaixo, o endereço em texto puro como alternativa, para clientes de e-mail que não mostram botões.
+E-mail (texto e HTML do `buildConfirmationEmail`): bloco com o mesmo título, a frase, um botão (link) verde WhatsApp (`#25D366`) com texto e ícone escuro (`#073B2A`), incluindo imagem `whatsapp-icon.png` (20×20 px, `alt=""`), e, logo abaixo, o endereço em texto puro como alternativa, para clientes de e-mail que não mostram botões.
+
+#### 4.2.1 Identidade Visual do Botão do Grupo (T-57)
+- **Cores fixas:** fundo `#25D366` (verde WhatsApp), texto e ícone `#073B2A` (verde escuro). Razão de contraste ~6,3:1 (atende com folga WCAG AA ≥ 4,5:1; texto branco sobre `#25D366` dá apenas ~2:1 e é expressamente proibido).
+- **Independência de tema:** o botão do WhatsApp sempre adota esta paleta e nunca herda a cor `accent` do formulário.
+- **Interação:** hover escurece para `#20BD5A`; foco visível por teclado com anel de 2px e offset `#073B2A`.
+- **Ícone:** logotipo do WhatsApp à esquerda do texto, 20×20 px, gap de 8 px, alinhado verticalmente ao centro. Decorativo (`aria-hidden="true"`, `focusable="false"` na web; `alt=""` no e-mail). Se a imagem for bloqueada no cliente de e-mail, o botão permanece 100% legível com contraste alto.
 
 #### 4.3 Todos os estados
 | Estado | Comportamento |

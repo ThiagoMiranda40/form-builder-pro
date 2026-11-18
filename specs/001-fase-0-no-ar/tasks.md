@@ -853,6 +853,7 @@ Critérios de Aceite:
 | 6 | T-52 Painel do administrador (e-mail + botão por inscrito; o botão do `.vcf` passa a viver no painel) | T-48, T-50 | |
 | 7 | T-51 Confirmação e aviso | T-46, T-50 | **Marco 1: administrador usa** (após prova da T-54 parte A) |
 | 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
+| 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1001,6 +1002,22 @@ Critérios de Aceite:
 - **O que isso prova:** o administrador ajusta o tom da mensagem para cada corrida sem risco de injeção de links maliciosos e sem expor dados do grupo antes da inscrição.
 - **🧑 Manual:** aplicar migração `20261113150000_textos_grupo_whatsapp.sql` no Supabase e executar `verificacao-banco-m56.sql` com "Run without RLS".
 - **Critérios de aceite:** QA-46-30 a QA-46-33.
+
+---
+
+## T-57 — Botão do grupo com identidade do WhatsApp 🧑
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `design/ui-ux.md Tela J; qa-plan.md QA-46-34, MAN-46-12`.
+- **Objetivo:** aplicar a identidade visual do WhatsApp (fundo verde `#25D366`, texto/ícone escuro `#073B2A`, ícone oficial do WhatsApp) ao botão de entrada no grupo na tela de confirmação e no e-mail, mantendo contraste WCAG AA (≥ 4,5:1) independentemente do tema do formulário.
+- **Especificações complementares:**
+  - Cores fixas em `src/lib/group-texts.ts`: `WHATSAPP_BUTTON_BG = "#25D366"`, `WHATSAPP_BUTTON_FG = "#073B2A"`, `WHATSAPP_BUTTON_BG_HOVER = "#20BD5A"`.
+  - Página (`$slug.tsx`): botão com largura total, `rounded-lg`, foco com anel visível de 2px e offset; ícone inline `<WhatsAppIcon>` (20×20 px, gap 8 px) via `src/components/whatsapp-icon.tsx`; texto inalterado `Entrar no grupo do WhatsApp`.
+  - E-mail (`confirmation-email.ts`): botão com estilo compatível com clientes de e-mail, `#25D366`, `#073B2A`, e imagem `<img src="{iconUrl}" width="20" height="20" alt="" style="vertical-align:middle; border:0; margin-right:8px;">` originada de `public/whatsapp-icon.png`.
+- **TDD:** testes em `src/lib/confirmation-email.test.ts`, teste de contraste puro em `src/lib/group-texts.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/lib/group-texts.ts`, `src/lib/group-texts.test.ts`, `src/components/whatsapp-icon.tsx`, `public/whatsapp-icon.png`, `src/routes/$slug.tsx`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+- **Critérios de aceite:** QA-46-34, MAN-46-12.
 
 ---
 

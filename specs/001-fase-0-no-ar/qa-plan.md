@@ -687,6 +687,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-31** | Editor: campos de texto do grupo (T-56) — **Implementado (`editor-dirty.test.ts`, `clone-form.test.ts`)** | U/M | Dois textareas de 2 linhas na aba Limites e Termos; contador `n/200`; validação impede salvamento com texto inválido; duplicação preserva os textos |
 | **QA-46-32** | Aviso no formulário público só com link (T-56 / RF-26 / SEC-46) — **Implementado (`public-forms.functions.test.ts`, `routes.test.ts`)** | U/I | `form.groupNotice` só é devolvido quando há link válido no WhatsApp; sem link válido ou com aviso vazio, retorna `null`; link real nunca vaza no payload público |
 | **QA-46-33** | Texto de convite na confirmação e no e-mail (T-56 / RF-26) — **Implementado (`submit-response.test.ts`, `confirmation-email.test.ts`)** | U/I | Texto personalizado exibido na tela de confirmação e no e-mail; se vazio ou inválido, cai no padrão; aviso de privacidade `GROUP_PRIVACY_NOTICE` permanece inalterado |
+| **QA-46-34** | Botão do grupo com identidade do WhatsApp (T-57) — **Implementado (`confirmation-email.test.ts`, `group-texts.test.ts`, `routes.test.ts`)** | U/M | Botão sempre verde WhatsApp (`#25D366`), texto e ícone escuros (`#073B2A`) com razão de contraste ~6,3:1 (≥ 4,5:1 WCAG AA), independente do tema do formulário; foco visível e hover `#20BD5A`; ícone oficial do WhatsApp na página (SVG) e no e-mail (PNG 20×20 px, `alt=""`); se imagem for bloqueada no e-mail, texto permanece perfeitamente legível |
 
 ### 15.3 Fronteiras e valores limite
 - Inscritos: 0, 1, 50, 51 (duas fatias), 57, 100, 101 (orçamento).
@@ -711,6 +712,7 @@ Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails s
 | MAN-46-09 | `Proteger com código`, desbloquear e enviar pelo cliente | Painel completo; autoria `cliente via link` |
 | MAN-46-10 | Conferir Resend (Usage) e Cloudflare (logs) | Contagem coerente com os envios; sem erro de CPU ou de subrequests |
 | MAN-46-11 | Personalização de textos do grupo (T-56) | Editor salva textos personalizados com contador; formulário público exibe aviso somente quando há link; confirmação e e-mail exibem texto personalizado ou padrão; aviso de privacidade segue visível |
+| MAN-46-12 | Botão do grupo na confirmação e no e-mail (T-57) | Botão da confirmação verde WhatsApp (#25D366) com ícone e texto escuro (#073B2A) mesmo em formulário com tema diferente; hover e foco visíveis; e-mail no Gmail web/celular exibe botão verde com ícone e texto legível mesmo com imagens bloqueadas |
 
 ### 15.5 Pronto para produção — M-46 (versão para quem não lê código)
 Está pronto quando: (1) ninguém sem o código do cliente consegue mandar convite (QA-46-14, MAN-46-08); (2) cada pessoa recebe só o próprio convite (QA-46-09, MAN-46-04); (3) dois toques não duplicam (QA-46-07, MAN-46-05); (4) o link do grupo só aparece depois da inscrição (QA-46-20, MAN-46-02); (5) o limite do Resend foi conferido na sua conta (MAN-46-10); (6) o texto jurídico do e-mail foi decidido; (7) o roteiro MAN-46-01 a 10 foi aprovado na prévia.

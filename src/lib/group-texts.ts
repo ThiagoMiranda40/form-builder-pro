@@ -6,6 +6,37 @@ export const DEFAULT_GROUP_INVITE_TEXT =
 export const GROUP_PRIVACY_NOTICE =
   "Quem entra no grupo vê o número de WhatsApp dos outros participantes.";
 
+export const WHATSAPP_BUTTON_BG = "#25D366";
+export const WHATSAPP_BUTTON_FG = "#073B2A";
+export const WHATSAPP_BUTTON_BG_HOVER = "#20BD5A";
+
+/**
+ * Calcula a luminância relativa de uma cor hexadecimal segundo a recomendação WCAG 2.1.
+ */
+function sRgbLuminance(hex: string): number {
+  const clean = hex.replace("#", "");
+  const num = parseInt(clean, 16);
+  const r = ((num >> 16) & 255) / 255;
+  const g = ((num >> 8) & 255) / 255;
+  const b = (num & 255) / 255;
+
+  const toLinear = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/**
+ * Calcula a razão de contraste entre duas cores hexadecimais segundo WCAG 2.1 (valor entre 1 e 21).
+ */
+export function calculateContrastRatio(hex1: string, hex2: string): number {
+  const l1 = sRgbLuminance(hex1);
+  const l2 = sRgbLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 export const MAX_GROUP_TEXT_LENGTH = 200;
 
 export const GROUP_TEXT_ERRORS = {

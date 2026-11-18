@@ -195,6 +195,15 @@ describe("confirmation-email (T-08)", () => {
         expect(email.html).toContain(`Se o botão não abrir, copie este endereço: ${link}`);
         expect(email.html).toContain("Quem entra no grupo vê o número de WhatsApp dos outros participantes.");
 
+        // Identidade do WhatsApp (T-57): verde WhatsApp, texto escuro e ícone PNG
+        expect(email.html).toContain("#25D366");
+        expect(email.html).toContain("#073B2A");
+        expect(email.html).toContain("whatsapp-icon.png");
+        expect(email.html).toContain('width="20"');
+        expect(email.html).toContain('height="20"');
+        expect(email.html).toContain('alt=""');
+        expect(email.html).not.toContain("#059669");
+
         // Ordem: o bloco do grupo deve vir ANTES de "Para corrigir seus dados"
         const groupBlockIdxHtml = email.html.indexOf("Grupo de avisos do evento");
         const editBlockIdxHtml = email.html.indexOf("Para corrigir seus dados");
@@ -226,6 +235,8 @@ describe("confirmation-email (T-08)", () => {
 
         expect(email.html).not.toContain("Grupo de avisos do evento");
         expect(email.html).not.toContain("Entrar no grupo do WhatsApp");
+        expect(email.html).not.toContain("whatsapp-icon.png");
+        expect(email.html).not.toContain("#25D366");
         expect(email.text).not.toContain("Grupo de avisos do evento");
         expect(email.text).not.toContain(link);
       });
