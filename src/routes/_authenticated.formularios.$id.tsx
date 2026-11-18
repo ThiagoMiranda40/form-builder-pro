@@ -1063,8 +1063,9 @@ function Editor() {
                   <option value="serif">Serifada (clássica)</option>
                 </select>
               </Field>
-              <Field label="URL do logotipo">
+              <Field label="URL do logotipo" htmlFor="form-theme-logo-url">
                 <input
+                  id="form-theme-logo-url"
                   value={form.theme.logo_url ?? ""}
                   onChange={(e) =>
                     setForm({ ...form, theme: { ...form.theme, logo_url: e.target.value || null } })
@@ -1072,7 +1073,14 @@ function Editor() {
                   maxLength={500}
                   className={inputClass}
                   placeholder="https://..."
+                  aria-describedby="form-theme-logo-url-hint"
                 />
+                <p
+                  id="form-theme-logo-url-hint"
+                  className="mt-1.5 text-xs text-muted-foreground"
+                >
+                  Tamanho recomendado: altura de 96 px e largura de até 480 px (aparece com 48 px de altura, nítida em telas de alta resolução). Use PNG, SVG ou WebP com fundo transparente, de até 200 KB. Cole o endereço direto da imagem, começando com https://.
+                </p>
               </Field>
               <Field label="Mensagem de sucesso">
                 <textarea

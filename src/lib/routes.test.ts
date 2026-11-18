@@ -515,4 +515,35 @@ describe("Link do grupo fora do carregamento público (T-50 / SEC-46 / QA-46-20)
   });
 });
 
+describe("Instrução de tamanho do logotipo no editor (T-58)", () => {
+  const rootDir = process.cwd();
+  const editorRoutePath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+
+  it("o arquivo do editor contém o texto de apoio exato e o aria-describedby ligado ao id do parágrafo", () => {
+    const editorContent = fs.readFileSync(editorRoutePath, "utf-8");
+    const exactHint =
+      "Tamanho recomendado: altura de 96 px e largura de até 480 px (aparece com 48 px de altura, nítida em telas de alta resolução). Use PNG, SVG ou WebP com fundo transparente, de até 200 KB. Cole o endereço direto da imagem, começando com https://.";
+
+    expect(editorContent).toContain(exactHint);
+
+    // O input do logotipo possui aria-describedby apontando para o id do parágrafo de apoio
+    const logoInputMatch = editorContent.match(
+      /<input[^>]*value=\{form\.theme\.logo_url[\s\S]*?\/>/,
+    );
+    expect(logoInputMatch).not.toBeNull();
+    const logoInputCode = logoInputMatch ? logoInputMatch[0] : "";
+
+    const describedByMatch = logoInputCode.match(/aria-describedby=["']([^"']+)["']/);
+    expect(describedByMatch).not.toBeNull();
+    const hintId = describedByMatch ? describedByMatch[1] : "";
+
+    // O parágrafo com o id correspondente existe e contém o texto de apoio
+    const pTagRegex = new RegExp(`<p[^>]*id=["']${hintId}["'][^>]*>[\\s\\S]*?<\\/p>`);
+    const pTagMatch = editorContent.match(pTagRegex);
+    expect(pTagMatch).not.toBeNull();
+    expect(pTagMatch ? pTagMatch[0] : "").toContain(exactHint);
+  });
+});
+
+
 

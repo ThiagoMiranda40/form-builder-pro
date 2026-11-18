@@ -854,6 +854,7 @@ Critérios de Aceite:
 | 7 | T-51 Confirmação e aviso | T-46, T-50 | **Marco 1: administrador usa** (após prova da T-54 parte A) |
 | 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
 | 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída no código; prova visual pendente do dono (🧑) |
+| 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1021,6 +1022,21 @@ Critérios de Aceite:
 
 ---
 
+## T-58 — Instrução de tamanho do logotipo no editor
+
+- **Estado:** concluída (18/11/2026).
+- **Ler:** `design/ui-ux.md Tela A; src/routes/_authenticated.formularios.$id.tsx`.
+- **Objetivo:** orientar o administrador sobre o tamanho e dimensões recomendados para o logotipo na aba "Aparência" do editor, garantindo exibição nítida no formulário público e na tela de edição.
+- **Especificações complementares:**
+  - Texto exato de apoio sob "URL do logotipo": `Tamanho recomendado: altura de 96 px e largura de até 480 px (aparece com 48 px de altura, nítida em telas de alta resolução). Use PNG, SVG ou WebP com fundo transparente, de até 200 KB. Cole o endereço direto da imagem, começando com https://.`
+  - Acessibilidade: `aria-describedby="form-theme-logo-url-hint"` no `<input id="form-theme-logo-url">` apontando para `<p id="form-theme-logo-url-hint">`.
+  - Fora de escopo: upload de arquivo e pré-visualização (registrados como ideia futura).
+- **TDD:** teste estático em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
 ## T-52 — Painel "Convidar para o grupo" no administrador (M-46)
 
 - **Estado:** a fazer. Depende das T-48 e T-50. **Ordem 6.** O envio por e-mail vem primeiro na tela; o botão por inscrito é o complemento.
@@ -1091,5 +1107,11 @@ Critérios de Aceite:
 2. Executar **uma task por vez**, rodando a verificação antes de seguir. Não misturar tasks.
 3. **Padrão Writer/Reviewer** nas tasks sensíveis (T-04, T-08, T-09, T-11): uma segunda sessão, em contexto limpo, revisa só o diff contra `plan.md` e `spec.md`, reportando apenas lacunas de corretude ou de requisito (não estilo).
 4. Ao final, rodar os cenários-chave do `spec.md`.
+
+---
+
+## Ideias futuras
+- Upload do logotipo e pré-visualização (substituindo a necessidade de colar URL externa).
+
 
 
