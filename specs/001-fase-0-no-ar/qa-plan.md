@@ -707,12 +707,12 @@ Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails s
 | MAN-46-04 | Administrador: `Enviar convite por e-mail` com confirmação | Resumo com quantidade; progresso; 1 e-mail por caixa; sem dados de outros |
 | MAN-46-05 | Tocar duas vezes rápido | Só um envio; segundo toque recusado com a mensagem de intervalo |
 | MAN-46-06 | `Convidar` por WhatsApp (celular) | Abre a conversa certa com mensagem pronta; linha vira `Convidado em` |
-| MAN-46-07 | `Baixar contatos (.vcf)` e importar em Android e iPhone | Contatos importados com +55 |
+| MAN-46-07 | `Baixar contatos (.vcf)` e importar em Android e iPhone | Contatos importados com +55 — **Provado pelo dono em 18/11/2026** (arquivo baixado e testado) |
 | MAN-46-08 | Link do cliente legado | Painel só leitura com o texto da P-08 |
 | MAN-46-09 | `Proteger com código`, desbloquear e enviar pelo cliente | Painel completo; autoria `cliente via link` |
 | MAN-46-10 | Conferir Resend (Usage) e Cloudflare (logs) | Contagem coerente com os envios; sem erro de CPU ou de subrequests |
 | MAN-46-11 | Personalização de textos do grupo (T-56) | Editor salva textos personalizados com contador; formulário público exibe aviso somente quando há link; confirmação e e-mail exibem texto personalizado ou padrão; aviso de privacidade segue visível |
-| MAN-46-12 | Botão do grupo na confirmação e no e-mail (T-57) | Botão da confirmação verde WhatsApp (#25D366) com ícone e texto escuro (#073B2A) mesmo em formulário com tema diferente; hover e foco visíveis; e-mail no Gmail web/celular exibe botão verde com ícone e texto legível mesmo com imagens bloqueadas |
+| MAN-46-12 | Botão do grupo na confirmação e no e-mail (T-57) | Botão da confirmação verde WhatsApp (#25D366) com ícone e texto escuro (#073B2A) mesmo em formulário com tema diferente; hover e foco visíveis; e-mail no Gmail web/celular exibe botão verde com ícone e texto legível mesmo com imagens bloqueadas — **Provado pelo dono em produção em 18/11/2026** |
 
 ### 15.5 Pronto para produção — M-46 (versão para quem não lê código)
 Está pronto quando: (1) ninguém sem o código do cliente consegue mandar convite (QA-46-14, MAN-46-08); (2) cada pessoa recebe só o próprio convite (QA-46-09, MAN-46-04); (3) dois toques não duplicam (QA-46-07, MAN-46-05); (4) o link do grupo só aparece depois da inscrição (QA-46-20, MAN-46-02); (5) o limite do Resend foi conferido na sua conta (MAN-46-10); (6) o texto jurídico do e-mail foi decidido; (7) o roteiro MAN-46-01 a 10 foi aprovado na prévia.

@@ -840,20 +840,22 @@ Critérios de Aceite:
 
 > **M-46, prioridade máxima do dono (12/11/2026):** passa à frente de T-28, T-29, T-30 e T-33. Comandos de verificação de toda tarefa: `bunx tsc --noEmit` · `bun run test` · `bun run build` (equivalentes do `AGENTS.md` nesta máquina). Lint não é critério. Toda tarefa: `git diff --stat -- package.json bun.lock` vazio (ARQ-01, QA-46-25). 🧑 = passo manual do dono. ⚖ = revisão obrigatória por segunda sessão (T-45, T-48, T-49). Documentos da feature: `m46/prd-m46-grupo-whatsapp.md`, `docs/arquitetura/architecture.md`, `docs/arquitetura/adr/`, `qa-plan.md` seção 15, `seguranca.md` seção 9 (SEC-37 a SEC-48), `design/ui-ux.md` seção 12 (Telas H a K).
 
+> **Registro da promoção (18/11/2026):** main promovida por fast-forward para b084ff1 (T-45, T-46, T-50, T-51, T-56 e T-57 em produção; T-55 já estava desde antes). A T-58 está só na branch de trabalho, aguardando a promoção.
+
 **Ordem de execução (decisão do dono, 12/11/2026: arquivo de contatos primeiro por ser o ganho mais rápido, depois administrador, e-mail antes do botão individual, cliente por último).** Os números das tarefas não seguem a ordem; siga esta tabela.
 
 | Ordem | Tarefa | Depende de | Entrega |
 |---|---|---|---|
-| 0 | T-55 Baixar contatos (.vcf) no painel de respostas do administrador | — (independente: sem banco, sem servidor novo) | **Marco 0: ganho imediato** (prova T-54 parte C) |
+| 0 | T-55 Baixar contatos (.vcf) no painel de respostas do administrador | — (independente: sem banco, sem servidor novo) | **Marco 0: ganho imediato** — concluída (arquivo baixado e testado pelo dono em 18/11/2026) |
 | 1 | T-45 🧑 ⚖ Banco | — | |
-| 2 | T-46 Núcleo puro | — (pode andar junto com a T-45: arquivos diferentes) | |
+| 2 | T-46 Núcleo puro | — (pode andar junto com a T-45: arquivos diferentes) | concluída (12/11/2026) |
 | 3 | T-47 E-mail em lote | T-46 | |
 | 4 | T-48 ⚖ Servidor do administrador | T-45 aplicada, T-46, T-47 | |
 | 5 | T-50 Campo no editor | T-46 | |
 | 6 | T-52 Painel do administrador (e-mail + botão por inscrito; o botão do `.vcf` passa a viver no painel) | T-48, T-50 | |
 | 7 | T-51 Confirmação e aviso | T-46, T-50 | **Marco 1: administrador usa** (após prova da T-54 parte A) |
 | 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
-| 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída no código; prova visual pendente do dono (🧑) |
+| 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída (provada pelo dono em produção em 18/11/2026) |
 | 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
@@ -878,7 +880,7 @@ Critérios de Aceite:
 
 ## T-46 — Núcleo puro: link do grupo, mensagens variadas, wa.me, elegíveis (M-46)
 
-- **Estado:** concluída.
+- **Estado:** concluída em 12/11/2026.
 - **Ler:** `spec.md RF-17, RF-20; architecture.md 4.1 ARQ-04, ARQ-07; ADR-004; seguranca.md SEC-38, SEC-48; qa-plan.md QA-46-01, QA-46-17, QA-46-29`.
 - **Objetivo:** concentrar em funções puras tudo o que não toca rede, banco ou cookie.
 - **Especificações complementares:**
@@ -929,6 +931,7 @@ Critérios de Aceite:
   - `markInvitedAdmin({ formId, responseId })`: registra entrega `whatsapp`/`opened`, idempotente; `responseId` precisa pertencer ao formulário.
   - Núcleo de orquestração em funções internas **sem** `getRequest`/cookie, recebendo `formId` já autorizado, para a T-49 reaproveitar.
   - Logs: só `formId`, `batchId` e código de erro.
+  - Antes de enviar um lote, considerar que o convite de 13/11/2026 foi enviado MANUALMENTE pelo Resend (Broadcast) a 55 e-mails únicos de 57 inscritos e NÃO está registrado em invite_deliveries. O envio em lote do sistema não deve convidar de novo quem já recebeu: prever uma forma de marcar esses inscritos como já convidados (por exemplo, importar os 55 e-mails como entregas históricas) ou um aviso explícito antes do envio. Decidir com o dono na hora de implementar.
 - **TDD:** `src/lib/invite.functions.test.ts` com banco e `fetch` simulados: 57 inscritos → 1 lote, 2 fatias (50 + 7) e no máximo 20 chamadas externas por requisição; duas chamadas de `start` simultâneas (a função SQL simulada devolve `too_soon` na segunda); retomada depois de derrubar na fatia 1; `batchId` de outro formulário recusado; usuário que não é dono recusado.
 - **Arquivos:** `src/lib/invite.functions.ts`, `src/lib/invite.functions.test.ts`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/seguranca.md`.
 - **Verificação:** comandos padrão; prova do teste de 57 inscritos e do de retomada colada no relatório; `grep` de log mostra que nenhum `console`/`logError` recebe e-mail, telefone, token ou link.
@@ -997,6 +1000,7 @@ Critérios de Aceite:
   - Confirmação e e-mail: `handleSubmission` e `buildConfirmationEmail` recebem `groupInviteText` sanitizado (ou padrão); aviso de privacidade fixo `GROUP_PRIVACY_NOTICE`.
   - Duplicação (`cloneForm`): copia os dois textos personalizáveis, mantendo link e campos de auditoria limpos.
   - Limpeza da T-51: remover chave computada `linkKey` e `any` em `public-forms.functions.ts`.
+  - Observação (SEC-49): a sanitização preserva os caracteres de junção de emoji (U+200C/U+200D), o que permitiria esconder um caractere dentro de "http". Risco baixo hoje (só o administrador edita e o texto não vira link clicável). Se a T-53 permitir ao cliente editar esses textos, rever esta regra no servidor do cliente.
 - **TDD:** novos testes em `src/lib/group-texts.test.ts` e extensões em `confirmation-email.test.ts`, `submit-response.test.ts`, `public-forms.functions.test.ts`, `clone-form.test.ts`, `editor-dirty.test.ts` e `routes.test.ts`.
 - **Arquivos:** `supabase/migrations/20261113150000_textos_grupo_whatsapp.sql`, `specs/001-fase-0-no-ar/verificacao-banco-m56.sql`, `src/integrations/supabase/types.ts`, `src/lib/group-texts.ts`, `src/lib/group-texts.test.ts`, `src/lib/group-link.ts`, `src/lib/confirmation-email.ts`, `src/lib/confirmation-email.test.ts`, `src/lib/submit-response.ts`, `src/lib/submit-response.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/$slug.tsx`, `src/lib/editor-dirty.ts`, `src/lib/editor-dirty.test.ts`, `src/lib/clone-form.ts`, `src/lib/clone-form.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/qa-plan.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/data-model.md`.
 - **Verificação:** comandos padrão verdes; `grep` confirma ausência de `linkKey`, `any` da limpeza e ausência de `whatsapp_group_link` nas rotas públicas.
@@ -1008,7 +1012,7 @@ Critérios de Aceite:
 
 ## T-57 — Botão do grupo com identidade do WhatsApp 🧑
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono em produção em 18/11/2026).
 - **Ler:** `design/ui-ux.md Tela J; qa-plan.md QA-46-34, MAN-46-12`.
 - **Objetivo:** aplicar a identidade visual do WhatsApp (fundo verde `#25D366`, texto/ícone escuro `#073B2A`, ícone oficial do WhatsApp) ao botão de entrada no grupo na tela de confirmação e no e-mail, mantendo contraste WCAG AA (≥ 4,5:1) independentemente do tema do formulário.
 - **Especificações complementares:**
@@ -1043,6 +1047,7 @@ Critérios de Aceite:
 - **Ler:** `spec.md RF-19 a RF-21; design/ui-ux.md Tela I; seguranca.md SEC-41, SEC-48; qa-plan.md QA-46-17, QA-46-19, QA-46-23, QA-46-28, QA-46-29`.
 - **Objetivo:** o administrador envia o convite por e-mail, convida por WhatsApp quem faltar e vê quem foi convidado, pela página de respostas. O `.vcf` já existe desde a T-55.
 - **Especificações complementares:** componente único `GroupInvitePanel` (dados e ações por propriedades, sem saber se é administrador ou cliente); estados e textos literais da Tela I (sem link, sem elegíveis, orçamento `Hoje cabem {n} envios. Os outros {m} ficam para continuar amanhã.`, interrompido `Envio interrompido: {p} pendentes.` com `Continuar envio`, legado); confirmação com `AlertDialog` (nunca `confirm()`); progresso por fatia; botão `Convidar` abre `wa.me` em nova aba (`rel="noopener noreferrer"`) e chama `markInvited` sem bloquear a abertura; mensagem editável só em estado local; mensagem do botão via `pickInviteMessage` (variações da T-46); o botão `Baixar contatos (.vcf)` criado na T-55 passa a viver dentro do painel (mover, sem alterar `buildVcf`); mobile primeiro (360 px), alvos de toque de 44 px, foco visível.
+  - Antes de enviar um lote, considerar que o convite de 13/11/2026 foi enviado MANUALMENTE pelo Resend (Broadcast) a 55 e-mails únicos de 57 inscritos e NÃO está registrado em invite_deliveries. O envio em lote do sistema não deve convidar de novo quem já recebeu: prever uma forma de marcar esses inscritos como já convidados (por exemplo, importar os 55 e-mails como entregas históricas) ou um aviso explícito antes do envio. Decidir com o dono na hora de implementar.
 - **TDD:** sem teste de interface (jsdom está fora do projeto): extrair a lógica de estado do painel para funções puras (`derivePanelState`) em `src/lib/invite.ts` com testes, e conferir o painel por roteiro manual na T-54. Estender `src/lib/invite.test.ts`.
 - **Arquivos:** `src/components/GroupInvitePanel.tsx`, `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; relatório descreve cada estado do painel (tabela estado → texto exibido) a partir do código.
@@ -1083,7 +1088,7 @@ Critérios de Aceite:
 
 ## T-55 — Baixar contatos em .vcf (M-46)
 
-- **Estado:** concluída (aguardando prova na prévia). **Ordem 0: primeira da M-46.** Independente das demais (sem banco, sem função de servidor, sem e-mail).
+- **Estado:** concluída (arquivo baixado e testado pelo dono em 18/11/2026). **Ordem 0: primeira da M-46.** Independente das demais (sem banco, sem função de servidor, sem e-mail).
 - **Ler:** `spec.md RF-22; design/ui-ux.md Tela I (botão Baixar contatos); seguranca.md SEC-43; qa-plan.md QA-46-18, QA-46-28`.
 - **Objetivo:** o administrador baixa, na página de respostas, um arquivo de contatos dos inscritos com celular válido, para importar na agenda do celular de uma vez e criar o grupo ou convidar manualmente.
 - **Especificações complementares:**
