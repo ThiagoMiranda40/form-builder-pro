@@ -15,6 +15,7 @@ import {
   DEFAULT_GROUP_INVITE_TEXT,
   GROUP_PRIVACY_NOTICE,
 } from "@/lib/group-texts";
+import { sanitizeImageUrl } from "@/lib/theme";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
 import {
   normalizePositions,
@@ -71,7 +72,12 @@ type Question = {
   settings?: Record<string, unknown> | null;
 };
 
-type Theme = { color: string; font: string; logo_url: string | null };
+type Theme = {
+  color: string;
+  font: string;
+  logo_url: string | null;
+  cover_url?: string | null;
+};
 
 type FormsUpdate = Database["public"]["Tables"]["forms"]["Update"];
 
@@ -134,10 +140,12 @@ function Editor() {
   const [loadedGroupLink, setLoadedGroupLink] = useState<string | null>(null);
   const [groupNoticeError, setGroupNoticeError] = useState<string | null>(null);
   const [groupInviteError, setGroupInviteError] = useState<string | null>(null);
+  const [coverUrlError, setCoverUrlError] = useState<string | null>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const groupLinkInputRef = useRef<HTMLInputElement | null>(null);
   const groupNoticeInputRef = useRef<HTMLTextAreaElement | null>(null);
   const groupInviteInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const coverUrlInputRef = useRef<HTMLInputElement | null>(null);
 
   // Estados de arrastar (DND nativo) e acessibilidade
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -241,13 +249,21 @@ function Editor() {
     setGroupLinkError(null);
     setGroupNoticeError(null);
     setGroupInviteError(null);
+    setCoverUrlError(null);
     setLoadedGroupLink(rawGroupLink);
+    const rawTheme = (f["theme"] as Record<string, unknown> | null) ?? {};
+    const loadedTheme: Theme = {
+      color: (rawTheme["color"] as string) ?? "#4f46e5",
+      font: (rawTheme["font"] as string) ?? "body",
+      logo_url: (rawTheme["logo_url"] as string | null) ?? null,
+      cover_url: (rawTheme["cover_url"] as string | null) ?? null,
+    };
     const loadedForm: FormState = {
       title: f["title"] as string,
       description: (f["description"] as string) ?? "",
       slug: loadedSlug,
       status: f["status"] as string,
-      theme: (f["theme"] as Theme) ?? { color: "#4f46e5", font: "body", logo_url: null },
+      theme: loadedTheme,
       max_responses: (f["max_responses"] as number | null) ?? null,
       closes_at: (f["closes_at"] as string | null) ?? null,
       consent_text: (f["consent_text"] as string | null) ?? null,
@@ -464,6 +480,23 @@ function Editor() {
       return;
     }
 
+    const rawCoverUrl = form.theme.cover_url?.trim() ?? "";
+    let validCoverUrl: string | null = null;
+    if (rawCoverUrl) {
+      const sanitized = sanitizeImageUrl(rawCoverUrl);
+      if (!sanitized) {
+        const errorMsg = "Cole o endereço da imagem começando com https://";
+        setCoverUrlError(errorMsg);
+        setTab("aparencia");
+        requestAnimationFrame(() => {
+          coverUrlInputRef.current?.focus();
+        });
+        toast.error(errorMsg);
+        return;
+      }
+      validCoverUrl = sanitized;
+    }
+
     const validGroupLink: string | null = groupLinkValidation.link || null;
     const validGroupNotice: string | null = noticeValidation.text;
     const validGroupInvite: string | null = inviteValidation.text;
@@ -481,11 +514,15 @@ function Editor() {
     setSaving(true);
     try {
       const groupLinkChanged = validGroupLink !== loadedGroupLink;
+      const themeToPersist = {
+        ...form.theme,
+        cover_url: validCoverUrl,
+      };
       const formUpdatePayload: FormsUpdate = {
         title: form.title.trim() || "Sem título",
         description: form.description,
         slug: cleanSlug,
-        theme: form.theme as Json,
+        theme: themeToPersist as Json,
         max_responses: form.max_responses,
         closes_at: form.closes_at,
         consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
@@ -538,11 +575,13 @@ function Editor() {
       setGroupLinkError(null);
       setGroupNoticeError(null);
       setGroupInviteError(null);
+      setCoverUrlError(null);
       setLoadedGroupLink(validGroupLink);
       const updatedForm: FormState = {
         ...form,
         title: form.title.trim() || "Sem título",
         slug: cleanSlug,
+        theme: themeToPersist,
         status: nextStatus ?? form.status,
         consent_text: form.consent_text?.trim() ? form.consent_text.trim() : null,
         event_date: form.event_date || null,
@@ -1062,6 +1101,39 @@ function Editor() {
                   <option value="display">Space Grotesk (destaque)</option>
                   <option value="serif">Serifada (clássica)</option>
                 </select>
+              </Field>
+              <Field label="URL da imagem de capa (opcional)" htmlFor="form-theme-cover-url">
+                <input
+                  id="form-theme-cover-url"
+                  ref={coverUrlInputRef}
+                  value={form.theme.cover_url ?? ""}
+                  onChange={(e) => {
+                    setCoverUrlError(null);
+                    setForm({
+                      ...form,
+                      theme: { ...form.theme, cover_url: e.target.value || null },
+                    });
+                  }}
+                  maxLength={500}
+                  className={inputClass}
+                  placeholder="https://..."
+                  autoComplete="off"
+                  spellCheck={false}
+                  inputMode="url"
+                  aria-describedby="form-theme-cover-url-hint"
+                  aria-invalid={Boolean(coverUrlError)}
+                />
+                {coverUrlError && (
+                  <p role="alert" className="mt-1.5 text-xs text-destructive">
+                    {coverUrlError}
+                  </p>
+                )}
+                <p
+                  id="form-theme-cover-url-hint"
+                  className="mt-1.5 text-xs text-muted-foreground"
+                >
+                  Imagem de capa: 1200 × 400 px (proporção 3:1), PNG, JPG ou WebP de até 300 KB. Aparece no topo do formulário, em largura total. Use letras grandes (mínimo de 60 px de altura) e deixe uma margem de 40 px nas bordas. O texto dentro da imagem não é lido por leitores de tela: repita o essencial no título ou na descrição. Cole o endereço direto da imagem, começando com https://.
+                </p>
               </Field>
               <Field label="URL do logotipo" htmlFor="form-theme-logo-url">
                 <input

@@ -590,6 +590,58 @@ describe("Página de respostas — T-60: Texto claro no botão de contatos (RF-2
   });
 });
 
+describe("Imagem de capa do formulário — T-61 (RF-27, QA-46-36)", () => {
+  const rootDir = process.cwd();
+  const editorPath = path.join(
+    rootDir,
+    "src/routes/_authenticated.formularios.$id.tsx",
+  );
+  const slugPath = path.join(rootDir, "src/routes/$slug.tsx");
+  const editTokenPath = path.join(rootDir, "src/routes/editar.$token.tsx");
+
+  it("o editor contém o campo de capa, rótulo, apoio, erro e aria-describedby", () => {
+    const content = fs.readFileSync(editorPath, "utf-8");
+
+    // Rótulo exato
+    expect(content).toContain("URL da imagem de capa (opcional)");
+    expect(content).toContain('id="form-theme-cover-url"');
+    expect(content).toContain('aria-describedby="form-theme-cover-url-hint"');
+
+    // Texto de apoio exato
+    const exactSupportText =
+      "Imagem de capa: 1200 × 400 px (proporção 3:1), PNG, JPG ou WebP de até 300 KB. Aparece no topo do formulário, em largura total. Use letras grandes (mínimo de 60 px de altura) e deixe uma margem de 40 px nas bordas. O texto dentro da imagem não é lido por leitores de tela: repita o essencial no título ou na descrição. Cole o endereço direto da imagem, começando com https://.";
+    expect(content).toContain(exactSupportText);
+
+    // Mensagem de erro de validação
+    expect(content).toContain(
+      "Cole o endereço da imagem começando com https://",
+    );
+  });
+
+  it("$slug.tsx e editar.$token.tsx renderizam a imagem de capa com aspect-[3/1], object-cover e alt vazio", () => {
+    const slugContent = fs.readFileSync(slugPath, "utf-8");
+    const editTokenContent = fs.readFileSync(editTokenPath, "utf-8");
+
+    for (const [name, content] of [
+      ["$slug.tsx", slugContent],
+      ["editar.$token.tsx", editTokenContent],
+    ]) {
+      expect(content, `${name} deve verificar theme?.cover_url`).toContain(
+        "cover_url",
+      );
+      expect(content, `${name} deve usar aspect-[3/1]`).toContain(
+        "aspect-[3/1]",
+      );
+      expect(content, `${name} deve usar object-cover`).toContain(
+        "object-cover",
+      );
+      expect(content, `${name} deve usar alt=\"\" para imagem decorativa`).toContain(
+        'alt=""',
+      );
+    }
+  });
+});
+
 
 
 

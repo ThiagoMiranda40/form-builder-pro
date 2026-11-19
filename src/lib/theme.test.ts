@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readableTextColor } from './theme';
+import { readableTextColor, sanitizeImageUrl } from './theme';
 
 function sRGBToLinear(val255: number): number {
   const v = val255 / 255;
@@ -71,5 +71,59 @@ describe('theme.ts - readableTextColor', () => {
     }
 
     expect(totalTested).toBe(216);
+  });
+});
+
+describe('theme.ts - sanitizeImageUrl (T-61)', () => {
+  it('retorna a URL aparada para URLs https válidas', () => {
+    expect(sanitizeImageUrl('https://exemplo.com/banner.jpg')).toBe(
+      'https://exemplo.com/banner.jpg',
+    );
+    expect(sanitizeImageUrl('  https://exemplo.com/capa.png  ')).toBe(
+      'https://exemplo.com/capa.png',
+    );
+    expect(
+      sanitizeImageUrl('https://cdn.exemplo.com/imagens/banner.webp?w=1200&h=400#topo'),
+    ).toBe('https://cdn.exemplo.com/imagens/banner.webp?w=1200&h=400#topo');
+    expect(
+      sanitizeImageUrl('https://exemplo.com/foto-promoção-verão.jpg'),
+    ).toBe('https://exemplo.com/foto-promoção-verão.jpg');
+  });
+
+  it('retorna null para protocolos não-https, esquemas inseguros ou formato relativo', () => {
+    expect(sanitizeImageUrl('http://exemplo.com/banner.jpg')).toBeNull();
+    expect(sanitizeImageUrl('javascript:alert(1)')).toBeNull();
+    expect(sanitizeImageUrl('data:image/png;base64,iVBORw0KGgo=')).toBeNull();
+    expect(sanitizeImageUrl('//cdn.exemplo.com/banner.jpg')).toBeNull();
+    expect(sanitizeImageUrl('/assets/banner.jpg')).toBeNull();
+    expect(sanitizeImageUrl('ftp://exemplo.com/banner.jpg')).toBeNull();
+  });
+
+  it('retorna null para vazios, espaços ou tipos inválidos', () => {
+    expect(sanitizeImageUrl('')).toBeNull();
+    expect(sanitizeImageUrl('   ')).toBeNull();
+    expect(sanitizeImageUrl(null)).toBeNull();
+    expect(sanitizeImageUrl(undefined)).toBeNull();
+    expect(sanitizeImageUrl(12345)).toBeNull();
+    expect(sanitizeImageUrl({})).toBeNull();
+    expect(sanitizeImageUrl([])).toBeNull();
+  });
+
+  it('retorna null se contiver espaços internos ou caracteres de controle', () => {
+    expect(sanitizeImageUrl('https://exemplo.com/banner com espaco.jpg')).toBeNull();
+    expect(sanitizeImageUrl('https://exemplo.com/banner\n.jpg')).toBeNull();
+    expect(sanitizeImageUrl('https://exemplo.com/banner\t.jpg')).toBeNull();
+    expect(sanitizeImageUrl('https://exemplo.com/banner\x00.jpg')).toBeNull();
+  });
+
+  it('retorna null se exceder 500 caracteres', () => {
+    const base = 'https://exemplo.com/';
+    const valid500 = base + 'a'.repeat(500 - base.length);
+    expect(valid500.length).toBe(500);
+    expect(sanitizeImageUrl(valid500)).toBe(valid500);
+
+    const invalid501 = base + 'a'.repeat(501 - base.length);
+    expect(invalid501.length).toBe(501);
+    expect(sanitizeImageUrl(invalid501)).toBeNull();
   });
 });

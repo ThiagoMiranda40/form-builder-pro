@@ -284,6 +284,116 @@ describe("public-forms.functions (QA-GAP-09, SEC-19)", () => {
       expect(res.form?.event_location).toBe("Parque");
       expect(res.questions?.[0]?.settings).toEqual({ minAge: 18, maxAge: null });
     });
+
+    it("T-61: getPublicForm inclui theme.cover_url sanitizado e descarta URLs inválidas", async () => {
+      // 1. Capa válida
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-cover-1",
+                  title: "Form Com Capa",
+                  description: "Desc",
+                  status: "published",
+                  closes_at: null,
+                  max_responses: null,
+                  success_message: "Sucesso",
+                  consent_text: null,
+                  theme: {
+                    color: "#4f46e5",
+                    font: "body",
+                    cover_url: "https://exemplo.com/capa.jpg",
+                  },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({ count: 0, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res1 = await getPublicForm({ data: { slug: "com-capa" } });
+      expect((res1.form?.theme as any)?.cover_url).toBe("https://exemplo.com/capa.jpg");
+
+      // 2. Capa inválida (http://) vira null
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-cover-2",
+                  title: "Form Capa Invalida",
+                  status: "published",
+                  theme: { cover_url: "http://inseguro.com/capa.jpg" },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({ count: 0, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res2 = await getPublicForm({ data: { slug: "capa-invalida" } });
+      expect((res2.form?.theme as any)?.cover_url).toBeNull();
+
+      // 3. Ausência de cover_url vira null
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-cover-3",
+                  title: "Form Sem Capa",
+                  status: "published",
+                  theme: {},
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockResolvedValueOnce({ count: 0, error: null }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res3 = await getPublicForm({ data: { slug: "sem-capa" } });
+      expect((res3.form?.theme as any)?.cover_url).toBeNull();
+    });
   });
 
   describe("T-51 (M-46): Coluna whatsapp_group_link e isolamento de carregamento público", () => {

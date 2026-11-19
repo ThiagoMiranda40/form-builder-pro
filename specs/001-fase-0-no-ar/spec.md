@@ -147,6 +147,13 @@ Como administrador, quero definir uma frase de aviso no formulário público e u
 - Em qualquer caso, o aviso de privacidade (`Quem entra no grupo vê o número de WhatsApp dos outros participantes.`) permanece obrigatório e inalterável.
 - Endereços (links) digitados nos textos de aviso ou convite são rejeitados na validação.
 
+### RF-27 — Imagem de capa do formulário (T-61)
+Como administrador, quero adicionar uma imagem de capa ao formulário, para reforçar a identidade visual do evento no topo do cartão.
+**Critério de aceite:**
+- Dado que o administrador está no editor na aba Aparência, quando cola uma URL https válida no campo "URL da imagem de capa (opcional)" e salva, então o formulário público e a tela de edição da inscrição exibem a imagem em largura total no topo do cartão, na proporção 3:1 (aspect-[3/1], object-cover), sem distorcer e sem layout shift.
+- Dado que o campo de capa está vazio ou teve seu conteúdo apagado, quando salvo, o formulário é exibido sem imagem de capa.
+- Dado que o endereço informado não começa com `https://` ou contém caracteres inválidos, quando tenta salvar, a gravação é recusada com a mensagem `Cole o endereço da imagem começando com https://`.
+
 ## Ordem de entrega (decisão do dono, 12/11/2026)
 0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.
 1. **Administrador:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.

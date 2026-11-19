@@ -858,6 +858,7 @@ Critérios de Aceite:
 | 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída (provada pelo dono em produção em 18/11/2026) |
 | 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
 | 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (19/11/2026) |
+| 7f | T-61 Imagem de capa do formulário | T-58 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1058,6 +1059,25 @@ Critérios de Aceite:
   - Helpers puros em `src/lib/invite.ts`: `vcfSummaryText(valid: number, total: number): string`, `vcfSuccessMessage(n: number): string`, e constante `vcfDisabledMessage`.
 - **TDD:** testes unitários em `src/lib/invite.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-61 — Imagem de capa do formulário
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `spec.md RF-27; design/ui-ux.md Tela A; src/routes/_authenticated.formularios.$id.tsx; src/routes/$slug.tsx; src/routes/editar.$token.tsx`.
+- **Objetivo:** permitir ao administrador definir uma imagem de capa (proporção 3:1, largura total no topo do cartão público e de edição), armazenada no campo `theme.cover_url` de `forms`, com validação https, texto de apoio e sem layout shift.
+- **Especificações complementares:**
+  - Helper puro `sanitizeImageUrl(input: unknown): string | null` em `src/lib/theme.ts`: aceita string de até 500 caracteres, sem espaços ou caracteres de controle, começando com `https://` e válida via `new URL()`.
+  - Campo no editor (aba Aparência, acima de URL do logotipo): `URL da imagem de capa (opcional)`, `id="form-theme-cover-url"`, `maxLength={500}`, `placeholder="https://..."`, `aria-describedby="form-theme-cover-url-hint"`.
+  - Texto de apoio exato: `Imagem de capa: 1200 × 400 px (proporção 3:1), PNG, JPG ou WebP de até 300 KB. Aparece no topo do formulário, em largura total. Use letras grandes (mínimo de 60 px de altura) e deixe uma margem de 40 px nas bordas. O texto dentro da imagem não é lido por leitores de tela: repita o essencial no título ou na descrição. Cole o endereço direto da imagem, começando com https://.`
+  - Erro de validação: `Cole o endereço da imagem começando com https://` com foco no campo, toast e aba Aparência ativada.
+  - Snapshot de alterações (`editorSnapshot` em `src/lib/editor-dirty.ts`): inclui `theme.cover_url` e trata `null` e `""` como equivalentes.
+  - Servidores públicos: `public-forms.functions.ts` e `edit-response.functions.ts` normalizam `cover_url` com `sanitizeImageUrl`.
+  - Telas públicas: `$slug.tsx` e `editar.$token.tsx` exibem a capa no topo do cartão com sangria negativa (`-mx-6 -mt-6 mb-6 overflow-hidden rounded-t-2xl sm:-mx-8 sm:-mt-8`), `aspect-[3/1]`, `object-cover` e `alt=""`.
+- **TDD:** testes unitários em `src/lib/theme.test.ts`, `src/lib/public-forms.functions.test.ts`, `src/lib/edit-response.test.ts`, `src/lib/clone-form.test.ts`, `src/lib/editor-dirty.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/lib/theme.ts`, `src/lib/theme.test.ts`, `src/lib/editor-dirty.ts`, `src/lib/editor-dirty.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/lib/edit-response.ts`, `src/lib/edit-response.functions.ts`, `src/lib/edit-response.test.ts`, `src/lib/clone-form.test.ts`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/$slug.tsx`, `src/routes/editar.$token.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

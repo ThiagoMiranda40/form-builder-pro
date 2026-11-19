@@ -11,6 +11,7 @@ import {
 
 import { resolvePublicState } from "./form-state";
 import { resolveGroupNotice } from "./group-texts";
+import { sanitizeImageUrl } from "./theme";
 
 import type { Database, Json } from "@/integrations/supabase/types";
 
@@ -33,7 +34,7 @@ export type PublicFormPayload = {
     id: string;
     title: string;
     description: string;
-    theme: { color: string; font: string; logo_url: string | null };
+    theme: { color: string; font: string; logo_url: string | null; cover_url: string | null };
     max_responses: number | null;
     closes_at: string | null;
     success_message: string;
@@ -169,6 +170,7 @@ export const getPublicForm = createServerFn({ method: "GET" })
           color: typeof theme["color"] === "string" ? (theme["color"] as string) : "#4f46e5",
           font: typeof theme["font"] === "string" ? (theme["font"] as string) : "body",
           logo_url: typeof theme["logo_url"] === "string" ? (theme["logo_url"] as string) : null,
+          cover_url: sanitizeImageUrl(theme["cover_url"]),
         },
         max_responses: form.max_responses,
         closes_at: form.closes_at,

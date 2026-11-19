@@ -177,6 +177,29 @@ describe("T-11: Edição pelo link", () => {
       expect(serialized).not.toContain("529.982.247-25");
       expect(serialized).not.toContain(VALID_TOKEN);
     });
+
+    it("T-61: handleGetForEdit repassa theme.cover_url no form", async () => {
+      const loadByToken = vi.fn().mockResolvedValue({
+        response: {
+          id: "r1",
+          answers: { "q-nome": "Maria Santos" },
+          identifier: null,
+          updated_at: new Date().toISOString(),
+        },
+        form: {
+          ...baseForm,
+          theme: {
+            ...baseForm.theme,
+            cover_url: "https://exemplo.com/capa.jpg",
+          },
+        },
+        questions: baseQuestions,
+      });
+
+      const res = await handleGetForEdit({ loadByToken }, { token: VALID_TOKEN });
+      expect(res.state).toBe("open");
+      expect(res.form?.theme?.cover_url).toBe("https://exemplo.com/capa.jpg");
+    });
   });
 
   const baseForm = {

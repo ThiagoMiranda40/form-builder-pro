@@ -146,6 +146,25 @@ describe("buildCloneFormPayload (T-41)", () => {
     expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_at"]).toBeUndefined();
     expect((payload as Record<string, unknown>)["whatsapp_group_link_updated_by"]).toBeUndefined();
   });
+
+  it("T-61: copia cover_url dentro do theme ao clonar formulário", () => {
+    const source = {
+      title: "Corrida Com Imagem de Capa",
+      theme: {
+        color: "#10b981",
+        font: "serif",
+        logo_url: "https://exemplo.com/logo.png",
+        cover_url: "https://exemplo.com/capa-1200x400.jpg",
+      },
+    };
+    const payload = buildCloneFormPayload(source as any, "user-owner", "abc12345");
+    expect(payload.theme).toEqual({
+      color: "#10b981",
+      font: "serif",
+      logo_url: "https://exemplo.com/logo.png",
+      cover_url: "https://exemplo.com/capa-1200x400.jpg",
+    });
+  });
 });
 
 describe("buildCloneQuestions (T-41, T-24c)", () => {

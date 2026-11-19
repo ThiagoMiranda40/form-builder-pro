@@ -89,3 +89,29 @@ export function readableTextColor(bgColorHex: string): string {
 
   return contrastWhite >= contrastBlack ? "#ffffff" : "#000000";
 }
+
+/**
+ * Valida e higieniza URLs de imagens (ex.: imagem de capa do formulário, T-61).
+ * Devolve a URL aparada se for string de até 500 caracteres, começar com 'https://',
+ * não contiver espaços ou caracteres de controle e for uma URL https válida.
+ * Caso contrário, retorna null.
+ */
+export function sanitizeImageUrl(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > 500) return null;
+
+  if (!trimmed.startsWith("https://")) return null;
+
+  // Rejeita espaços ou caracteres de controle ASCII (0x00-0x1F, 0x7F)
+  if (/[\s\x00-\x1F\x7F]/.test(trimmed)) return null;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:") return null;
+    return trimmed;
+  } catch {
+    return null;
+  }
+}

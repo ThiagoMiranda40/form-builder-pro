@@ -54,6 +54,30 @@ function stableSort(value: unknown): unknown {
 }
 
 /**
+ * Normaliza o objeto theme para que strings vazias, null e undefined em URLs de imagens
+ * (cover_url, logo_url) sejam tratados de forma equivalente (T-61).
+ */
+function normalizeTheme(theme: unknown): unknown {
+  if (!theme || typeof theme !== "object" || Array.isArray(theme)) {
+    return theme ?? null;
+  }
+  const obj = { ...(theme as Record<string, unknown>) };
+  for (const [key, val] of Object.entries(obj)) {
+    if (key === "cover_url" || key === "logo_url") {
+      const trimmed = typeof val === "string" ? val.trim() : val;
+      if (!trimmed) {
+        delete obj[key];
+      } else {
+        obj[key] = trimmed;
+      }
+    } else if (val === undefined) {
+      delete obj[key];
+    }
+  }
+  return obj;
+}
+
+/**
  * Devolve uma string JSON estável contendo SÓ o que o save() grava:
  * - do formulário: title, description, slug, theme, max_responses, closes_at, consent_text, success_message, status, event_date, event_time, event_location, whatsapp_group_link, whatsapp_group_notice_text, whatsapp_group_invite_text
  * - de cada pergunta, na ordem da lista: id, label, help_text, field_type, required, options, position, settings
@@ -69,7 +93,7 @@ export function editorSnapshot(
       title: form.title ?? "",
       description: form.description ?? "",
       slug: form.slug ?? "",
-      theme: form.theme ?? null,
+      theme: normalizeTheme(form.theme),
       max_responses: form.max_responses ?? null,
       closes_at: form.closes_at ?? null,
       consent_text: form.consent_text ?? null,

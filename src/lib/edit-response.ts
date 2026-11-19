@@ -52,6 +52,7 @@ export interface EditForm {
     color?: string;
     font?: string;
     logo_url?: string | null;
+    cover_url?: string | null;
   };
   success_message?: string;
   consent_text?: string | null;

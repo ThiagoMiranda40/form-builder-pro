@@ -255,4 +255,63 @@ describe("editor-dirty (T-34b / M-32 / M-35)", () => {
       expect(isEditorDirty(snapEmpty, snapNull)).toBe(false);
     });
   });
+
+  describe("T-61: cover_url no theme no snapshot do editor", () => {
+    it("mudar cover_url suja o snapshot", () => {
+      const saved = editorSnapshot(
+        { ...baseForm, theme: { ...baseForm.theme, cover_url: null } },
+        baseQuestions,
+      );
+      const modified = {
+        ...baseForm,
+        theme: {
+          ...baseForm.theme,
+          cover_url: "https://exemplo.com/banner.jpg",
+        },
+      };
+      expect(isEditorDirty(editorSnapshot(modified, baseQuestions), saved)).toBe(true);
+    });
+
+    it("mesmo valor de cover_url mantém o snapshot igual", () => {
+      const formWithCover = {
+        ...baseForm,
+        theme: {
+          ...baseForm.theme,
+          cover_url: "https://exemplo.com/banner.jpg",
+        },
+      };
+      const saved = editorSnapshot(formWithCover, baseQuestions);
+      const current = editorSnapshot(
+        {
+          ...formWithCover,
+          theme: { ...formWithCover.theme },
+        },
+        [...baseQuestions],
+      );
+      expect(isEditorDirty(current, saved)).toBe(false);
+    });
+
+    it("null e string vazia em cover_url são equivalentes e não sujam", () => {
+      const formNull = {
+        ...baseForm,
+        theme: { ...baseForm.theme, cover_url: null },
+      };
+      const formEmpty = {
+        ...baseForm,
+        theme: { ...baseForm.theme, cover_url: "" },
+      };
+      const formUndefined = {
+        ...baseForm,
+        theme: { ...baseForm.theme, cover_url: undefined },
+      };
+
+      const snapNull = editorSnapshot(formNull, baseQuestions);
+      const snapEmpty = editorSnapshot(formEmpty, baseQuestions);
+      const snapUndefined = editorSnapshot(formUndefined, baseQuestions);
+
+      expect(snapEmpty).toBe(snapNull);
+      expect(snapUndefined).toBe(snapNull);
+      expect(isEditorDirty(snapEmpty, snapNull)).toBe(false);
+    });
+  });
 });

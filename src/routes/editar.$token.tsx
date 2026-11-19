@@ -128,7 +128,12 @@ function EditFormPage() {
   }
 
   const { form, questions = [] } = query.data;
-  const theme = form.theme as { color?: string; font?: string; logo_url?: string | null };
+  const theme = form.theme as {
+    color?: string;
+    font?: string;
+    logo_url?: string | null;
+    cover_url?: string | null;
+  };
   const accent = theme?.color || "#4f46e5";
   const fontClass =
     theme?.font === "display" ? "font-display" : theme?.font === "serif" ? "font-serif" : "font-body";
@@ -205,6 +210,16 @@ function EditFormPage() {
   return (
     <Frame>
       <div className={fontClass}>
+        {theme?.cover_url && (
+          <div className="-mx-6 -mt-6 mb-6 overflow-hidden rounded-t-2xl sm:-mx-8 sm:-mt-8">
+            <img
+              src={theme.cover_url}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="block aspect-[3/1] w-full object-cover"
+            />
+          </div>
+        )}
         {theme?.logo_url && (
           <img
             src={theme.logo_url}

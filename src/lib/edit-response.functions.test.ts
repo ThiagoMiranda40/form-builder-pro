@@ -160,6 +160,82 @@ describe("edit-response.functions (QA-GAP-09, SEC-18, SEC-19)", () => {
       expect(res.form).toBeNull();
       expect(res.questions).toEqual([]);
     });
+
+    it("T-61: loadResponseForEditByToken inclui theme.cover_url sanitizado e descarta URLs inválidas", async () => {
+      // 1. Capa válida
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: { id: "r-1", form_id: "f-1", answers: {}, identifier: null, updated_at: "2026-01-01" },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-1",
+                  title: "Form Edit",
+                  theme: { color: "#4f46e5", font: "body", cover_url: "https://exemplo.com/capa.png" },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res1 = await loadResponseForEditByToken(mockSupabaseAdmin as any, VALID_TOKEN);
+      expect((res1.form?.theme as any)?.cover_url).toBe("https://exemplo.com/capa.png");
+
+      // 2. Capa inválida (http://) vira null
+      mockSupabaseAdmin.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: { id: "r-2", form_id: "f-2", answers: {}, identifier: null, updated_at: "2026-01-01" },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              maybeSingle: vi.fn().mockResolvedValueOnce({
+                data: {
+                  id: "f-2",
+                  title: "Form Edit 2",
+                  theme: { cover_url: "http://inseguro.com/capa.png" },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValueOnce({
+            eq: vi.fn().mockReturnValueOnce({
+              order: vi.fn().mockResolvedValueOnce({ data: [], error: null }),
+            }),
+          }),
+        });
+
+      const res2 = await loadResponseForEditByToken(mockSupabaseAdmin as any, VALID_TOKEN);
+      expect((res2.form?.theme as any)?.cover_url).toBeNull();
+    });
   });
 
   describe("Execução das server functions através do handler simulado", () => {

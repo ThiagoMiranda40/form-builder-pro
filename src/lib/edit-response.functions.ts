@@ -11,6 +11,7 @@ import {
   type UpdateResult,
 } from "./edit-response";
 import { ALLOWED_ORIGINS } from "./submit-response";
+import { sanitizeImageUrl } from "./theme";
 import type { Json } from "@/integrations/supabase/types";
 
 const getEditSchema = z.object({
@@ -80,6 +81,7 @@ export async function loadResponseForEditByToken(
       color: typeof theme["color"] === "string" ? (theme["color"] as string) : "#4f46e5",
       font: typeof theme["font"] === "string" ? (theme["font"] as string) : "body",
       logo_url: typeof theme["logo_url"] === "string" ? (theme["logo_url"] as string) : null,
+      cover_url: sanitizeImageUrl(theme["cover_url"]),
     },
     success_message: form.success_message,
     consent_text: (form.consent_text as string | null) ?? null,
