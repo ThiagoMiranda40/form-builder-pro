@@ -10,7 +10,10 @@ import {
   pickInviteMessage,
   sanitizeSubject,
   validateGroupLink,
+  vcfDisabledMessage,
   vcfFilename,
+  vcfSuccessMessage,
+  vcfSummaryText,
 } from "./invite";
 
 describe("invite — T-55: Baixar contatos (.vcf) (RF-22, SEC-43, QA-46-18)", () => {
@@ -453,6 +456,33 @@ describe("invite — T-46: Núcleo puro do convite (RF-17, RF-20, ARQ-04, ARQ-07
       const longSubject = "A".repeat(150);
       expect(sanitizeSubject(longSubject)).toHaveLength(120);
       expect(sanitizeSubject(longSubject)).toBe("A".repeat(120));
+    });
+  });
+
+  describe("invite — T-60: Texto claro no botão de contatos (.vcf) (RF-22, QA-46-35)", () => {
+    it("vcfSummaryText formata a contagem de celulares válidos para 0, 1, N e N = M", () => {
+      expect(vcfSummaryText(0, 10)).toBe("0 de 10 inscrições têm celular válido.");
+      expect(vcfSummaryText(1, 10)).toBe("1 de 10 inscrições tem celular válido.");
+      expect(vcfSummaryText(5, 10)).toBe("5 de 10 inscrições têm celular válido.");
+      expect(vcfSummaryText(10, 10)).toBe("10 de 10 inscrições têm celular válido.");
+    });
+
+    it("vcfSuccessMessage formata a mensagem de sucesso no singular e plural", () => {
+      expect(vcfSuccessMessage(1)).toBe(
+        "Arquivo com 1 contato baixado. Abra-o no celular para adicioná-lo à agenda.",
+      );
+      expect(vcfSuccessMessage(5)).toBe(
+        "Arquivo com 5 contatos baixado. Abra-o no celular para adicioná-los à agenda.",
+      );
+      expect(vcfSuccessMessage(57)).toBe(
+        "Arquivo com 57 contatos baixado. Abra-o no celular para adicioná-los à agenda.",
+      );
+    });
+
+    it("vcfDisabledMessage é a mensagem fixa para quando não há celulares válidos", () => {
+      expect(vcfDisabledMessage).toBe(
+        "Nenhuma inscrição tem celular válido para baixar.",
+      );
     });
   });
 });

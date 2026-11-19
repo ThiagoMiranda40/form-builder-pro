@@ -857,6 +857,7 @@ Critérios de Aceite:
 | 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
 | 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída (provada pelo dono em produção em 18/11/2026) |
 | 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
+| 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (19/11/2026) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1041,12 +1042,32 @@ Critérios de Aceite:
 
 ---
 
+## T-60 — Texto claro no botão de contatos (.vcf)
+
+- **Estado:** concluída (19/11/2026).
+- **Ler:** `spec.md RF-22; design/ui-ux.md Tela I; qa-plan.md QA-46-35, MAN-46-07`.
+- **Objetivo:** melhorar o UX writing do botão de contatos na página de respostas do administrador, substituindo jargão técnico por rótulo claro ("Baixar contatos para a agenda"), texto de apoio visível com contagem de celulares válidos, botão desabilitado explicativo, diálogo com instruções passo a passo ("Como usar") e confirmação com a quantidade de contatos baixados.
+- **Especificações complementares:**
+  - Rótulo do botão: `Baixar contatos para a agenda`.
+  - Texto de apoio fixo e visível (`text-xs text-muted-foreground`), ligado ao botão por `aria-describedby`: `Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.`
+  - Contagem: `{N} de {M} inscrições têm celular válido.` (singular `1 de {M} inscrições tem celular válido.` quando N = 1).
+  - Estado desabilitado (N = 0): o texto de apoio dá lugar a `Nenhuma inscrição tem celular válido para baixar.` visível (sem atributo `title` no botão).
+  - Diálogo `Como usar o arquivo de contatos` aberto por link/botão discreto `Como usar`: lista numerada (1. `Baixe o arquivo.`; 2. `No celular, abra o arquivo baixado e escolha Contatos.`; 3. `No WhatsApp, crie o grupo e adicione os contatos. Se preferir, envie o link do grupo.`) e botão `Entendi`.
+  - Toast de sucesso ao baixar: `Arquivo com {N} contatos baixado. Abra-o no celular para adicioná-los à agenda.` (singular: `Arquivo com 1 contato baixado. Abra-o no celular para adicioná-lo à agenda.`).
+  - Toast de erro mantido: `Não foi possível baixar os contatos. Tente novamente.`
+  - Helpers puros em `src/lib/invite.ts`: `vcfSummaryText(valid: number, total: number): string`, `vcfSuccessMessage(n: number): string`, e constante `vcfDisabledMessage`.
+- **TDD:** testes unitários em `src/lib/invite.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
 ## T-52 — Painel "Convidar para o grupo" no administrador (M-46)
 
 - **Estado:** a fazer. Depende das T-48 e T-50. **Ordem 6.** O envio por e-mail vem primeiro na tela; o botão por inscrito é o complemento.
 - **Ler:** `spec.md RF-19 a RF-21; design/ui-ux.md Tela I; seguranca.md SEC-41, SEC-48; qa-plan.md QA-46-17, QA-46-19, QA-46-23, QA-46-28, QA-46-29`.
 - **Objetivo:** o administrador envia o convite por e-mail, convida por WhatsApp quem faltar e vê quem foi convidado, pela página de respostas. O `.vcf` já existe desde a T-55.
-- **Especificações complementares:** componente único `GroupInvitePanel` (dados e ações por propriedades, sem saber se é administrador ou cliente); estados e textos literais da Tela I (sem link, sem elegíveis, orçamento `Hoje cabem {n} envios. Os outros {m} ficam para continuar amanhã.`, interrompido `Envio interrompido: {p} pendentes.` com `Continuar envio`, legado); confirmação com `AlertDialog` (nunca `confirm()`); progresso por fatia; botão `Convidar` abre `wa.me` em nova aba (`rel="noopener noreferrer"`) e chama `markInvited` sem bloquear a abertura; mensagem editável só em estado local; mensagem do botão via `pickInviteMessage` (variações da T-46); o botão `Baixar contatos (.vcf)` criado na T-55 passa a viver dentro do painel (mover, sem alterar `buildVcf`); mobile primeiro (360 px), alvos de toque de 44 px, foco visível.
+- **Especificações complementares:** componente único `GroupInvitePanel` (dados e ações por propriedades, sem saber se é administrador ou cliente); estados e textos literais da Tela I (sem link, sem elegíveis, orçamento `Hoje cabem {n} envios. Os outros {m} ficam para continuar amanhã.`, interrompido `Envio interrompido: {p} pendentes.` com `Continuar envio`, legado); confirmação com `AlertDialog` (nunca `confirm()`); progresso por fatia; botão `Convidar` abre `wa.me` em nova aba (`rel="noopener noreferrer"`) e chama `markInvited` sem bloquear a abertura; mensagem editável só em estado local; mensagem do botão via `pickInviteMessage` (variações da T-46); o botão `Baixar contatos para a agenda` criado na T-55 passa a viver dentro do painel (mover, sem alterar `buildVcf`); mobile primeiro (360 px), alvos de toque de 44 px, foco visível.
   - Antes de enviar um lote, considerar que o convite de 13/11/2026 foi enviado MANUALMENTE pelo Resend (Broadcast) a 55 e-mails únicos de 57 inscritos e NÃO está registrado em invite_deliveries. O envio em lote do sistema não deve convidar de novo quem já recebeu: prever uma forma de marcar esses inscritos como já convidados (por exemplo, importar os 55 e-mails como entregas históricas) ou um aviso explícito antes do envio. Decidir com o dono na hora de implementar.
 - **TDD:** sem teste de interface (jsdom está fora do projeto): extrair a lógica de estado do painel para funções puras (`derivePanelState`) em `src/lib/invite.ts` com testes, e conferir o painel por roteiro manual na T-54. Estender `src/lib/invite.test.ts`.
 - **Arquivos:** `src/components/GroupInvitePanel.tsx`, `src/lib/invite.ts`, `src/lib/invite.test.ts`, `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
@@ -1060,7 +1081,7 @@ Critérios de Aceite:
 
 - **Estado:** a fazer. Depende das T-49 e T-52. **Ordem 9; Marco 2, antes da próxima corrida.**
 - **Ler:** `spec.md RF-23, RF-24; design/ui-ux.md Tela I (variante do cliente); seguranca.md SEC-37, SEC-38; qa-plan.md QA-46-23, QA-46-26, QA-46-27, QA-46-28`.
-- **Objetivo:** o mesmo painel em `/c/<token>`, ligado às funções `...Client`, com campo para o cliente colar o link do grupo e o botão `Baixar contatos (.vcf)` (só depois da sessão válida, com os dados já carregados).
+- **Objetivo:** o mesmo painel em `/c/<token>`, ligado às funções `...Client`, com campo para o cliente colar o link do grupo e o botão `Baixar contatos para a agenda` (só depois da sessão válida, com os dados já carregados).
 - **Especificações complementares:** em link legado, o painel mostra só `Para enviar convites por aqui, peça ao administrador para proteger este link com código.`; sem sessão válida continua a tela `Link protegido` (nada novo antes do desbloqueio); resposta `{state:"locked"}` de qualquer ação volta à tela de desbloqueio como já acontece com a atualização de 30 s; o painel respeita `noindex` e `referrer: no-referrer` já existentes na página.
 - **TDD:** testes das funções puras já existentes; teste em `src/lib/routes.test.ts` de que a rota não renderiza o painel sem `state === "ok"`, se o padrão do projeto permitir (senão, roteiro manual).
 - **Arquivos:** `src/routes/c.$token.tsx`, `src/components/GroupInvitePanel.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
@@ -1094,7 +1115,7 @@ Critérios de Aceite:
 - **Especificações complementares:**
   - `buildVcf(contacts: {name: string; phone: string}[]): string` em `src/lib/invite.ts` (**criar o arquivo se ainda não existir**; a T-46 depois acrescenta as demais funções no mesmo arquivo sem alterar esta): vCard 3.0, `CRLF`; telefone em `+55<DDD><número>` só quando `parseBrazilMobile` valida; escapa `\`, `;`, `,` e quebras de linha no nome; remove caracteres de controle; nome vazio vira `Inscrito`; quem não tem celular válido não entra.
   - Nome do contato: o valor da pergunta de nome (`findNameQuestion`, de `responses-table.ts`) e o telefone vem da pergunta de telefone do formulário (mesmo critério já usado no botão de WhatsApp do card de detalhes, T-43; ler como ele escolhe a pergunta). Sem pergunta de telefone, o botão fica desabilitado com a dica `Este formulário não tem campo de telefone.`
-  - Gerado no navegador com os dados já carregados na página (mesmo padrão das exportações Excel e PDF, que ficam na mesma barra de botões, linhas 306 e 313 da página de respostas): botão `Baixar contatos (.vcf)` ao lado de `Exportar PDF`, mesmo estilo; arquivo `contatos-<slug do título>.vcf`. Sem rota nova, sem leitura nova no servidor.
+  - Gerado no navegador com os dados já carregados na página (mesmo padrão das exportações Excel e PDF, que ficam na mesma barra de botões, linhas 306 e 313 da página de respostas): botão `Baixar contatos para a agenda` ao lado de `Exportar PDF`, mesmo estilo; arquivo `contatos-<slug do título>.vcf`. Sem rota nova, sem leitura nova no servidor.
   - Todos os inscritos carregados entram (não só os visíveis por filtro), igual às exportações.
   - Fora desta tarefa: o botão no link do cliente (vem na T-53) e a mudança para o painel (T-52).
 - **TDD:** `src/lib/invite.test.ts` primeiro: nome com `\n`, `;`, `,`, `\` e `END:VCARD` não cria campo nem contato extra; `CRLF`; N contatos para N válidos; telefone inválido fora; nome vazio vira `Inscrito`.

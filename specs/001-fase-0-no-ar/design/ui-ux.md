@@ -1208,7 +1208,7 @@ Objetivo: convidar os inscritos para o grupo sem salvar contato e sem adicionar 
 - Administrador: página de respostas `/formularios/$id/respostas`, em cartão acima da tabela.
 - Cliente: `/c/$token`, estado `ok` (sessão válida), acima da tabela, abaixo dos contadores e botões de download.
 
-Hierarquia da ação: primária = "Enviar convite por e-mail para todos"; secundárias = "Convidar pelo WhatsApp" por pessoa e "Baixar contatos (.vcf)".
+Hierarquia da ação: primária = "Enviar convite por e-mail para todos"; secundárias = "Convidar pelo WhatsApp" por pessoa e "Baixar contatos para a agenda".
 
 ```mermaid
 flowchart TD
@@ -1225,7 +1225,7 @@ flowchart TD
   E --> R[Resultado: enviados e falhas]
   R -- falhas --> T[Tentar de novo as falhas]
   OK --> W[Botao Convidar pelo WhatsApp por pessoa]
-  OK --> D[Baixar contatos .vcf]
+  OK --> D[Baixar contatos para a agenda]
 ```
 
 #### 3.2 Wireframes
@@ -1241,7 +1241,7 @@ Celular (360 px):
 |   para 57 inscritos                  |
 |                                      |
 | Link do grupo: chat.whatsapp.com/…   |
-| [Trocar link]  [Baixar contatos .vcf]|
+| [Trocar link] [Baixar contatos para a agenda]|
 |                                      |
 | v Editar mensagem do convite         |
 |                                      |
@@ -1299,7 +1299,7 @@ Diálogo de confirmação do envio por e-mail:
 | Sucesso | Faixa verde `Convites enviados: {E}.` e, se houver falhas, `{F} não puderam ser enviados.` com botão `Tentar de novo as falhas` |
 | Limite atingido | Faixa âmbar com o tempo de espera, botão desabilitado |
 | Bloqueado / somente leitura | Cliente com sessão expirada volta à tela "Link protegido" (nada de convite sem sessão válida) |
-| Indisponível | Formulário sem WhatsApp válido em nenhum inscrito: botão `Convidar` ausente nas linhas e `Baixar contatos (.vcf)` desabilitado |
+| Indisponível | Formulário sem WhatsApp válido em nenhum inscrito: botão `Convidar` ausente nas linhas e `Baixar contatos para a agenda` desabilitado com aviso explicativo |
 
 Regras de exibição por linha:
 - Com celular brasileiro válido (`parseBrazilMobile`): botão `Convidar`, que abre `whatsappUrl(telefone, mensagem)` em nova aba (`target="_blank" rel="noopener noreferrer"`).
@@ -1315,7 +1315,15 @@ Regras de exibição por linha:
 - Link salvo: `Link do grupo:` + domínio abreviado; botão `Trocar link`
 - Botão primário: `Enviar convite por e-mail`; sublinha `para {N} inscritos`
 - Botão por pessoa: `Convidar`; rótulo acessível `Convidar {nome} pelo WhatsApp`
-- Botão `Baixar contatos (.vcf)`; dica (title): `Arquivo com o nome e o celular de quem informou WhatsApp. Ao importar, os contatos entram na sua agenda.`
+- Botão `Baixar contatos para a agenda`:
+  - Rótulo: `Baixar contatos para a agenda`
+  - Apoio fixo visível (`text-xs text-muted-foreground`), ligado ao botão por `aria-describedby`: `Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.`
+  - Contagem visível: `{N} de {M} inscrições têm celular válido.` (singular `1 de {M} inscrições tem celular válido.`).
+  - Desabilitado (N = 0): o apoio dá lugar a `Nenhuma inscrição tem celular válido para baixar.` visível (sem atributo `title` no botão).
+  - Diálogo `Como usar o arquivo de contatos` aberto por link/botão discreto `Como usar`: título `Como usar o arquivo de contatos`; lista numerada com 1. `Baixe o arquivo.` / 2. `No celular, abra o arquivo baixado e escolha Contatos.` / 3. `No WhatsApp, crie o grupo e adicione os contatos. Se preferir, envie o link do grupo.` e botão `Entendi`.
+  - Confirmação ao baixar: `toast.success` com `Arquivo com {N} contatos baixado. Abra-o no celular para adicioná-los à agenda.` (singular: `Arquivo com 1 contato baixado. Abra-o no celular para adicioná-lo à agenda.`).
+  - Erro: `Não foi possível baixar os contatos. Tente novamente.`
+  - Acessibilidade: nada de informação essencial apenas em `title`; `aria-describedby` ligado ao id de apoio; foco devolvido ao fechar diálogo e fechamento por Esc.
 - Disclosure: `Editar mensagem do convite`; campo `Mensagem` com o texto padrão abaixo; botão `Restaurar mensagem padrão`
 - Mensagem padrão (WhatsApp): `Olá, {primeiro nome}! Aqui está o link do grupo de avisos de “{título}”: {link}` (sem nome: `Olá! Aqui está o link do grupo de avisos de “{título}”: {link}`). A mensagem sempre contém o link do grupo, mesmo que o texto seja editado.
 - Aviso de privacidade (fixo no painel, `text-xs`): `Quem entrar no grupo vê o número de WhatsApp dos outros participantes. O convite é opcional: cada pessoa entra se quiser.`

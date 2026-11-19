@@ -688,6 +688,7 @@ Camada: **U** unitário, **I** integração com simulação (`fetch`, banco), **
 | **QA-46-32** | Aviso no formulário público só com link (T-56 / RF-26 / SEC-46) — **Implementado (`public-forms.functions.test.ts`, `routes.test.ts`)** | U/I | `form.groupNotice` só é devolvido quando há link válido no WhatsApp; sem link válido ou com aviso vazio, retorna `null`; link real nunca vaza no payload público |
 | **QA-46-33** | Texto de convite na confirmação e no e-mail (T-56 / RF-26) — **Implementado (`submit-response.test.ts`, `confirmation-email.test.ts`)** | U/I | Texto personalizado exibido na tela de confirmação e no e-mail; se vazio ou inválido, cai no padrão; aviso de privacidade `GROUP_PRIVACY_NOTICE` permanece inalterado |
 | **QA-46-34** | Botão do grupo com identidade do WhatsApp (T-57) — **Implementado (`confirmation-email.test.ts`, `group-texts.test.ts`, `routes.test.ts`)** | U/M | Botão sempre verde WhatsApp (`#25D366`), texto e ícone escuros (`#073B2A`) com razão de contraste ~6,3:1 (≥ 4,5:1 WCAG AA), independente do tema do formulário; foco visível e hover `#20BD5A`; ícone oficial do WhatsApp na página (SVG) e no e-mail (PNG 20×20 px, `alt=""`); se imagem for bloqueada no e-mail, texto permanece perfeitamente legível |
+| **QA-46-35** | Textos e estados do botão de contatos (T-60) — **Implementado (`invite.test.ts`, `routes.test.ts`)** | U/M | Rótulo "Baixar contatos para a agenda"; apoio visível com texto explicativo e contagem singular/plural ligado por aria-describedby; desabilitado com motivo visível e sem title; diálogo "Como usar o arquivo de contatos" com passos e botão "Entendi"; toast com contagem singular/plural no download |
 
 ### 15.3 Fronteiras e valores limite
 - Inscritos: 0, 1, 50, 51 (duas fatias), 57, 100, 101 (orçamento).
@@ -707,7 +708,7 @@ Nunca usar os 57 inscritos reais nem o formulário do cliente. Criar 3 e-mails s
 | MAN-46-04 | Administrador: `Enviar convite por e-mail` com confirmação | Resumo com quantidade; progresso; 1 e-mail por caixa; sem dados de outros |
 | MAN-46-05 | Tocar duas vezes rápido | Só um envio; segundo toque recusado com a mensagem de intervalo |
 | MAN-46-06 | `Convidar` por WhatsApp (celular) | Abre a conversa certa com mensagem pronta; linha vira `Convidado em` |
-| MAN-46-07 | `Baixar contatos (.vcf)` e importar em Android e iPhone | Contatos importados com +55 — **Provado pelo dono em 18/11/2026** (arquivo baixado e testado) |
+| MAN-46-07 | `Baixar contatos para a agenda` e importar em Android e iPhone | Contatos importados com +55 — **Provado pelo dono em 18/11/2026** (arquivo baixado e testado) |
 | MAN-46-08 | Link do cliente legado | Painel só leitura com o texto da P-08 |
 | MAN-46-09 | `Proteger com código`, desbloquear e enviar pelo cliente | Painel completo; autoria `cliente via link` |
 | MAN-46-10 | Conferir Resend (Usage) e Cloudflare (logs) | Contagem coerente com os envios; sem erro de CPU ou de subrequests |

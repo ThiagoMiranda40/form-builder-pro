@@ -278,3 +278,30 @@ export function sanitizeSubject(text: string): string {
     .trim()
     .slice(0, MAX_SUBJECT_LENGTH);
 }
+
+/**
+ * Mensagem para quando nenhuma inscrição tem celular válido para baixar (T-60 / RF-22).
+ */
+export const vcfDisabledMessage = "Nenhuma inscrição tem celular válido para baixar.";
+export const VCF_DISABLED_MESSAGE = vcfDisabledMessage;
+
+/**
+ * Texto descritivo da contagem de inscrições com celular válido (T-60 / RF-22).
+ */
+export function vcfSummaryText(valid: number, total: number): string {
+  if (valid === 1) {
+    return `1 de ${total} inscrições tem celular válido.`;
+  }
+  return `${valid} de ${total} inscrições têm celular válido.`;
+}
+
+/**
+ * Mensagem do toast de sucesso ao baixar o arquivo .vcf (T-60 / RF-22).
+ */
+export function vcfSuccessMessage(n: number): string {
+  if (n === 1) {
+    return "Arquivo com 1 contato baixado. Abra-o no celular para adicioná-lo à agenda.";
+  }
+  return `Arquivo com ${n} contatos baixado. Abra-o no celular para adicioná-los à agenda.`;
+}
+

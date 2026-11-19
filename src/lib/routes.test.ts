@@ -545,5 +545,51 @@ describe("Instrução de tamanho do logotipo no editor (T-58)", () => {
   });
 });
 
+describe("Página de respostas — T-60: Texto claro no botão de contatos (RF-22, QA-46-35)", () => {
+  const rootDir = process.cwd();
+  const respostasRoutePath = path.join(
+    rootDir,
+    "src/routes/_authenticated.formularios.$id_.respostas.tsx",
+  );
+
+  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos", () => {
+    const content = fs.readFileSync(respostasRoutePath, "utf-8");
+
+    // 1. Rótulo do botão atualizado
+    expect(content).toContain("Baixar contatos para a agenda");
+    // Não contém mais o rótulo antigo
+    expect(content).not.toContain("Baixar contatos (.vcf)");
+
+    // 2. Não usa mais title="..." no botão de contatos
+    const buttonIndex = content.indexOf("Baixar contatos para a agenda");
+    expect(buttonIndex).toBeGreaterThan(-1);
+    const startTag = content.lastIndexOf("<button", buttonIndex);
+    const endTag = content.indexOf(">", buttonIndex);
+    const buttonBlock = content.slice(startTag, endTag + 1);
+    expect(buttonBlock).not.toContain("title=");
+    expect(buttonBlock).toContain('aria-describedby="vcf-contacts-hint"');
+
+    // 3. Texto de apoio fixo visível
+    const exactSupportText =
+      "Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.";
+    expect(content).toContain(exactSupportText);
+
+    // 4. Texto quando desabilitado e contagem
+    expect(content).toContain("vcfDisabledMessage");
+    expect(content).toContain("vcfSummaryText");
+
+    // 5. Botão/link Como usar e Diálogo com título e passos numerados
+    expect(content).toContain("Como usar");
+    expect(content).toContain("Como usar o arquivo de contatos");
+    expect(content).toContain("Baixe o arquivo.");
+    expect(content).toContain("No celular, abra o arquivo baixado e escolha Contatos.");
+    expect(content).toContain(
+      "No WhatsApp, crie o grupo e adicione os contatos. Se preferir, envie o link do grupo.",
+    );
+    expect(content).toContain("Entendi");
+  });
+});
+
+
 
 

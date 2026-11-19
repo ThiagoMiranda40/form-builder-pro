@@ -123,7 +123,9 @@ Como cliente, quero ver quem já foi convidado (por e-mail ou pelo botão do Wha
 
 ### RF-22 — Baixar contatos (primeira entrega da M-46, T-55)
 Como cliente, quero baixar os contatos dos inscritos num arquivo, para importar na agenda de uma vez se eu preferir adicionar manualmente.
-**Critério de aceite:** Dado N inscritos com celular válido, quando toco em `Baixar contatos (.vcf)`, então baixo um arquivo com N contatos (nome e telefone com +55) que abre no Android e no iPhone. Nomes com caracteres especiais não alteram nem criam campos no contato.
+**Critério de aceite:** Dado N inscritos com celular válido, quando toco em `Baixar contatos para a agenda`, então baixo um arquivo com N contatos (nome e telefone com +55) que abre no Android e no iPhone. Nomes com caracteres especiais não alteram nem criam campos no contato. A tela explica, em texto visível, para que serve o arquivo e como usá-lo, informa quantos contatos foram baixados e, quando não há celular válido, diz isso por escrito.
+
+> *Atualizado em 18/11/2026: o rótulo deixou de citar a sigla .vcf, que o usuário leigo não entende.*
 
 ### RF-23 — Mesmas funções no link privado do cliente
 Como cliente, quero usar RF-19 a RF-22 pelo meu link protegido por código.

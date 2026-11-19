@@ -15,6 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AdminEditResponseDialog } from "@/components/AdminEditResponseDialog";
 import { ResponsesTable } from "@/components/ResponsesTable";
 import { ResponseDetailDialog } from "@/components/ResponseDetailDialog";
@@ -26,7 +34,14 @@ import {
 } from "@/lib/responses-table";
 import { findEmailQuestionWithAnswer } from "@/lib/admin-response";
 import { resendEditLink } from "@/lib/admin-response.functions";
-import { buildVcf, extractVcfContacts, vcfFilename } from "@/lib/invite";
+import {
+  buildVcf,
+  extractVcfContacts,
+  vcfFilename,
+  vcfSummaryText,
+  vcfSuccessMessage,
+  vcfDisabledMessage,
+} from "@/lib/invite";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -59,6 +74,7 @@ function Respostas() {
   const { id } = useParams({ from: "/_authenticated/formularios/$id_/respostas" });
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
   const [onlyEdited, setOnlyEdited] = useState(false);
+  const [howToUseOpen, setHowToUseOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [detailRow, setDetailRow] = useState<{
     id: string;
@@ -183,6 +199,7 @@ function Respostas() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      toast.success(vcfSuccessMessage(contacts.length));
     } catch {
       toast.error("Não foi possível baixar os contatos. Tente novamente.");
     }
@@ -266,7 +283,10 @@ function Respostas() {
   const displayedResponses = onlyEdited
     ? responses.filter((r) => isEdited(r.submitted_at, r.updated_at))
     : responses;
-  const hasValidVcfContacts = extractVcfContacts(questions, responses).length > 0;
+  const validVcfContacts = extractVcfContacts(questions, responses);
+  const validVcfCount = validVcfContacts.length;
+  const hasValidVcfContacts = validVcfCount > 0;
+  const totalResponsesCount = responses.length;
 
   const updatedAtText = formatUpdatedAt(query.dataUpdatedAt);
 
@@ -302,55 +322,74 @@ function Respostas() {
               : ""}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => query.refetch()}
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
-          >
-            Atualizar
-          </button>
-          {editedCount > 0 && (
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              aria-pressed={onlyEdited}
-              onClick={() => setOnlyEdited((prev) => !prev)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors cursor-pointer ${
-                onlyEdited
-                  ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
-                  : "bg-white/70 text-foreground hover:bg-white"
-              }`}
+              onClick={() => query.refetch()}
+              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
             >
-              {onlyEdited ? "Mostrar todas" : "Mostrar só editadas"}
+              Atualizar
             </button>
-          )}
-          <button
-            onClick={() => handleExportExcel(form.title, questions, responses)}
-            disabled={responses.length === 0 || exporting !== null}
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            Exportar Excel
-          </button>
-          <button
-            onClick={() => handleExportPDF(form.title, questions, responses)}
-            disabled={responses.length === 0 || exporting !== null}
-            className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            Exportar PDF
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDownloadVcf(form.title, questions, responses)}
-            disabled={!hasValidVcfContacts}
-            title={
-              hasValidVcfContacts
-                ? "Arquivo com o nome e o celular de quem informou WhatsApp. Ao importar, os contatos entram na sua agenda."
-                : "Este formulário não tem celular válido para baixar."
-            }
-            className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            Baixar contatos (.vcf)
-          </button>
+            {editedCount > 0 && (
+              <button
+                type="button"
+                aria-pressed={onlyEdited}
+                onClick={() => setOnlyEdited((prev) => !prev)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors cursor-pointer ${
+                  onlyEdited
+                    ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
+                    : "bg-white/70 text-foreground hover:bg-white"
+                }`}
+              >
+                {onlyEdited ? "Mostrar todas" : "Mostrar só editadas"}
+              </button>
+            )}
+            <button
+              onClick={() => handleExportExcel(form.title, questions, responses)}
+              disabled={responses.length === 0 || exporting !== null}
+              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              Exportar Excel
+            </button>
+            <button
+              onClick={() => handleExportPDF(form.title, questions, responses)}
+              disabled={responses.length === 0 || exporting !== null}
+              className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              Exportar PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownloadVcf(form.title, questions, responses)}
+              disabled={!hasValidVcfContacts}
+              aria-describedby="vcf-contacts-hint"
+              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              Baixar contatos para a agenda
+            </button>
+          </div>
+          <div id="vcf-contacts-hint" className="text-xs text-muted-foreground text-left sm:text-right max-w-xl">
+            {hasValidVcfContacts ? (
+              <>
+                <p>
+                  Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.
+                </p>
+                <p className="mt-0.5">
+                  <span>{vcfSummaryText(validVcfCount, totalResponsesCount)}</span>{" · "}
+                  <button
+                    type="button"
+                    onClick={() => setHowToUseOpen(true)}
+                    className="text-primary underline hover:text-primary/80 cursor-pointer font-medium"
+                  >
+                    Como usar
+                  </button>
+                </p>
+              </>
+            ) : (
+              <p>{vcfDisabledMessage}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -584,6 +623,31 @@ function Respostas() {
           query.refetch();
         }}
       />
+
+      <Dialog open={howToUseOpen} onOpenChange={setHowToUseOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Como usar o arquivo de contatos</DialogTitle>
+            <DialogDescription className="sr-only">
+              Instruções para adicionar os inscritos à sua agenda do celular
+            </DialogDescription>
+          </DialogHeader>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-foreground my-2">
+            <li>Baixe o arquivo.</li>
+            <li>No celular, abra o arquivo baixado e escolha Contatos.</li>
+            <li>No WhatsApp, crie o grupo e adicione os contatos. Se preferir, envie o link do grupo.</li>
+          </ol>
+          <DialogFooter className="sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setHowToUseOpen(false)}
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-brand/90 cursor-pointer"
+            >
+              Entendi
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
