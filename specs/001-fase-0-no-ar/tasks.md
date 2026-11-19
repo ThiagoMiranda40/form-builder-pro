@@ -859,6 +859,7 @@ Critérios de Aceite:
 | 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
 | 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (19/11/2026) |
 | 7f | T-61 Imagem de capa do formulário | T-58 | concluída no código; prova visual pendente do dono (🧑) |
+| 7g | T-62 Layout do apoio de contatos | T-60 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1078,6 +1079,22 @@ Critérios de Aceite:
   - Telas públicas: `$slug.tsx` e `editar.$token.tsx` exibem a capa no topo do cartão com sangria negativa (`-mx-6 -mt-6 mb-6 overflow-hidden rounded-t-2xl sm:-mx-8 sm:-mt-8`), `aspect-[3/1]`, `object-cover` e `alt=""`.
 - **TDD:** testes unitários em `src/lib/theme.test.ts`, `src/lib/public-forms.functions.test.ts`, `src/lib/edit-response.test.ts`, `src/lib/clone-form.test.ts`, `src/lib/editor-dirty.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/lib/theme.ts`, `src/lib/theme.test.ts`, `src/lib/editor-dirty.ts`, `src/lib/editor-dirty.test.ts`, `src/lib/public-forms.functions.ts`, `src/lib/public-forms.functions.test.ts`, `src/lib/edit-response.ts`, `src/lib/edit-response.functions.ts`, `src/lib/edit-response.test.ts`, `src/lib/clone-form.test.ts`, `src/routes/_authenticated.formularios.$id.tsx`, `src/routes/$slug.tsx`, `src/routes/editar.$token.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-62 — Layout da barra de ações e do apoio de contatos (respostas)
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx`.
+- **Objetivo:** organizar a página de respostas em três blocos verticais alinhados à esquerda (cabeçalho, barra de botões, faixa de apoio de contatos), eliminando a quebra irregular e o alinhamento à direita no desktop, com ícone de informação e visual consistente.
+- **Especificações complementares:**
+  - Três blocos alinhados à esquerda: (a) cabeçalho com título, atualização e contagens; (b) barra de botões de ação (`flex flex-wrap items-center gap-2`); (c) faixa de apoio dos contatos em largura total (`id="vcf-contacts-hint"`).
+  - Faixa de apoio: caixa discreta com fundo claro (`bg-white/50`, `text-slate-600`, `ring-1 ring-black/5`), ícone `Info` do `lucide-react` (`h-4 w-4 shrink-0`, `aria-hidden="true"`), texto de apoio exato e contagem/link `Como usar`.
+  - Remoção de `sm:items-end`, `sm:text-right`, `max-w-xl` e da coluna flex que envolvia os botões e o apoio.
+  - Acessibilidade: `aria-describedby="vcf-contacts-hint"` no botão de contatos mantido, contraste AA, foco visível no botão `Como usar`.
+- **TDD:** testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

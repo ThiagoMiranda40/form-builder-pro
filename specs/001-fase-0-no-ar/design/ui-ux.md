@@ -1262,6 +1262,27 @@ Celular (360 px):
 | Sem WhatsApp válido                  |
 +--------------------------------------+
 ```
+
+#### 3.2.1 Wireframe da Página de Respostas (T-62 — Layout em Três Blocos)
+Estrutura estável no topo da página de respostas alinhada à esquerda em 3 blocos verticais:
+1. Cabeçalho (link voltar ao editor, título, horário de atualização e linha de contagens).
+2. Barra de botões (`flex flex-wrap items-center gap-2`).
+3. Faixa de apoio de contatos em largura total com ícone `Info`, texto de apoio, contagem e ação `Como usar`.
+
+```
+← Editor
+Título ........................ Atualizado às HH:MM
+N resposta(s) de V vagas · E editada(s) · prazo ...
+
+[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF] [Baixar contatos para a agenda]
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ (i) Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra  │
+│     o arquivo no celular para adicionar todos à sua agenda de uma vez.       │
+│     N de M inscrições têm celular válido. · Como usar                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+[Buscar...]  [Mais recentes primeiro]                  Mostrando N de M inscrições
+```
+
 Computador: o mesmo cartão, com as três ações em linha (`flex-wrap`), e a lista em duas colunas de informação por linha (nome à esquerda, status e botão à direita). Largura máxima igual à do cartão de respostas.
 
 Sem link do grupo:

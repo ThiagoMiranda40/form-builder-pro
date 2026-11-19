@@ -545,14 +545,14 @@ describe("Instrução de tamanho do logotipo no editor (T-58)", () => {
   });
 });
 
-describe("Página de respostas — T-60: Texto claro no botão de contatos (RF-22, QA-46-35)", () => {
+describe("Página de respostas — T-60 / T-62: Texto claro e layout do apoio de contatos (RF-22, QA-46-35)", () => {
   const rootDir = process.cwd();
   const respostasRoutePath = path.join(
     rootDir,
     "src/routes/_authenticated.formularios.$id_.respostas.tsx",
   );
 
-  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos", () => {
+  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos (T-60)", () => {
     const content = fs.readFileSync(respostasRoutePath, "utf-8");
 
     // 1. Rótulo do botão atualizado
@@ -587,6 +587,26 @@ describe("Página de respostas — T-60: Texto claro no botão de contatos (RF-2
       "No WhatsApp, crie o grupo e adicione os contatos. Se preferir, envie o link do grupo.",
     );
     expect(content).toContain("Entendi");
+  });
+
+  it("a página de respostas organiza cabeçalho, botões e apoio de contatos em três blocos sem alinhamento à direita (T-62)", () => {
+    const content = fs.readFileSync(respostasRoutePath, "utf-8");
+
+    // (a) id="vcf-contacts-hint" existe exatamente uma vez
+    const idOccurrences = content.match(/id=["']vcf-contacts-hint["']/g) || [];
+    expect(idOccurrences).toHaveLength(1);
+
+    // (b) Não contém mais sm:text-right, sm:items-end nem max-w-xl no apoio
+    expect(content).not.toContain("sm:text-right");
+    expect(content).not.toContain("sm:items-end");
+    expect(content).not.toContain("max-w-xl");
+
+    // (c) Importa Info de lucide-react e usa o ícone com aria-hidden
+    expect(content).toMatch(/import\s*\{[^}]*Info[^}]*\}\s*from\s*["']lucide-react["']/);
+    expect(content).toMatch(/<Info[^>]*aria-hidden/);
+
+    // (d) Estilo acessível do botão Como usar com foco visível
+    expect(content).toContain("focus-visible:ring-2");
   });
 });
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_ORIGINS } from "@/lib/submit-response";
 import { isEdited, describeResponse } from "@/lib/responses-view";
@@ -298,98 +299,106 @@ function Respostas() {
 
   return (
     <section className="rise space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Link
-            to="/formularios/$id"
-            params={{ id }}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Editor
-          </Link>
-          <div className="mt-1 flex flex-wrap items-baseline gap-3">
-            <h1 className="font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
-            {updatedAtText && (
-              <span className="text-xs text-slate-600">{updatedAtText}</span>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {responses.length} resposta(s)
-            {form.max_responses ? ` de ${form.max_responses} vagas` : ""}
-            {editedCount > 0 ? ` · ${editedCount} editada(s)` : ""}
-            {form.closes_at
-              ? ` · prazo ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
-              : ""}
-          </p>
+      {/* Bloco 1 — Cabeçalho e contadores */}
+      <div>
+        <Link
+          to="/formularios/$id"
+          params={{ id }}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← Editor
+        </Link>
+        <div className="mt-1 flex flex-wrap items-baseline gap-3">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{form.title}</h1>
+          {updatedAtText && (
+            <span className="text-xs text-slate-600">{updatedAtText}</span>
+          )}
         </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => query.refetch()}
-              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
-            >
-              Atualizar
-            </button>
-            {editedCount > 0 && (
-              <button
-                type="button"
-                aria-pressed={onlyEdited}
-                onClick={() => setOnlyEdited((prev) => !prev)}
-                className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors cursor-pointer ${
-                  onlyEdited
-                    ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
-                    : "bg-white/70 text-foreground hover:bg-white"
-                }`}
-              >
-                {onlyEdited ? "Mostrar todas" : "Mostrar só editadas"}
-              </button>
-            )}
-            <button
-              onClick={() => handleExportExcel(form.title, questions, responses)}
-              disabled={responses.length === 0 || exporting !== null}
-              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              Exportar Excel
-            </button>
-            <button
-              onClick={() => handleExportPDF(form.title, questions, responses)}
-              disabled={responses.length === 0 || exporting !== null}
-              className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              Exportar PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDownloadVcf(form.title, questions, responses)}
-              disabled={!hasValidVcfContacts}
-              aria-describedby="vcf-contacts-hint"
-              className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              Baixar contatos para a agenda
-            </button>
-          </div>
-          <div id="vcf-contacts-hint" className="text-xs text-muted-foreground text-left sm:text-right max-w-xl">
-            {hasValidVcfContacts ? (
-              <>
-                <p>
-                  Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.
-                </p>
-                <p className="mt-0.5">
-                  <span>{vcfSummaryText(validVcfCount, totalResponsesCount)}</span>{" · "}
-                  <button
-                    type="button"
-                    onClick={() => setHowToUseOpen(true)}
-                    className="text-primary underline hover:text-primary/80 cursor-pointer font-medium"
-                  >
-                    Como usar
-                  </button>
-                </p>
-              </>
-            ) : (
-              <p>{vcfDisabledMessage}</p>
-            )}
-          </div>
+        <p className="text-sm text-muted-foreground">
+          {responses.length} resposta(s)
+          {form.max_responses ? ` de ${form.max_responses} vagas` : ""}
+          {editedCount > 0 ? ` · ${editedCount} editada(s)` : ""}
+          {form.closes_at
+            ? ` · prazo ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+            : ""}
+        </p>
+      </div>
+
+      {/* Bloco 2 — Barra de ações (largura natural, quebra em telas estreitas) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => query.refetch()}
+          className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white cursor-pointer"
+        >
+          Atualizar
+        </button>
+        {editedCount > 0 && (
+          <button
+            type="button"
+            aria-pressed={onlyEdited}
+            onClick={() => setOnlyEdited((prev) => !prev)}
+            className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors cursor-pointer ${
+              onlyEdited
+                ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
+                : "bg-white/70 text-foreground hover:bg-white"
+            }`}
+          >
+            {onlyEdited ? "Mostrar todas" : "Mostrar só editadas"}
+          </button>
+        )}
+        <button
+          onClick={() => handleExportExcel(form.title, questions, responses)}
+          disabled={responses.length === 0 || exporting !== null}
+          className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+        >
+          Exportar Excel
+        </button>
+        <button
+          onClick={() => handleExportPDF(form.title, questions, responses)}
+          disabled={responses.length === 0 || exporting !== null}
+          className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+        >
+          Exportar PDF
+        </button>
+        <button
+          type="button"
+          onClick={() => handleDownloadVcf(form.title, questions, responses)}
+          disabled={!hasValidVcfContacts}
+          aria-describedby="vcf-contacts-hint"
+          className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+        >
+          Baixar contatos para a agenda
+        </button>
+      </div>
+
+      {/* Bloco 3 — Apoio de contatos em largura total com ícone informativo */}
+      <div
+        id="vcf-contacts-hint"
+        className="flex items-start gap-2.5 rounded-lg bg-white/50 px-3 py-2 text-xs text-slate-600 ring-1 ring-black/5 sm:items-center"
+      >
+        <Info className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+        <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3">
+          {hasValidVcfContacts ? (
+            <>
+              <p>
+                Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.
+              </p>
+              <p className="flex items-center gap-1">
+                <span>{vcfSummaryText(validVcfCount, totalResponsesCount)}</span>
+                {" · "}
+                <button
+                  type="button"
+                  onClick={() => setHowToUseOpen(true)}
+                  className="inline-flex min-h-8 items-center rounded px-1 font-medium text-primary underline hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                >
+                  Como usar
+                </button>
+              </p>
+            </>
+          ) : (
+            <p>{vcfDisabledMessage}</p>
+          )}
         </div>
       </div>
 
