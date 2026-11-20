@@ -860,6 +860,7 @@ Critérios de Aceite:
 | 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (19/11/2026) |
 | 7f | T-61 Imagem de capa do formulário | T-58 | concluída no código; prova visual pendente do dono (🧑) |
 | 7g | T-62 Layout do apoio de contatos | T-60 | concluída no código; prova visual pendente do dono (🧑) |
+| 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1086,6 +1087,7 @@ Critérios de Aceite:
 ## T-62 — Layout da barra de ações e do apoio de contatos (respostas)
 
 - **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Nota:** Layout do apoio refinado pela T-63 (botão de contatos movido para dentro do cartão; conforto de toque no celular).
 - **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx`.
 - **Objetivo:** organizar a página de respostas em três blocos verticais alinhados à esquerda (cabeçalho, barra de botões, faixa de apoio de contatos), eliminando a quebra irregular e o alinhamento à direita no desktop, com ícone de informação e visual consistente.
 - **Especificações complementares:**
@@ -1095,6 +1097,24 @@ Critérios de Aceite:
   - Acessibilidade: `aria-describedby="vcf-contacts-hint"` no botão de contatos mantido, contraste AA, foco visível no botão `Como usar`.
 - **TDD:** testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-63 — Botão de contatos no cartão de apoio e conforto de toque (respostas)
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx; src/components/ResponsesTable.tsx`.
+- **Objetivo:** mover o botão "Baixar contatos para a agenda" para dentro do cartão de apoio que o explica (criando uma região contextual comum), e adequar os alvos de toque (mínimo de 44 px / `min-h-11`) e a tipografia (mínimo de 16 px / `text-base`) para evitar toques acidentais duplos e zoom automático no celular.
+- **Especificações complementares:**
+  - Bloco 1 (cabeçalho): `Atualizado às ...` passa para `text-sm sm:text-xs`; contagens para `text-base sm:text-sm`.
+  - Bloco 2 (ações): no celular `grid grid-cols-2 gap-3`, no desktop `sm:flex sm:flex-wrap sm:items-center sm:gap-2`. Botões com `min-h-11 w-full justify-center text-base sm:min-h-9 sm:w-auto sm:text-sm`. O botão de contatos não fica nesta barra.
+  - Bloco 3 (cartão de contatos): contêiner `flex flex-col gap-3 rounded-lg bg-white/50 p-3 ring-1 ring-black/5 sm:flex-row sm:items-start sm:gap-4`. Primeiro filho: botão `Baixar contatos para a agenda` com ícone `Download` do `lucide-react` (`aria-hidden="true"`), `min-h-11 w-full sm:min-h-9 sm:w-auto sm:shrink-0`, `aria-describedby="vcf-contacts-hint"`. Segundo filho: coluna de apoio (`flex min-w-0 flex-col gap-2 sm:max-w-prose`) com `<div id="vcf-contacts-hint">` contendo o texto explicativo e a contagem em parágrafos separados (sem ponto ` · `), e botão `Como usar` próprio (`min-h-11 sm:min-h-8`).
+  - Remoção do ícone `Info` e limpeza de imports não utilizados.
+  - Linha de busca e ordenação em `ResponsesTable.tsx`: campos com `min-h-11 text-base sm:min-h-9 sm:text-sm`, textos auxiliares `text-sm sm:text-xs`.
+  - Diálogo de como usar: passos com `text-base sm:text-sm` e botão `Entendi` com `min-h-11 w-full sm:w-auto`.
+- **TDD:** testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/components/ResponsesTable.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

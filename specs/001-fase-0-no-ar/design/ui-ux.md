@@ -1263,24 +1263,51 @@ Celular (360 px):
 +--------------------------------------+
 ```
 
-#### 3.2.1 Wireframe da Página de Respostas (T-62 — Layout em Três Blocos)
+#### 3.2.1 Wireframe da Página de Respostas (T-62 / T-63 — Layout em Três Blocos e Cartão de Contatos)
 Estrutura estável no topo da página de respostas alinhada à esquerda em 3 blocos verticais:
 1. Cabeçalho (link voltar ao editor, título, horário de atualização e linha de contagens).
-2. Barra de botões (`flex flex-wrap items-center gap-2`).
-3. Faixa de apoio de contatos em largura total com ícone `Info`, texto de apoio, contagem e ação `Como usar`.
+2. Barra de ações (Atualizar, Mostrar só editadas, Exportar Excel, Exportar PDF). No celular em grade 2×2 (`grid grid-cols-2 gap-3`); no computador em linha (`sm:flex sm:flex-wrap sm:items-center sm:gap-2`). Alvos de toque de no mínimo 44 px (`min-h-11 sm:min-h-9`).
+3. Cartão contextual de contatos (região comum com botão e texto explicativo). O botão `Baixar contatos para a agenda` com ícone `Download` vive dentro do próprio cartão. A coluna de apoio traz o texto explicativo, a contagem de celulares válidos em parágrafo próprio (sem ponto separador ` · ` solto) e o botão `Como usar` com altura mínima de 44 px (`min-h-11 sm:min-h-8`).
+4. Conforto de toque e tipografia no celular: campos de busca e seleção com no mínimo 16 px (`text-base sm:text-sm`) e 44 px de altura (`min-h-11 sm:min-h-9`), evitando acionamentos acidentais e zoom automático no iPhone. Textos auxiliares e de apoio com contraste AA (`text-slate-700` no celular, `text-slate-600` no computador).
 
 ```
+COMPUTADOR
 ← Editor
 Título ........................ Atualizado às HH:MM
 N resposta(s) de V vagas · E editada(s) · prazo ...
 
-[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF] [Baixar contatos para a agenda]
+[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF]
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ (i) Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra  │
-│     o arquivo no celular para adicionar todos à sua agenda de uma vez.       │
-│     N de M inscrições têm celular válido. · Como usar                        │
+│ [⬇ Baixar contatos para a agenda]  Baixa um arquivo com o nome e o celular   │
+│                                    de quem informou WhatsApp. Abra o         │
+│                                    arquivo no celular para adicionar todos   │
+│                                    à sua agenda de uma vez.                  │
+│                                    N de M inscrições têm celular válido.     │
+│                                    Como usar                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 [Buscar...]  [Mais recentes primeiro]                  Mostrando N de M inscrições
+
+CELULAR (cada botão com 44 px ou mais de altura)
+← Editor
+Título
+Atualizado às HH:MM
+N resposta(s) de V vagas · E editada(s) · prazo ...
+
+[ Atualizar ]       [ Mostrar só editadas ]
+[ Exportar Excel ]  [ Exportar PDF ]
+┌──────────────────────────────────────────────┐
+│ [⬇ Baixar contatos para a agenda ] (larg. tot)│
+│ Baixa um arquivo com o nome e o celular de   │
+│ quem informou WhatsApp. Abra o arquivo no    │
+│ celular para adicionar todos à sua agenda de │
+│ uma vez.                                     │
+│ N de M inscrições têm celular válido.        │
+│ [ Como usar ]                                │
+└──────────────────────────────────────────────┘
+[Buscar por nome, CPF...]
+[Mais recentes primeiro]
+Mostrando N de M inscrições
+Toque numa linha para ver todos os dados.
 ```
 
 Computador: o mesmo cartão, com as três ações em linha (`flex-wrap`), e a lista em duas colunas de informação por linha (nome à esquerda, status e botão à direita). Largura máxima igual à do cartão de respostas.

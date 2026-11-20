@@ -66,7 +66,7 @@ export function ResponsesTable({
               placeholder="Buscar por nome, CPF, e-mail, telefone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg bg-white/80 pl-9 pr-8 py-2 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none"
+              className="min-h-11 w-full rounded-lg bg-white/80 pl-9 pr-8 py-2 text-base ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none sm:min-h-9 sm:text-sm"
             />
             {searchQuery && (
               <button
@@ -89,7 +89,7 @@ export function ResponsesTable({
               aria-label="Ordem das inscrições"
               value={sortMode}
               onChange={(e) => onSortModeChange(e.target.value as SortMode)}
-              className="rounded-lg bg-white/80 px-3 py-2 text-sm ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none cursor-pointer"
+              className="min-h-11 rounded-lg bg-white/80 px-3 py-2 text-base ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none cursor-pointer sm:min-h-9 sm:text-sm"
             >
               <option value="newest">Mais recentes primeiro</option>
               <option value="oldest">Mais antigas primeiro</option>
@@ -103,7 +103,7 @@ export function ResponsesTable({
           </div>
         </div>
 
-        <p aria-live="polite" className="text-xs text-muted-foreground whitespace-nowrap">
+        <p aria-live="polite" className="text-sm text-muted-foreground whitespace-nowrap sm:text-xs">
           Mostrando {filteredAndSortedRows.length} de {rows.length} {rows.length === 1 ? "inscrição" : "inscrições"}
         </p>
       </div>
@@ -125,7 +125,7 @@ export function ResponsesTable({
       ) : (
         <div className="space-y-2">
           {onRowClick && (
-            <p className="text-xs text-slate-600 md:hidden print:hidden">
+            <p className="text-sm text-slate-600 md:hidden print:hidden sm:text-xs">
               Toque numa linha para ver todos os dados.
             </p>
           )}

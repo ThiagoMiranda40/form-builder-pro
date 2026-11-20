@@ -545,14 +545,14 @@ describe("Instrução de tamanho do logotipo no editor (T-58)", () => {
   });
 });
 
-describe("Página de respostas — T-60 / T-62: Texto claro e layout do apoio de contatos (RF-22, QA-46-35)", () => {
+describe("Página de respostas — T-60 / T-62 / T-63: Cartão de contatos e conforto de toque (RF-22, QA-46-35, QA-46-37)", () => {
   const rootDir = process.cwd();
   const respostasRoutePath = path.join(
     rootDir,
     "src/routes/_authenticated.formularios.$id_.respostas.tsx",
   );
 
-  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos (T-60)", () => {
+  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos (T-60 / T-63)", () => {
     const content = fs.readFileSync(respostasRoutePath, "utf-8");
 
     // 1. Rótulo do botão atualizado
@@ -589,23 +589,46 @@ describe("Página de respostas — T-60 / T-62: Texto claro e layout do apoio de
     expect(content).toContain("Entendi");
   });
 
-  it("a página de respostas organiza cabeçalho, botões e apoio de contatos em três blocos sem alinhamento à direita (T-62)", () => {
+  it("a página de respostas estrutura cabeçalho, botões e cartão de contatos com conforto de toque (T-62 / T-63)", () => {
     const content = fs.readFileSync(respostasRoutePath, "utf-8");
 
-    // (a) id="vcf-contacts-hint" existe exatamente uma vez
+    // (a) id="vcf-contacts-hint" existe exatamente uma vez e aria-describedby no botão
     const idOccurrences = content.match(/id=["']vcf-contacts-hint["']/g) || [];
     expect(idOccurrences).toHaveLength(1);
+    expect(content).toContain('aria-describedby="vcf-contacts-hint"');
 
-    // (b) Não contém mais sm:text-right, sm:items-end nem max-w-xl no apoio
+    // (b) Botão de contatos aparece DEPOIS do fim da barra de ações (que termina em Exportar PDF)
+    const exportPdfIndex = content.indexOf("Exportar PDF");
+    const downloadContactsIndex = content.indexOf("Baixar contatos para a agenda");
+    expect(exportPdfIndex).toBeGreaterThan(-1);
+    expect(downloadContactsIndex).toBeGreaterThan(-1);
+    expect(downloadContactsIndex).toBeGreaterThan(exportPdfIndex);
+
+    // Não contém mais sm:text-right, sm:items-end nem max-w-xl no apoio
     expect(content).not.toContain("sm:text-right");
     expect(content).not.toContain("sm:items-end");
     expect(content).not.toContain("max-w-xl");
 
-    // (c) Importa Info de lucide-react e usa o ícone com aria-hidden
-    expect(content).toMatch(/import\s*\{[^}]*Info[^}]*\}\s*from\s*["']lucide-react["']/);
-    expect(content).toMatch(/<Info[^>]*aria-hidden/);
+    // (c) Importa Download de lucide-react, NÃO importa Info, e o ícone leva aria-hidden
+    expect(content).toMatch(/import\s*\{[^}]*Download[^}]*\}\s*from\s*["']lucide-react["']/);
+    expect(content).not.toMatch(/import\s*\{[^}]*Info[^}]*\}\s*from\s*["']lucide-react["']/);
+    expect(content).toMatch(/<Download[^>]*aria-hidden/);
 
-    // (d) Estilo acessível do botão Como usar com foco visível
+    // (d) Não contém mais " · " entre a contagem e Como usar
+    expect(content).not.toMatch(/vcfSummaryText[^}]*\}[^<]*·/);
+    expect(content).not.toMatch(/<span>\{vcfSummaryText[^<]*<\/span>\s*\{" · "\}/);
+
+    // (e) Contém min-h-11 nos botões e em Como usar, e text-base sm:text-sm no bloco de apoio
+    expect(content).toContain("min-h-11");
+    expect(content).toContain("text-base sm:text-sm");
+
+    // (f) O bloco de apoio não contém text-xs
+    const hintStartIndex = content.indexOf('id="vcf-contacts-hint"');
+    const hintEndIndex = content.indexOf("</div", hintStartIndex);
+    const hintBlock = content.slice(hintStartIndex, hintEndIndex + 10);
+    expect(hintBlock).not.toContain("text-xs");
+
+    // Foco visível
     expect(content).toContain("focus-visible:ring-2");
   });
 });
