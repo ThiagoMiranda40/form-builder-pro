@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="hidden text-sm text-muted-foreground sm:block">{user?.email}</span>
             <button
               onClick={() => signOut()}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:min-h-0"
             >
               Sair
             </button>

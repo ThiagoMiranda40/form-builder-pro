@@ -91,14 +91,16 @@ export function DeleteFormDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending} className="min-h-11 sm:min-h-9">
+            Cancelar
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={isConfirmDisabled}
             onClick={(e) => {
               e.preventDefault();
               onConfirm();
             }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="min-h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:min-h-9"
           >
             {pending ? copy.pendingLabel : copy.confirmLabel}
           </AlertDialogAction>

@@ -545,14 +545,18 @@ describe("Instrução de tamanho do logotipo no editor (T-58)", () => {
   });
 });
 
-describe("Página de respostas — T-60 / T-62 / T-63: Cartão de contatos e conforto de toque (RF-22, QA-46-35, QA-46-37)", () => {
+describe("Página de respostas e Painel — T-60 a T-64: Apoio de contatos e refino mobile (RF-22, QA-46-35, QA-46-37, QA-46-38)", () => {
   const rootDir = process.cwd();
   const respostasRoutePath = path.join(
     rootDir,
     "src/routes/_authenticated.formularios.$id_.respostas.tsx",
   );
+  const painelRoutePath = path.join(
+    rootDir,
+    "src/routes/_authenticated.painel.tsx",
+  );
 
-  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos (T-60 / T-63)", () => {
+  it("a página de respostas contém os textos exatos e a acessibilidade do botão de contatos (T-60 / T-63 / T-64)", () => {
     const content = fs.readFileSync(respostasRoutePath, "utf-8");
 
     // 1. Rótulo do botão atualizado
@@ -567,7 +571,7 @@ describe("Página de respostas — T-60 / T-62 / T-63: Cartão de contatos e con
     const endTag = content.indexOf(">", buttonIndex);
     const buttonBlock = content.slice(startTag, endTag + 1);
     expect(buttonBlock).not.toContain("title=");
-    expect(buttonBlock).toContain('aria-describedby="vcf-contacts-hint"');
+    expect(buttonBlock).toContain("vcf-contacts-hint");
 
     // 3. Texto de apoio fixo visível
     const exactSupportText =
@@ -589,47 +593,100 @@ describe("Página de respostas — T-60 / T-62 / T-63: Cartão de contatos e con
     expect(content).toContain("Entendi");
   });
 
-  it("a página de respostas estrutura cabeçalho, botões e cartão de contatos com conforto de toque (T-62 / T-63)", () => {
+  it("a página de respostas estrutura cabeçalho, barra compacta e cartão de contatos em coluna (T-62 / T-63 / T-64)", () => {
     const content = fs.readFileSync(respostasRoutePath, "utf-8");
 
-    // (a) id="vcf-contacts-hint" existe exatamente uma vez e aria-describedby no botão
-    const idOccurrences = content.match(/id=["']vcf-contacts-hint["']/g) || [];
-    expect(idOccurrences).toHaveLength(1);
-    expect(content).toContain('aria-describedby="vcf-contacts-hint"');
+    // (a) A barra de 4 botões NÃO contém grid-cols-2 nem min-h-11 (bloco entre o comentário do bloco 2 e o do bloco 3)
+    const block2Comment = "Bloco 2";
+    const block3Comment = "Bloco 3";
+    const idx2 = content.indexOf(block2Comment);
+    const idx3 = content.indexOf(block3Comment);
+    expect(idx2).toBeGreaterThan(-1);
+    expect(idx3).toBeGreaterThan(idx2);
+    const block2Content = content.slice(idx2, idx3);
+    expect(block2Content).not.toContain("grid-cols-2");
+    expect(block2Content).not.toContain("min-h-11");
+    expect(block2Content).toContain("flex flex-wrap items-center gap-2");
 
-    // (b) Botão de contatos aparece DEPOIS do fim da barra de ações (que termina em Exportar PDF)
-    const exportPdfIndex = content.indexOf("Exportar PDF");
+    // (b) O cartão contém flex flex-col items-start e o botão de contatos vem ANTES do id="vcf-contacts-hint"
+    expect(content).toContain("flex flex-col items-start");
     const downloadContactsIndex = content.indexOf("Baixar contatos para a agenda");
-    expect(exportPdfIndex).toBeGreaterThan(-1);
+    const hintIndex = content.indexOf('id="vcf-contacts-hint"');
     expect(downloadContactsIndex).toBeGreaterThan(-1);
-    expect(downloadContactsIndex).toBeGreaterThan(exportPdfIndex);
+    expect(hintIndex).toBeGreaterThan(-1);
+    expect(downloadContactsIndex).toBeLessThan(hintIndex);
 
-    // Não contém mais sm:text-right, sm:items-end nem max-w-xl no apoio
-    expect(content).not.toContain("sm:text-right");
-    expect(content).not.toContain("sm:items-end");
-    expect(content).not.toContain("max-w-xl");
+    // (c) Existem id="vcf-contacts-hint" e id="vcf-contacts-count", cada um exatamente uma vez, e aria-describedby no botão
+    const hintOccurrences = content.match(/id=["']vcf-contacts-hint["']/g) || [];
+    const countOccurrences = content.match(/id=["']vcf-contacts-count["']/g) || [];
+    expect(hintOccurrences).toHaveLength(1);
+    expect(countOccurrences).toHaveLength(1);
+    expect(content).toContain("vcf-contacts-hint vcf-contacts-count");
 
-    // (c) Importa Download de lucide-react, NÃO importa Info, e o ícone leva aria-hidden
+    // (d) Como usar tem ring-1 e min-h-11 e não tem underline
+    const howToUseIdx = content.indexOf("setHowToUseOpen(true)");
+    expect(howToUseIdx).toBeGreaterThan(-1);
+    const howToUseStart = content.lastIndexOf("<button", howToUseIdx);
+    const howToUseEnd = content.indexOf("</button>", howToUseIdx);
+    const howToUseBtn = content.slice(howToUseStart, howToUseEnd);
+    expect(howToUseBtn).toContain("Como usar");
+    expect(howToUseBtn).toContain("ring-1");
+    expect(howToUseBtn).toContain("min-h-11");
+    expect(howToUseBtn).not.toContain("underline");
+
+    // (e) Importa Download de lucide-react com aria-hidden e não importa Info
     expect(content).toMatch(/import\s*\{[^}]*Download[^}]*\}\s*from\s*["']lucide-react["']/);
     expect(content).not.toMatch(/import\s*\{[^}]*Info[^}]*\}\s*from\s*["']lucide-react["']/);
     expect(content).toMatch(/<Download[^>]*aria-hidden/);
 
-    // (d) Não contém mais " · " entre a contagem e Como usar
-    expect(content).not.toMatch(/vcfSummaryText[^}]*\}[^<]*·/);
-    expect(content).not.toMatch(/<span>\{vcfSummaryText[^<]*<\/span>\s*\{" · "\}/);
-
-    // (e) Contém min-h-11 nos botões e em Como usar, e text-base sm:text-sm no bloco de apoio
-    expect(content).toContain("min-h-11");
-    expect(content).toContain("text-base sm:text-sm");
-
-    // (f) O bloco de apoio não contém text-xs
-    const hintStartIndex = content.indexOf('id="vcf-contacts-hint"');
-    const hintEndIndex = content.indexOf("</div", hintStartIndex);
-    const hintBlock = content.slice(hintStartIndex, hintEndIndex + 10);
-    expect(hintBlock).not.toContain("text-xs");
+    // (f) Link ← Editor tem min-h-11
+    const editorLinkIdx = content.indexOf("← Editor");
+    expect(editorLinkIdx).toBeGreaterThan(-1);
+    const editorLinkStart = content.lastIndexOf("<Link", editorLinkIdx);
+    const editorLink = content.slice(editorLinkStart, editorLinkIdx);
+    expect(editorLink).toContain("min-h-11");
 
     // Foco visível
     expect(content).toContain("focus-visible:ring-2");
+  });
+
+  it("o painel organiza os cartões de formulário com alvos de toque e responsividade mobile (T-64)", () => {
+    const painelContent = fs.readFileSync(painelRoutePath, "utf-8");
+
+    // (f) O link Respostas, e os botões Duplicar e Excluir têm min-h-11 e px-4
+    const respostasIdx = painelContent.indexOf("/formularios/$id/respostas");
+    const duplicarIdx = painelContent.indexOf("duplicateForm.mutate(form.id)");
+    const excluirIdx = painelContent.indexOf("setFormToDelete({");
+    expect(respostasIdx).toBeGreaterThan(-1);
+    expect(duplicarIdx).toBeGreaterThan(-1);
+    expect(excluirIdx).toBeGreaterThan(-1);
+
+    const respostasTag = painelContent.slice(painelContent.lastIndexOf("<Link", respostasIdx), painelContent.indexOf("</Link>", respostasIdx));
+    const duplicarTag = painelContent.slice(painelContent.lastIndexOf("<button", duplicarIdx), painelContent.indexOf("</button>", duplicarIdx));
+    const excluirTag = painelContent.slice(painelContent.lastIndexOf("<button", excluirIdx), painelContent.indexOf("</button>", excluirIdx));
+
+    expect(respostasTag).toContain("min-h-11");
+    expect(respostasTag).toContain("px-4");
+    expect(duplicarTag).toContain("min-h-11");
+    expect(duplicarTag).toContain("px-4");
+    expect(excluirTag).toContain("min-h-11");
+    expect(excluirTag).toContain("px-4");
+
+    // (g) Título tem line-clamp-2 e sm:truncate
+    expect(painelContent).toContain("line-clamp-2");
+    expect(painelContent).toContain("sm:truncate");
+
+    // (h) col-span-2 no Respostas
+    expect(respostasTag).toContain("col-span-2");
+
+    // (i) aria-label Duplicar o formulário e Excluir o formulário continuam
+    expect(duplicarTag).toContain("Duplicar o formulário");
+    expect(excluirTag).toContain("Excluir o formulário");
+
+    // (j) Nenhum dos três tem text-xs sem prefixo sm:
+    expect(respostasTag).not.toMatch(/(^|[\s"'])text-xs([\s"']|$)/);
+    expect(duplicarTag).not.toMatch(/(^|[\s"'])text-xs([\s"']|$)/);
+    expect(excluirTag).not.toMatch(/(^|[\s"'])text-xs([\s"']|$)/);
   });
 });
 

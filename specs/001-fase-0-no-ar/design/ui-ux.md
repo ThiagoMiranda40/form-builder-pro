@@ -1123,10 +1123,13 @@ Insumo: `prd-m46-grupo-whatsapp.md` (RF-01 a RF-09). Esta seção é um acrésci
 - Tela J (confirmação, formulário público): o botão "Entrar no grupo do WhatsApp" usa `accent` do tema com `readableTextColor(accent)`; a cor do organizador nunca é alterada. O ícone do WhatsApp não é usado em verde de marca; usar só texto e seta, para manter contraste válido em qualquer cor de tema.
 - Telas H e I (administrador e cliente): cores fixas do painel.
 
-#### 1.3 Alvos de toque e responsividade
-- Tela I vale para o cliente no celular: botões e linhas com alvo mínimo de 44 px de altura. A tabela densa do administrador não é reaproveitada aqui, porque a lista de convite é uma lista de linhas, não uma tabela.
+#### 1.3 Alvos de toque e responsividade (Diretriz Transversal de Toque no Celular — T-64)
+- Toda palavra clicável vira **botão ou link com área própria**: no celular, altura mínima 44 px (`min-h-11`), padding horizontal ≥ 16 px, fonte ≥ 16 px (`text-base`) e, de `sm:` em diante, volta ao tamanho compacto de hoje (`sm:min-h-9 sm:text-sm`). Nada de link solto de `text-xs`.
+- Espaço entre alvos vizinhos ≥ 12 px (`gap-3`).
+- Ação destrutiva (Excluir) nunca fica colada à ação principal: fica separada e com cor própria.
+- Computador: aparência compacta preservada.
 - Em 360 px não há rolagem horizontal da página.
-- Foco visível em todos os botões e campos; ordem de tab segue a ordem visual.
+- Foco visível (`focus-visible:ring-2`) em todos os botões e campos; ordem de tab segue a ordem visual.
 
 ### 2. Tela H — Link do grupo no editor do formulário
 
@@ -1263,12 +1266,16 @@ Celular (360 px):
 +--------------------------------------+
 ```
 
-#### 3.2.1 Wireframe da Página de Respostas (T-62 / T-63 — Layout em Três Blocos e Cartão de Contatos)
+#### 3.2.1 Wireframe da Página de Respostas (T-62 / T-63 / T-64 — Refino Mobile e Cartão de Contatos em Coluna)
 Estrutura estável no topo da página de respostas alinhada à esquerda em 3 blocos verticais:
-1. Cabeçalho (link voltar ao editor, título, horário de atualização e linha de contagens).
-2. Barra de ações (Atualizar, Mostrar só editadas, Exportar Excel, Exportar PDF). No celular em grade 2×2 (`grid grid-cols-2 gap-3`); no computador em linha (`sm:flex sm:flex-wrap sm:items-center sm:gap-2`). Alvos de toque de no mínimo 44 px (`min-h-11 sm:min-h-9`).
-3. Cartão contextual de contatos (região comum com botão e texto explicativo). O botão `Baixar contatos para a agenda` com ícone `Download` vive dentro do próprio cartão. A coluna de apoio traz o texto explicativo, a contagem de celulares válidos em parágrafo próprio (sem ponto separador ` · ` solto) e o botão `Como usar` com altura mínima de 44 px (`min-h-11 sm:min-h-8`).
-4. Conforto de toque e tipografia no celular: campos de busca e seleção com no mínimo 16 px (`text-base sm:text-sm`) e 44 px de altura (`min-h-11 sm:min-h-9`), evitando acionamentos acidentais e zoom automático no iPhone. Textos auxiliares e de apoio com contraste AA (`text-slate-700` no celular, `text-slate-600` no computador).
+1. Cabeçalho: link voltar ao editor (`inline-flex min-h-11 items-center text-base sm:min-h-0 sm:text-sm`), título, horário de atualização e linha de contagens.
+2. Barra de ações (Atualizar, Mostrar só editadas, Exportar Excel, Exportar PDF): compacta nos dois tamanhos (`flex flex-wrap items-center gap-2`), com foco visível.
+3. Cartão contextual de contatos: **sempre em coluna** (`flex flex-col items-start gap-3 rounded-lg bg-white/50 p-3 ring-1 ring-black/5 sm:p-4`).
+   - Botão `Baixar contatos para a agenda` no topo (`w-full sm:w-auto`, `min-h-11 sm:min-h-9`), com ícone `Download`.
+   - Texto explicativo logo abaixo em `id="vcf-contacts-hint"`.
+   - Linha com `id="vcf-contacts-count"` (contagem) e botão `Como usar` como botão com contorno (`bg-white ring-1 ring-black/10 text-primary min-h-11 sm:min-h-9`), sem sublinhado. No celular, `Como usar` fica em linha própria abaixo da contagem.
+   - `aria-describedby="vcf-contacts-hint vcf-contacts-count"` (com N = 0, apenas `vcf-contacts-hint`).
+4. Linha de busca e ordenação: campos com `min-h-11 text-base sm:min-h-9 sm:text-sm` (evita zoom no iPhone), textos auxiliares `text-sm sm:text-xs`.
 
 ```
 COMPUTADOR
@@ -1276,38 +1283,54 @@ COMPUTADOR
 Título ........................ Atualizado às HH:MM
 N resposta(s) de V vagas · E editada(s) · prazo ...
 
-[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF]
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ [⬇ Baixar contatos para a agenda]  Baixa um arquivo com o nome e o celular   │
-│                                    de quem informou WhatsApp. Abra o         │
-│                                    arquivo no celular para adicionar todos   │
-│                                    à sua agenda de uma vez.                  │
-│                                    N de M inscrições têm celular válido.     │
-│                                    Como usar                                 │
-└──────────────────────────────────────────────────────────────────────────────┘
+[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF]      (compactos)
+┌─────────────────────────────────────────────────────────────────┐
+│ [⬇ Baixar contatos para a agenda]                               │
+│ Baixa um arquivo com o nome e o celular de quem informou        │
+│ WhatsApp. Abra o arquivo no celular para adicionar todos à sua  │
+│ agenda de uma vez.                                              │
+│ 58 de 58 inscrições têm celular válido.    [ Como usar ]        │
+└─────────────────────────────────────────────────────────────────┘
 [Buscar...]  [Mais recentes primeiro]                  Mostrando N de M inscrições
 
-CELULAR (cada botão com 44 px ou mais de altura)
-← Editor
+CELULAR
+[← Editor]
 Título
 Atualizado às HH:MM
 N resposta(s) de V vagas · E editada(s) · prazo ...
 
-[ Atualizar ]       [ Mostrar só editadas ]
-[ Exportar Excel ]  [ Exportar PDF ]
-┌──────────────────────────────────────────────┐
-│ [⬇ Baixar contatos para a agenda ] (larg. tot)│
-│ Baixa um arquivo com o nome e o celular de   │
-│ quem informou WhatsApp. Abra o arquivo no    │
-│ celular para adicionar todos à sua agenda de │
-│ uma vez.                                     │
-│ N de M inscrições têm celular válido.        │
-│ [ Como usar ]                                │
-└──────────────────────────────────────────────┘
+[Atualizar] [Mostrar só editadas] [Exportar Excel] [Exportar PDF]      (compactos)
+┌─────────────────────────────────────────────────────────────────┐
+│ [⬇ Baixar contatos para a agenda ] (largura total)              │
+│ Baixa um arquivo com o nome e o celular de quem informou        │
+│ WhatsApp. Abra o arquivo no celular para adicionar todos à sua  │
+│ agenda de uma vez.                                              │
+│ 58 de 58 inscrições têm celular válido.                         │
+│ [ Como usar ]                                                   │
+└─────────────────────────────────────────────────────────────────┘
 [Buscar por nome, CPF...]
 [Mais recentes primeiro]
 Mostrando N de M inscrições
 Toque numa linha para ver todos os dados.
+```
+
+#### 3.2.2 Wireframe do Cartão de Formulário no Painel (T-64 — Alvos de Toque no Celular)
+No computador (`sm:` em diante), mantém a linha compacta atual (avatar, título truncado, contagem, status e links em texto).
+No celular, cartão em coluna com alvos de toque confortáveis (≥ 44 px / `min-h-11`):
+- Título em até 2 linhas (`line-clamp-2 break-words text-base`) sem truncar precocemente.
+- Contagem e status dispostos lado a lado.
+- Ações em grade 2x2: botão `Respostas` em largura total (`col-span-2`), `Duplicar` e `Excluir` lado a lado separados com contorno e altura mínima de 44 px.
+
+```
+CELULAR
+┌────────────────────────────────────────┐
+│ [C]  Corrida Circuito das Estações     │
+│      Campinas - Etapa Verão - SKF ...  │
+│      limite 60 respostas · encerra ... │
+│ 58 respostas                [Encerrado]│
+│ [          Respostas                 ] │
+│ [   Duplicar   ]   [   Excluir   ]     │
+└────────────────────────────────────────┘
 ```
 
 Computador: o mesmo cartão, com as três ações em linha (`flex-wrap`), e a lista em duas colunas de informação por linha (nome à esquerda, status e botão à direita). Largura máxima igual à do cartão de respostas.

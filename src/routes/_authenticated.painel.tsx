@@ -187,7 +187,7 @@ function Painel() {
                 Formulários de inscrição
               </h1>
               {updatedAtText && (
-                <span className="text-xs text-slate-600">{updatedAtText}</span>
+                <span className="text-sm text-slate-600 sm:text-xs">{updatedAtText}</span>
               )}
             </div>
           </div>
@@ -195,7 +195,7 @@ function Painel() {
             id="new-form-btn"
             onClick={() => createForm.mutate()}
             disabled={createForm.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand py-2 pr-3 pl-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 transition-colors hover:bg-brand/90 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3 py-2 text-base font-medium text-primary-foreground ring-1 ring-brand/40 transition-colors hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-60 sm:min-h-9 sm:text-sm"
           >
             <span className="grid size-4 place-items-center text-lg leading-none">+</span>
             Novo formulário
@@ -233,7 +233,7 @@ function Painel() {
           <div className="glass rounded-2xl p-5 lg:col-span-2">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-base font-semibold">Formulários</h2>
-              <span className="text-xs text-muted-foreground">Mais recentes primeiro</span>
+              <span className="text-sm text-muted-foreground sm:text-xs">Mais recentes primeiro</span>
             </div>
 
             {formsQuery.isLoading ? (
@@ -247,36 +247,40 @@ function Painel() {
                 {forms.map((form) => (
                   <div
                     key={form.id}
-                    className="flex flex-wrap items-center gap-4 rounded-xl bg-white/70 p-3 ring-1 ring-black/5"
+                    className="flex flex-col gap-3 rounded-xl bg-white/70 p-3 ring-1 ring-black/5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
                   >
-                    <div className="grid size-10 place-items-center rounded-[10px] bg-brand-soft font-display font-semibold text-brand">
-                      {form.title.charAt(0).toUpperCase()}
+                    <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center sm:gap-4">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-brand-soft font-display font-semibold text-brand">
+                        {form.title.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          to="/formularios/$id"
+                          params={{ id: form.id }}
+                          className="line-clamp-2 break-words text-base font-medium hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:block sm:truncate sm:text-sm"
+                        >
+                          {form.title}
+                        </Link>
+                        <p className="text-sm text-muted-foreground sm:truncate sm:text-xs">
+                          {form.max_responses ? `limite ${form.max_responses} respostas` : "sem limite"}
+                          {form.closes_at
+                            ? ` · encerra ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+                            : " · sem prazo"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to="/formularios/$id"
-                        params={{ id: form.id }}
-                        className="block truncate text-sm font-medium hover:text-brand"
-                      >
-                        {form.title}
-                      </Link>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {form.max_responses ? `limite ${form.max_responses} respostas` : "sem limite"}
-                        {form.closes_at
-                          ? ` · encerra ${new Date(form.closes_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
-                          : " · sem prazo"}
-                      </p>
+                    <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
+                      <div className="flex items-baseline gap-1.5 sm:block sm:text-right">
+                        <p className="font-display text-base font-semibold">{countFor(form.id)}</p>
+                        <p className="text-sm text-muted-foreground sm:text-xs">respostas</p>
+                      </div>
+                      <StatusPill status={form.status} />
                     </div>
-                    <div className="text-right">
-                      <p className="font-display text-base font-semibold">{countFor(form.id)}</p>
-                      <p className="text-xs text-muted-foreground">respostas</p>
-                    </div>
-                    <StatusPill status={form.status} />
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-3">
                       <Link
                         to="/formularios/$id/respostas"
                         params={{ id: form.id }}
-                        className="font-medium text-brand hover:text-brand/80"
+                        className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-soft px-4 text-base font-medium text-brand ring-1 ring-brand/20 hover:text-brand/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:col-span-1 sm:min-h-9 sm:bg-transparent sm:px-2 sm:text-sm sm:ring-0"
                       >
                         Respostas
                       </Link>
@@ -285,7 +289,7 @@ function Painel() {
                         aria-label={`Duplicar o formulário ${form.title}`}
                         disabled={duplicateForm.isPending || removeForm.isPending}
                         onClick={() => duplicateForm.mutate(form.id)}
-                        className="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-base text-foreground ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer sm:min-h-9 sm:bg-transparent sm:px-2 sm:text-sm sm:text-muted-foreground sm:ring-0 sm:hover:text-foreground"
                       >
                         Duplicar
                       </button>
@@ -301,7 +305,7 @@ function Painel() {
                             status: form.status,
                           })
                         }
-                        className="text-muted-foreground hover:text-destructive cursor-pointer disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-base text-destructive ring-1 ring-destructive/30 hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer sm:min-h-9 sm:bg-transparent sm:px-2 sm:text-sm sm:text-muted-foreground sm:ring-0 sm:hover:text-destructive"
                       >
                         Excluir
                       </button>
@@ -392,9 +396,9 @@ function Stat({
           aria-label={`${label}: ${value} (${hint}). ${explanation}`}
           className="glass rounded-xl p-4 text-left cursor-help w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-sm text-muted-foreground sm:text-xs">{label}</p>
           <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-xs">{hint}</p>
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs bg-slate-900 text-slate-50 motion-reduce:animate-none">

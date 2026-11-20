@@ -255,7 +255,7 @@ function Respostas() {
           <Link
             to="/formularios/$id"
             params={{ id }}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex min-h-11 items-center text-base text-muted-foreground hover:text-foreground sm:min-h-0 sm:text-sm"
           >
             ← Editor
           </Link>
@@ -304,7 +304,7 @@ function Respostas() {
         <Link
           to="/formularios/$id"
           params={{ id }}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex min-h-11 items-center text-base text-muted-foreground hover:text-foreground sm:min-h-0 sm:text-sm"
         >
           ← Editor
         </Link>
@@ -324,12 +324,12 @@ function Respostas() {
         </p>
       </div>
 
-      {/* Bloco 2 — Barra de ações (4 botões em grid 2x2 no celular, linha no desktop) */}
-      <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+      {/* Bloco 2 — Barra de ações (compacta nos dois tamanhos) */}
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => query.refetch()}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white/70 px-3 py-2 text-base font-medium ring-1 ring-black/5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 cursor-pointer sm:min-h-9 sm:w-auto sm:text-sm"
+          className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 cursor-pointer"
         >
           Atualizar
         </button>
@@ -338,7 +338,7 @@ function Respostas() {
             type="button"
             aria-pressed={onlyEdited}
             onClick={() => setOnlyEdited((prev) => !prev)}
-            className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg px-3 py-2 text-base font-medium ring-1 ring-black/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 cursor-pointer sm:min-h-9 sm:w-auto sm:text-sm ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-black/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 cursor-pointer ${
               onlyEdited
                 ? "bg-amber-100 text-amber-900 ring-amber-300 hover:bg-amber-200"
                 : "bg-white/70 text-foreground hover:bg-white"
@@ -350,58 +350,65 @@ function Respostas() {
         <button
           onClick={() => handleExportExcel(form.title, questions, responses)}
           disabled={responses.length === 0 || exporting !== null}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white/70 px-3 py-2 text-base font-medium ring-1 ring-black/5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed sm:min-h-9 sm:w-auto sm:text-sm"
+          className="rounded-lg bg-white/70 px-3 py-2 text-sm font-medium ring-1 ring-black/5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           Exportar Excel
         </button>
         <button
           onClick={() => handleExportPDF(form.title, questions, responses)}
           disabled={responses.length === 0 || exporting !== null}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand px-3 py-2 text-base font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed sm:min-h-9 sm:w-auto sm:text-sm"
+          className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-primary-foreground ring-1 ring-brand/40 hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           Exportar PDF
         </button>
       </div>
 
-      {/* Bloco 3 — Cartão de contatos com botão e apoio contextual */}
-      <div className="flex flex-col gap-3 rounded-lg bg-white/50 p-3 ring-1 ring-black/5 sm:flex-row sm:items-start sm:gap-4">
+      {/* Bloco 3 — Cartão de contatos em coluna */}
+      <div className="flex flex-col items-start gap-3 rounded-lg bg-white/50 p-3 ring-1 ring-black/5 sm:p-4">
         <button
           type="button"
           onClick={() => handleDownloadVcf(form.title, questions, responses)}
           disabled={!hasValidVcfContacts}
-          aria-describedby="vcf-contacts-hint"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-base font-medium ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer sm:min-h-9 sm:w-auto sm:shrink-0 sm:px-3 sm:text-sm"
+          aria-describedby={
+            hasValidVcfContacts
+              ? "vcf-contacts-hint vcf-contacts-count"
+              : "vcf-contacts-hint"
+          }
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-base font-medium ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer sm:min-h-9 sm:w-auto sm:text-sm"
         >
           <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
           Baixar contatos para a agenda
         </button>
 
-        <div className="flex min-w-0 flex-col gap-2 sm:max-w-prose">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:max-w-prose">
           <div
             id="vcf-contacts-hint"
-            className="flex flex-col gap-1 text-base sm:text-sm text-slate-700 sm:text-slate-600"
+            className="text-base text-slate-700 sm:text-sm sm:text-slate-600"
           >
             {hasValidVcfContacts ? (
-              <>
-                <p>
-                  Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.
-                </p>
-                <p>
-                  {vcfSummaryText(validVcfCount, totalResponsesCount)}
-                </p>
-              </>
+              <p>
+                Baixa um arquivo com o nome e o celular de quem informou WhatsApp. Abra o arquivo no celular para adicionar todos à sua agenda de uma vez.
+              </p>
             ) : (
               <p>{vcfDisabledMessage}</p>
             )}
           </div>
           {hasValidVcfContacts && (
-            <button
-              type="button"
-              onClick={() => setHowToUseOpen(true)}
-              className="inline-flex min-h-11 items-center self-start rounded-lg px-3 text-base font-medium text-primary underline underline-offset-2 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer sm:min-h-8 sm:px-2 sm:text-sm"
-            >
-              Como usar
-            </button>
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
+              <p
+                id="vcf-contacts-count"
+                className="text-base text-slate-700 sm:text-sm sm:text-slate-600"
+              >
+                {vcfSummaryText(validVcfCount, totalResponsesCount)}
+              </p>
+              <button
+                type="button"
+                onClick={() => setHowToUseOpen(true)}
+                className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 text-base font-medium text-primary ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer sm:min-h-9 sm:text-sm"
+              >
+                Como usar
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -861,6 +861,7 @@ Critérios de Aceite:
 | 7f | T-61 Imagem de capa do formulário | T-58 | concluída no código; prova visual pendente do dono (🧑) |
 | 7g | T-62 Layout do apoio de contatos | T-60 | concluída no código; prova visual pendente do dono (🧑) |
 | 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída no código; prova visual pendente do dono (🧑) |
+| 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1104,6 +1105,7 @@ Critérios de Aceite:
 ## T-63 — Botão de contatos no cartão de apoio e conforto de toque (respostas)
 
 - **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Nota:** Barra de 4 botões e posição do texto do cartão refinados pela T-64 (feedback do dono em 20/11/2026).
 - **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx; src/components/ResponsesTable.tsx`.
 - **Objetivo:** mover o botão "Baixar contatos para a agenda" para dentro do cartão de apoio que o explica (criando uma região contextual comum), e adequar os alvos de toque (mínimo de 44 px / `min-h-11`) e a tipografia (mínimo de 16 px / `text-base`) para evitar toques acidentais duplos e zoom automático no celular.
 - **Especificações complementares:**
@@ -1115,6 +1117,24 @@ Critérios de Aceite:
   - Diálogo de como usar: passos com `text-base sm:text-sm` e botão `Entendi` com `min-h-11 w-full sm:w-auto`.
 - **TDD:** testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/components/ResponsesTable.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-64 — Refino mobile (cartão de contatos, barra de ações e painel)
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `design/ui-ux.md Tela I e Diretrizes Transversais; src/routes/_authenticated.formularios.$id_.respostas.tsx; src/routes/_authenticated.painel.tsx; src/components/DeleteFormDialog.tsx; src/components/AppShell.tsx`.
+- **Objetivo:** refinar a experiência no celular eliminando palavras clicáveis coladas sem área de toque suficiente e organizando o cartão de contatos e os cartões de formulário no painel de forma ergonômica e responsiva.
+- **Especificações complementares:**
+  - Diretriz transversal de toque no celular: toda palavra clicável vira botão ou link com área própria (`min-h-11`, padding horizontal ≥ 16 px, fonte ≥ 16 px no celular; compacto `sm:min-h-9 sm:text-sm` de `sm:` em diante); espaçamento entre alvos vizinhos ≥ 12 px (`gap-3`); ação destrutiva separada e com cor própria; desktop preservado.
+  - Respostas — Bloco 2: barra de 4 botões volta ao formato compacto da T-62 (`flex flex-wrap items-center gap-2`, sem `grid-cols-2`, `min-h-11` ou `text-base`).
+  - Respostas — Bloco 3: cartão sempre em coluna (`flex flex-col items-start gap-3 rounded-lg bg-white/50 p-3 ring-1 ring-black/5 sm:p-4`), botão de contatos primeiro (`w-full sm:w-auto`), texto explicativo abaixo em `id="vcf-contacts-hint"`, e linha com `id="vcf-contacts-count"` e botão `Como usar` com contorno (`bg-white ring-1 ring-black/10 text-primary min-h-11 sm:min-h-9`). `aria-describedby="vcf-contacts-hint vcf-contacts-count"`.
+  - Respostas — `← Editor`: `inline-flex min-h-11 items-center text-base sm:min-h-0 sm:text-sm`.
+  - Painel — Cartão do formulário: em coluna no celular (`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4`); título com `line-clamp-2 break-words text-base sm:block sm:truncate sm:text-sm`; contagem e status em linha no celular; ações em grade 2x2 com `Respostas` em largura total (`col-span-2 min-h-11`), `Duplicar` e `Excluir` separados lado a lado com `min-h-11` e `px-4`.
+  - Painel — Botão `Novo formulário` com `min-h-11 text-base sm:min-h-9 sm:text-sm`; `updatedAtText` e `Mais recentes primeiro` com `text-sm sm:text-xs`; textos `label`/`hint` de `Stat` com `text-sm sm:text-xs`; diálogo de exclusão com botões `min-h-11 sm:min-h-9`; botão `Sair` do cabeçalho com `inline-flex min-h-11 items-center px-2 sm:min-h-0`.
+- **TDD:** testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/routes/_authenticated.painel.tsx`, `src/components/DeleteFormDialog.tsx`, `src/components/AppShell.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---
