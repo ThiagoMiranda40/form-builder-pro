@@ -154,6 +154,15 @@ Como administrador, quero adicionar uma imagem de capa ao formulário, para refo
 - Dado que o campo de capa está vazio ou teve seu conteúdo apagado, quando salvo, o formulário é exibido sem imagem de capa.
 - Dado que o endereço informado não começa com `https://` ou contém caracteres inválidos, quando tenta salvar, a gravação é recusada com a mensagem `Cole o endereço da imagem começando com https://`.
 
+### RF-28 — Atalho para o formulário publicado no painel (T-65)
+Como administrador, quero acessar e copiar o link público do formulário diretamente pelo painel principal, sem precisar entrar no editor.
+**Critério de aceite:**
+- Dado o administrador no painel principal (`/painel`), em cada cartão de formulário cujo status não é rascunho (`status !== "draft"`):
+  - Ao tocar em `Abrir formulário` (`Abrir`), o formulário público abre em uma nova aba do navegador com o endereço oficial (`${origin}/${slug}`), com `target="_blank"` e `rel="noopener noreferrer"`.
+  - Ao tocar em `Copiar link`, o endereço público é copiado para a área de transferência e o sistema confirma com `Link copiado!`. Em caso de falha de permissão ou ausência da API de clipboard, o sistema exibe `Não foi possível copiar o link. Tente novamente.`.
+- Dado um formulário com status rascunho (`status === "draft"`), os atalhos de abrir e copiar link não são exibidos no cartão.
+- O link privado do cliente (`/c/<token>`) ou `share_token` nunca é exibido nem copiado nesses atalhos.
+
 ## Ordem de entrega (decisão do dono, 12/11/2026)
 0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.
 1. **Administrador:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.

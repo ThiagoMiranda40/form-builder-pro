@@ -742,6 +742,49 @@ describe("Imagem de capa do formulário — T-61 (RF-27, QA-46-36)", () => {
   });
 });
 
+describe("Painel — Atalhos para o formulário publicado — T-65 (RF-28, QA-46-39, SEC-38)", () => {
+  const rootDir = process.cwd();
+  const painelPath = path.join(rootDir, "src/routes/_authenticated.painel.tsx");
+
+  it("o painel importa publicFormUrl, ExternalLink e Copy", () => {
+    const content = fs.readFileSync(painelPath, "utf-8");
+    expect(content).toMatch(/import\s*\{[^}]*publicFormUrl[^}]*\}\s*from\s*["'][^"']*form-links["']/);
+    expect(content).toMatch(/import\s*\{[^}]*ExternalLink[^}]*\}\s*from\s*["']lucide-react["']/);
+    expect(content).toMatch(/import\s*\{[^}]*Copy[^}]*\}\s*from\s*["']lucide-react["']/);
+  });
+
+  it("o painel contém atalhos condicionais a status !== 'draft', textos e acessibilidade", () => {
+    const content = fs.readFileSync(painelPath, "utf-8");
+
+    // Condiciona atalhos a status !== 'draft'
+    expect(content).toMatch(/status\s*!==\s*["']draft["']/);
+
+    // Contém aria-label descritivos
+    expect(content).toContain("Abrir o formulário");
+    expect(content).toContain("Copiar o link do formulário");
+
+    // Link público abre em nova aba com rel seguro
+    expect(content).toContain('target="_blank"');
+    expect(content).toContain('rel="noopener noreferrer"');
+
+    // Toasts de cópia
+    expect(content).toContain("Link copiado!");
+    expect(content).toContain("Não foi possível copiar o link. Tente novamente.");
+
+    // Alvos de toque no celular
+    expect(content).toContain("min-h-11");
+
+    // Nunca expõe links privados de cliente nem tokens de compartilhamento
+    expect(content).not.toContain("share_token");
+    expect(content).not.toMatch(/href=.*\/c\//);
+
+    // Os aria-label antigos continuam intactos
+    expect(content).toContain("Duplicar o formulário");
+    expect(content).toContain("Excluir o formulário");
+  });
+});
+
+
 
 
 

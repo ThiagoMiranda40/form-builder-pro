@@ -16,6 +16,8 @@ import { barHint, DASHBOARD_CARD_HINTS } from "@/lib/dashboard-hints";
 import { cloneForm } from "@/lib/clone-form";
 import { DeleteFormDialog } from "@/components/DeleteFormDialog";
 import { deleteFormCopy } from "@/lib/delete-form-copy";
+import { Copy, ExternalLink } from "lucide-react";
+import { publicFormUrl } from "@/lib/form-links";
 
 function formatUpdatedAt(timestamp: number): string {
   if (!timestamp) return "";
@@ -67,6 +69,19 @@ function Painel() {
     status: string;
   } | null>(null);
   const deleteCopy = formToDelete ? deleteFormCopy(formToDelete) : null;
+
+  const handleCopyLink = async (formTitle: string, slug: string) => {
+    try {
+      if (typeof window === "undefined" || !navigator?.clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+      const url = publicFormUrl(window.location.origin, slug);
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Não foi possível copiar o link. Tente novamente.");
+    }
+  };
 
   const formsQuery = useQuery({
     queryKey: ["forms"],
@@ -249,7 +264,7 @@ function Painel() {
                     key={form.id}
                     className="flex flex-col gap-3 rounded-xl bg-white/70 p-3 ring-1 ring-black/5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
                   >
-                    <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center sm:gap-4">
+                    <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center sm:gap-4 sm:min-w-[14rem]">
                       <div className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-brand-soft font-display font-semibold text-brand">
                         {form.title.charAt(0).toUpperCase()}
                       </div>
@@ -276,7 +291,7 @@ function Painel() {
                       </div>
                       <StatusPill status={form.status} />
                     </div>
-                    <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-3">
+                    <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                       <Link
                         to="/formularios/$id/respostas"
                         params={{ id: form.id }}
@@ -284,6 +299,33 @@ function Painel() {
                       >
                         Respostas
                       </Link>
+                      {form.status !== "draft" && (
+                        <>
+                          <a
+                            href={publicFormUrl(
+                              typeof window !== "undefined" ? window.location.origin : "",
+                              form.slug,
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Abrir o formulário ${form.title} em nova aba`}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 text-base text-foreground ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:min-h-9 sm:bg-transparent sm:px-2 sm:text-sm sm:text-muted-foreground sm:ring-0 sm:hover:text-foreground"
+                          >
+                            <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span className="sm:hidden">Abrir formulário</span>
+                            <span className="hidden sm:inline">Abrir</span>
+                          </a>
+                          <button
+                            type="button"
+                            aria-label={`Copiar o link do formulário ${form.title}`}
+                            onClick={() => handleCopyLink(form.title, form.slug)}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 text-base text-foreground ring-1 ring-black/10 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 cursor-pointer sm:min-h-9 sm:bg-transparent sm:px-2 sm:text-sm sm:text-muted-foreground sm:ring-0 sm:hover:text-foreground"
+                          >
+                            <Copy className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span>Copiar link</span>
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         aria-label={`Duplicar o formulário ${form.title}`}

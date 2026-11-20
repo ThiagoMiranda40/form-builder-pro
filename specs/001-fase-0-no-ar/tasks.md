@@ -863,6 +863,7 @@ Critérios de Aceite:
 | 7h | T-59 Fechamento documental | — | concluída (18/11/2026) |
 | 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída (refinada pela T-64) |
 | 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída (provada pelo dono na prévia em 20/11/2026) |
+| 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1146,6 +1147,26 @@ Critérios de Aceite:
   - Painel — Botão `Novo formulário` com `min-h-11 text-base sm:min-h-9 sm:text-sm`; `updatedAtText` e `Mais recentes primeiro` com `text-sm sm:text-xs`; textos `label`/`hint` de `Stat` com `text-sm sm:text-xs`; diálogo de exclusão com botões `min-h-11 sm:min-h-9`; botão `Sair` do cabeçalho com `inline-flex min-h-11 items-center px-2 sm:min-h-0`.
 - **TDD:** testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/routes/_authenticated.formularios.$id_.respostas.tsx`, `src/routes/_authenticated.painel.tsx`, `src/components/DeleteFormDialog.tsx`, `src/components/AppShell.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-65 — Atalho para o formulário publicado no painel
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `spec.md RF-28; design/ui-ux.md Tela G e Diretrizes Transversais; seguranca.md SEC-38; qa-plan.md QA-46-39, MAN-46-16; src/routes/_authenticated.painel.tsx`.
+- **Objetivo:** oferecer no painel principal atalhos diretos para abrir o formulário público em nova aba e copiar o link público em cada cartão de formulário publicado ou encerrado, sem precisar entrar no editor.
+- **Especificações complementares:**
+  - Helper puro `publicFormUrl(origin: string, slug: string): string` em `src/lib/form-links.ts`: remove barras finais de `origin` e concatena `/${encodeURIComponent(slug)}`.
+  - Exibição: atalhos `Abrir formulário` e `Copiar link` visíveis apenas quando `status !== "draft"`.
+  - `Abrir formulário`: link com `target="_blank"` e `rel="noopener noreferrer"`.
+  - `Copiar link`: botão com `try/catch` e fallback se `navigator.clipboard` não estiver disponível; toasts: `Link copiado!` e `Não foi possível copiar o link. Tente novamente.`
+  - Celular: `Respostas` (col-span-2), `Abrir formulário` e `Copiar link` lado a lado com `min-h-11 px-4 gap-2`, `Duplicar` e `Excluir` lado a lado.
+  - Computador: ações em linha compacta com ícones, texto `Abrir` e `Copiar link`, grupo de título com `sm:min-w-[14rem]`.
+  - Foco visível em todos (`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40`).
+  - Nunca expor link privado do cliente (`/c/<token>`) nem `share_token`.
+- **TDD:** `src/lib/form-links.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/lib/form-links.ts`, `src/lib/form-links.test.ts`, `src/routes/_authenticated.painel.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

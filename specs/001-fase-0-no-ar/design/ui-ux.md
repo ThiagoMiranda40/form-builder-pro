@@ -1314,26 +1314,29 @@ Mostrando N de M inscrições
 Toque numa linha para ver todos os dados.
 ```
 
-#### 3.2.2 Wireframe do Cartão de Formulário no Painel (T-64 — Alvos de Toque no Celular)
-No computador (`sm:` em diante), mantém a linha compacta atual (avatar, título truncado, contagem, status e links em texto).
+#### 3.2.2 Wireframe do Cartão de Formulário no Painel (T-64 / T-65 — Alvos de Toque e Atalhos Abrir / Copiar)
+No computador (`sm:` em diante), mantém a linha compacta atual com título (`sm:min-w-[14rem]`), contagem, status e links em texto (Respostas, Abrir, Copiar link, Duplicar, Excluir).
 No celular, cartão em coluna com alvos de toque confortáveis (≥ 44 px / `min-h-11`):
 - Título em até 2 linhas (`line-clamp-2 break-words text-base`) sem truncar precocemente.
 - Contagem e status dispostos lado a lado.
-- Ações em grade 2x2: botão `Respostas` em largura total (`col-span-2`), `Duplicar` e `Excluir` lado a lado separados com contorno e altura mínima de 44 px.
+- Ações no celular: botão `Respostas` em largura total (`col-span-2`), `Abrir formulário` e `Copiar link` lado a lado (quando não for rascunho), e `Duplicar` e `Excluir` lado a lado com contorno e altura mínima de 44 px.
+- Em formulários com status `draft` (rascunho), os atalhos `Abrir formulário` e `Copiar link` não aparecem.
+- Textos exatos e acessibilidade:
+  - `Abrir formulário` (celular) / `Abrir` (computador): link para `${origin}/${slug}`, ícone `ExternalLink` (`h-4 w-4 shrink-0`), `target="_blank"`, `rel="noopener noreferrer"`, `aria-label="Abrir o formulário {form.title} em nova aba"`.
+  - `Copiar link`: botão, ícone `Copy` (`h-4 w-4 shrink-0`), `aria-label="Copiar o link do formulário {form.title}"`. Ao copiar com sucesso: `toast.success("Link copiado!")`. Em falha de clipboard: `toast.error("Não foi possível copiar o link. Tente novamente.")`.
+  - Foco visível em todos (`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40`).
 
 ```
-CELULAR
-┌────────────────────────────────────────┐
-│ [C]  Corrida Circuito das Estações     │
-│      Campinas - Etapa Verão - SKF ...  │
-│      limite 60 respostas · encerra ... │
-│ 58 respostas                [Encerrado]│
-│ [          Respostas                 ] │
-│ [   Duplicar   ]   [   Excluir   ]     │
-└────────────────────────────────────────┘
+CELULAR                                   COMPUTADOR
+[C] Corrida Circuito ...                  [C] Corrida Circuito ...    58 [Encerrado]
+    limite 60 respostas · ...                 limite 60 respostas ...    respostas
+58 respostas          [Encerrado]             Respostas  ↗ Abrir  ⧉ Copiar link  Duplicar  Excluir
+[          Respostas            ]
+[↗ Abrir formulário][⧉ Copiar link]
+[  Duplicar  ]      [  Excluir  ]
 ```
 
-Computador: o mesmo cartão, com as três ações em linha (`flex-wrap`), e a lista em duas colunas de informação por linha (nome à esquerda, status e botão à direita). Largura máxima igual à do cartão de respostas.
+Computador: o mesmo cartão, com as ações em linha (`flex-wrap`), grupo de ações alinhado à direita se quebrar linha (`sm:justify-end`). Largura máxima igual à do cartão de respostas.
 
 Sem link do grupo:
 ```
