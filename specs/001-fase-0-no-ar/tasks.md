@@ -840,7 +840,7 @@ Critérios de Aceite:
 
 > **M-46, prioridade máxima do dono (12/11/2026):** passa à frente de T-28, T-29, T-30 e T-33. Comandos de verificação de toda tarefa: `bunx tsc --noEmit` · `bun run test` · `bun run build` (equivalentes do `AGENTS.md` nesta máquina). Lint não é critério. Toda tarefa: `git diff --stat -- package.json bun.lock` vazio (ARQ-01, QA-46-25). 🧑 = passo manual do dono. ⚖ = revisão obrigatória por segunda sessão (T-45, T-48, T-49). Documentos da feature: `m46/prd-m46-grupo-whatsapp.md`, `docs/arquitetura/architecture.md`, `docs/arquitetura/adr/`, `qa-plan.md` seção 15, `seguranca.md` seção 9 (SEC-37 a SEC-48), `design/ui-ux.md` seção 12 (Telas H a K).
 
-> **Registro da promoção (18/11/2026):** main promovida por fast-forward para b084ff1 (T-45, T-46, T-50, T-51, T-56 e T-57 em produção; T-55 já estava desde antes). 19/11/2026: main promovida por fast-forward (T-58 a T-64). Em produção agora: T-45, T-46, T-50, T-51, T-55 a T-64. O hash promovido está na prova do relatório da promoção.
+> **Registro da promoção (18/11/2026):** main promovida por fast-forward para b084ff1 (T-45, T-46, T-50, T-51, T-56 e T-57 em produção; T-55 já estava desde antes). 19/11/2026: main promovida por fast-forward (T-58 a T-64). 20/11/2026: main promovida por fast-forward (T-65 a T-67). Em produção agora: T-45, T-46, T-50, T-51, T-55 a T-67. O hash promovido está na prova do relatório da promoção.
 
 **Ordem de execução (decisão do dono, 12/11/2026: arquivo de contatos primeiro por ser o ganho mais rápido, depois administrador, e-mail antes do botão individual, cliente por último).** Os números das tarefas não seguem a ordem; siga esta tabela.
 
@@ -863,9 +863,9 @@ Critérios de Aceite:
 | 7h | T-59 Fechamento documental | — | concluída (18/11/2026) |
 | 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída (refinada pela T-64) |
 | 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída (provada pelo dono na prévia em 20/11/2026) |
-| 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída no código; provada pelo dono na prévia em 20/11/2026 (ainda não está na main) |
-| 7l | T-66 Descrição com formatação e 5.000 caracteres | T-20 | concluída no código; prova visual pendente do dono (🧑) |
-| 7m | T-67 Busca e ordenação empilhadas no celular | T-64 | concluída no código; prova visual pendente do dono (🧑) |
+| 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída (provada pelo dono na prévia em 20/11/2026) |
+| 7l | T-66 Descrição com formatação e 5.000 caracteres | T-20 | concluída (provada pelo dono na prévia em 20/11/2026) |
+| 7m | T-67 Busca e ordenação empilhadas no celular | T-64 | concluída (provada pelo dono na prévia em 20/11/2026) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1155,7 +1155,7 @@ Critérios de Aceite:
 
 ## T-65 — Atalho para o formulário publicado no painel
 
-- **Estado:** concluída no código; provada pelo dono na prévia em 20/11/2026 (ainda não está na main).
+- **Estado:** concluída (provada pelo dono na prévia em 20/11/2026).
 - **Ler:** `spec.md RF-28; design/ui-ux.md Tela G e Diretrizes Transversais; seguranca.md SEC-38; qa-plan.md QA-46-39, MAN-46-16; src/routes/_authenticated.painel.tsx`.
 - **Objetivo:** oferecer no painel principal atalhos diretos para abrir o formulário público em nova aba e copiar o link público em cada cartão de formulário publicado ou encerrado, sem precisar entrar no editor.
 - **Especificações complementares:**
@@ -1175,7 +1175,7 @@ Critérios de Aceite:
 
 ## T-66 — Descrição do formulário com 5.000 caracteres e formatação
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono na prévia em 20/11/2026).
 - **Ler:** `spec.md RF-29; design/ui-ux.md Tela do Editor e Tela Pública; seguranca.md SEC-50; qa-plan.md QA-46-40, MAN-46-17; src/lib/rich-description.ts; src/components/RichDescription.tsx; src/routes/_authenticated.formularios.$id.tsx; src/routes/$slug.tsx`.
 - **Objetivo:** ampliar o limite da descrição do formulário de 1.000 para 5.000 caracteres e permitir formatação rica (negrito, itálico, lista com marcadores, parágrafo centralizado e links https) gravada em marcas simples de texto sem HTML, renderizada com segurança sem dangerouslySetInnerHTML, com barra de ferramentas e abas Escrever / Visualizar no editor.
 - **Especificações complementares:**
@@ -1192,7 +1192,7 @@ Critérios de Aceite:
 
 ## T-67 — Busca e ordenação empilhadas no celular
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono na prévia em 20/11/2026).
 - **Ler:** `design/ui-ux.md Tabela de respostas; qa-plan.md QA-46-41, MAN-46-18; src/components/ResponsesTable.tsx`.
 - **Objetivo:** empilhar campo de busca, seletor de ordem e contador de inscrições em largura total no celular (telas menores que `sm:`), garantindo que o placeholder da busca não fique espremido, e atualizar o placeholder para `Nome, CPF, e-mail ou telefone`.
 - **Especificações complementares:**
