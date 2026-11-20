@@ -840,7 +840,7 @@ Critérios de Aceite:
 
 > **M-46, prioridade máxima do dono (12/11/2026):** passa à frente de T-28, T-29, T-30 e T-33. Comandos de verificação de toda tarefa: `bunx tsc --noEmit` · `bun run test` · `bun run build` (equivalentes do `AGENTS.md` nesta máquina). Lint não é critério. Toda tarefa: `git diff --stat -- package.json bun.lock` vazio (ARQ-01, QA-46-25). 🧑 = passo manual do dono. ⚖ = revisão obrigatória por segunda sessão (T-45, T-48, T-49). Documentos da feature: `m46/prd-m46-grupo-whatsapp.md`, `docs/arquitetura/architecture.md`, `docs/arquitetura/adr/`, `qa-plan.md` seção 15, `seguranca.md` seção 9 (SEC-37 a SEC-48), `design/ui-ux.md` seção 12 (Telas H a K).
 
-> **Registro da promoção (18/11/2026):** main promovida por fast-forward para b084ff1 (T-45, T-46, T-50, T-51, T-56 e T-57 em produção; T-55 já estava desde antes). A T-58 está só na branch de trabalho, aguardando a promoção.
+> **Registro da promoção (18/11/2026):** main promovida por fast-forward para b084ff1 (T-45, T-46, T-50, T-51, T-56 e T-57 em produção; T-55 já estava desde antes). 19/11/2026: main promovida por fast-forward (T-58 a T-64). Em produção agora: T-45, T-46, T-50, T-51, T-55 a T-64. O hash promovido está na prova do relatório da promoção.
 
 **Ordem de execução (decisão do dono, 12/11/2026: arquivo de contatos primeiro por ser o ganho mais rápido, depois administrador, e-mail antes do botão individual, cliente por último).** Os números das tarefas não seguem a ordem; siga esta tabela.
 
@@ -857,11 +857,12 @@ Critérios de Aceite:
 | 7b | T-56 🧑 Textos personalizáveis | T-51 | concluída (provada pelo dono) |
 | 7c | T-57 🧑 Botão do grupo com identidade do WhatsApp | T-56 | concluída (provada pelo dono em produção em 18/11/2026) |
 | 7d | T-58 Instrução de tamanho do logotipo no editor | — | concluída (18/11/2026) |
-| 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (19/11/2026) |
-| 7f | T-61 Imagem de capa do formulário | T-58 | concluída no código; prova visual pendente do dono (🧑) |
-| 7g | T-62 Layout do apoio de contatos | T-60 | concluída no código; prova visual pendente do dono (🧑) |
-| 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída no código; prova visual pendente do dono (🧑) |
-| 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída no código; prova visual pendente do dono (🧑) |
+| 7e | T-60 Texto claro no botão de contatos | T-55 | concluída (provada pelo dono na prévia em 19/11/2026) |
+| 7f | T-61 Imagem de capa do formulário | T-58 | concluída (provada pelo dono na prévia em 19/11/2026) |
+| 7g | T-62 Layout do apoio de contatos | T-60 | concluída (provada pelo dono na prévia em 19/11/2026; layout refinado pela T-63) |
+| 7h | T-59 Fechamento documental | — | concluída (18/11/2026) |
+| 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída (refinada pela T-64) |
+| 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída (provada pelo dono na prévia em 20/11/2026) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1046,9 +1047,19 @@ Critérios de Aceite:
 
 ---
 
+## T-59 — Fechamento documental da M-46
+
+- **Estado:** concluída (18/11/2026).
+- **Ler:** `specs/001-fase-0-no-ar/tasks.md; specs/001-fase-0-no-ar/qa-plan.md`.
+- **Objetivo:** registrar o fechamento documental da M-46 após a conclusão e prova da T-57, atualizando estados e roteiros manuais sem alteração de código.
+- **Arquivos:** `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** sem código alterado (`git diff --stat` restrito a `specs/`).
+
+---
+
 ## T-60 — Texto claro no botão de contatos (.vcf)
 
-- **Estado:** concluída (19/11/2026).
+- **Estado:** concluída (provada pelo dono na prévia em 19/11/2026).
 - **Ler:** `spec.md RF-22; design/ui-ux.md Tela I; qa-plan.md QA-46-35, MAN-46-07`.
 - **Objetivo:** melhorar o UX writing do botão de contatos na página de respostas do administrador, substituindo jargão técnico por rótulo claro ("Baixar contatos para a agenda"), texto de apoio visível com contagem de celulares válidos, botão desabilitado explicativo, diálogo com instruções passo a passo ("Como usar") e confirmação com a quantidade de contatos baixados.
 - **Especificações complementares:**
@@ -1068,7 +1079,7 @@ Critérios de Aceite:
 
 ## T-61 — Imagem de capa do formulário
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono na prévia em 19/11/2026).
 - **Ler:** `spec.md RF-27; design/ui-ux.md Tela A; src/routes/_authenticated.formularios.$id.tsx; src/routes/$slug.tsx; src/routes/editar.$token.tsx`.
 - **Objetivo:** permitir ao administrador definir uma imagem de capa (proporção 3:1, largura total no topo do cartão público e de edição), armazenada no campo `theme.cover_url` de `forms`, com validação https, texto de apoio e sem layout shift.
 - **Especificações complementares:**
@@ -1087,7 +1098,7 @@ Critérios de Aceite:
 
 ## T-62 — Layout da barra de ações e do apoio de contatos (respostas)
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono na prévia em 19/11/2026; layout refinado pela T-63).
 - **Nota:** Layout do apoio refinado pela T-63 (botão de contatos movido para dentro do cartão; conforto de toque no celular).
 - **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx`.
 - **Objetivo:** organizar a página de respostas em três blocos verticais alinhados à esquerda (cabeçalho, barra de botões, faixa de apoio de contatos), eliminando a quebra irregular e o alinhamento à direita no desktop, com ícone de informação e visual consistente.
@@ -1104,7 +1115,7 @@ Critérios de Aceite:
 
 ## T-63 — Botão de contatos no cartão de apoio e conforto de toque (respostas)
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (refinada pela T-64).
 - **Nota:** Barra de 4 botões e posição do texto do cartão refinados pela T-64 (feedback do dono em 20/11/2026).
 - **Ler:** `design/ui-ux.md Tela I; src/routes/_authenticated.formularios.$id_.respostas.tsx; src/components/ResponsesTable.tsx`.
 - **Objetivo:** mover o botão "Baixar contatos para a agenda" para dentro do cartão de apoio que o explica (criando uma região contextual comum), e adequar os alvos de toque (mínimo de 44 px / `min-h-11`) e a tipografia (mínimo de 16 px / `text-base`) para evitar toques acidentais duplos e zoom automático no celular.
@@ -1123,7 +1134,7 @@ Critérios de Aceite:
 
 ## T-64 — Refino mobile (cartão de contatos, barra de ações e painel)
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída (provada pelo dono na prévia em 20/11/2026).
 - **Ler:** `design/ui-ux.md Tela I e Diretrizes Transversais; src/routes/_authenticated.formularios.$id_.respostas.tsx; src/routes/_authenticated.painel.tsx; src/components/DeleteFormDialog.tsx; src/components/AppShell.tsx`.
 - **Objetivo:** refinar a experiência no celular eliminando palavras clicáveis coladas sem área de toque suficiente e organizando o cartão de contatos e os cartões de formulário no painel de forma ergonômica e responsiva.
 - **Especificações complementares:**
