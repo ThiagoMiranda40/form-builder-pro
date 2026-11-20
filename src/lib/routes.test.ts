@@ -840,6 +840,46 @@ describe("Descrição formatada e limite de 5.000 caracteres — T-66 (RF-29, QA
   });
 });
 
+describe("Tabela de respostas — Busca e ordenação empilhadas no celular — T-67 (QA-46-41)", () => {
+  const rootDir = process.cwd();
+  const responsesTablePath = path.join(rootDir, "src/components/ResponsesTable.tsx");
+
+  it("ResponsesTable.tsx existe e possui o layout empilhado no celular e linha única no desktop", () => {
+    expect(fs.existsSync(responsesTablePath)).toBe(true);
+    const content = fs.readFileSync(responsesTablePath, "utf-8");
+
+    // Contêiner flex-col gap-3 sm:flex-row
+    expect(content).toMatch(/flex\s+flex-col\s+gap-3\s+sm:flex-row/);
+
+    // Grupo de busca com largura total e max-w-sm no desktop
+    expect(content).toMatch(/w-full\s+sm:max-w-sm/);
+
+    // Campo de busca com text-ellipsis
+    expect(content).toContain("text-ellipsis");
+
+    // Novo placeholder conciso de UX writing
+    expect(content).toContain('placeholder="Nome, CPF, e-mail ou telefone"');
+
+    // Não contém mais o placeholder antigo
+    expect(content).not.toContain("Buscar por nome, CPF, e-mail, telefone...");
+
+    // Contador de inscrições não tem whitespace-nowrap sem prefixo sm:
+    expect(content).toContain("sm:whitespace-nowrap");
+    const counterLine = content.split("\n").find((line) => line.includes('aria-live="polite"')) ?? "";
+    expect(counterLine).toContain("sm:whitespace-nowrap");
+    expect(counterLine).not.toMatch(/(?<!sm:)whitespace-nowrap/);
+
+    // Controles mantêm min-h-11 e text-base para conforto de toque e prevenção de zoom no iOS
+    expect(content).toContain("min-h-11");
+    expect(content).toContain("text-base");
+
+    // Acessibilidade: rótulos preservados
+    expect(content).toContain('aria-label="Buscar inscrição"');
+    expect(content).toContain('aria-label="Ordem das inscrições"');
+  });
+});
+
+
 
 
 

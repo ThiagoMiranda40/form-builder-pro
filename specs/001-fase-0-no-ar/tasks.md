@@ -865,6 +865,7 @@ Critérios de Aceite:
 | 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída (provada pelo dono na prévia em 20/11/2026) |
 | 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída no código; provada pelo dono na prévia em 20/11/2026 (ainda não está na main) |
 | 7l | T-66 Descrição com formatação e 5.000 caracteres | T-20 | concluída no código; prova visual pendente do dono (🧑) |
+| 7m | T-67 Busca e ordenação empilhadas no celular | T-64 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1185,6 +1186,26 @@ Critérios de Aceite:
   - Editor com abas `Escrever` e `Visualizar`, barra de ferramentas com 5 botões com ícones do `lucide-react`, atalhos `Ctrl+B`/`Cmd+B` e `Ctrl+I`/`Cmd+I`, contador `N/5000` com destaque âmbar a partir de 4.500.
 - **TDD:** `src/lib/rich-description.test.ts`, `src/lib/description-format.test.ts`, `src/lib/site-meta.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/lib/rich-description.ts`, `src/lib/rich-description.test.ts`, `src/lib/description-format.ts`, `src/lib/description-format.test.ts`, `src/components/RichDescription.tsx`, `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/site-meta.ts`, `src/lib/site-meta.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-67 — Busca e ordenação empilhadas no celular
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `design/ui-ux.md Tabela de respostas; qa-plan.md QA-46-41, MAN-46-18; src/components/ResponsesTable.tsx`.
+- **Objetivo:** empilhar campo de busca, seletor de ordem e contador de inscrições em largura total no celular (telas menores que `sm:`), garantindo que o placeholder da busca não fique espremido, e atualizar o placeholder para `Nome, CPF, e-mail ou telefone`.
+- **Especificações complementares:**
+  - Contêiner da barra: `flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between`.
+  - Grupo busca + seletor: `flex w-full flex-col gap-3 sm:w-auto sm:min-w-[260px] sm:flex-1 sm:flex-row sm:items-center sm:gap-2`.
+  - Envoltório da busca: `relative w-full sm:max-w-sm sm:flex-1`.
+  - Input da busca: mantém classes atuais, ganha `text-ellipsis`, e novo placeholder `Nome, CPF, e-mail ou telefone`.
+  - Envoltório do seletor: `w-full sm:w-auto` (flex com label sr-only); select com `w-full sm:w-auto`.
+  - Contador: `text-sm text-muted-foreground sm:whitespace-nowrap sm:text-xs` (sem whitespace-nowrap no celular).
+  - Alvos de toque com `min-h-11` e fonte `text-base` mantidos no celular.
+  - No computador (`sm:` em diante), mantém linha única com busca `max-w-sm`, seletor e contador à direita.
+- **TDD:** teste estático em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/components/ResponsesTable.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

@@ -1278,7 +1278,7 @@ Estrutura estável no topo da página de respostas alinhada à esquerda em 3 blo
    - Texto explicativo logo abaixo em `id="vcf-contacts-hint"`.
    - Linha com `id="vcf-contacts-count"` (contagem) e botão `Como usar` como botão com contorno (`bg-white ring-1 ring-black/10 text-primary min-h-11 sm:min-h-9`), sem sublinhado. No celular, `Como usar` fica em linha própria abaixo da contagem.
    - `aria-describedby="vcf-contacts-hint vcf-contacts-count"` (com N = 0, apenas `vcf-contacts-hint`).
-4. Linha de busca e ordenação: campos com `min-h-11 text-base sm:min-h-9 sm:text-sm` (evita zoom no iPhone), textos auxiliares `text-sm sm:text-xs`.
+4. Linha de busca e ordenação (T-67): empilhada no celular (`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between`), grupo busca + seletor em largura total (`flex w-full flex-col gap-3 sm:w-auto sm:min-w-[260px] sm:flex-1 sm:flex-row sm:items-center sm:gap-2`), campo de busca em largura total com envoltório `relative w-full sm:max-w-sm sm:flex-1`, `text-ellipsis` e placeholder `Nome, CPF, e-mail ou telefone`, seletor de ordem em largura total (`w-full sm:w-auto`), e contador sem quebra forçada no celular (`text-sm text-muted-foreground sm:whitespace-nowrap sm:text-xs`). Controles com `min-h-11 text-base sm:min-h-9 sm:text-sm` (evita zoom no iPhone). No computador (`sm:` em diante), mantém linha única com busca `max-w-sm`, seletor e contador à direita.
 
 ```
 COMPUTADOR
@@ -1294,7 +1294,7 @@ N resposta(s) de V vagas · E editada(s) · prazo ...
 │ agenda de uma vez.                                              │
 │ 58 de 58 inscrições têm celular válido.    [ Como usar ]        │
 └─────────────────────────────────────────────────────────────────┘
-[Buscar...]  [Mais recentes primeiro]                  Mostrando N de M inscrições
+[🔍 Nome, CPF, e-mail ou telefone] [Mais recentes primeiro ▾]   Mostrando N de M inscrições
 
 CELULAR
 [← Editor]
@@ -1311,8 +1311,12 @@ N resposta(s) de V vagas · E editada(s) · prazo ...
 │ 58 de 58 inscrições têm celular válido.                         │
 │ [ Como usar ]                                                   │
 └─────────────────────────────────────────────────────────────────┘
-[Buscar por nome, CPF...]
-[Mais recentes primeiro]
+┌─────────────────────────────────────────────────────────────────┐
+│ 🔍 Nome, CPF, e-mail ou telefone                                │
+└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Mais recentes primeiro                                        ▾ │
+└─────────────────────────────────────────────────────────────────┘
 Mostrando N de M inscrições
 Toque numa linha para ver todos os dados.
 ```

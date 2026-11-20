@@ -56,17 +56,17 @@ export function ResponsesTable({
   return (
     <div className="space-y-3">
       {/* Barra de ferramentas */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
-          <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[260px] sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
+          <div className="relative w-full sm:max-w-sm sm:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               aria-label="Buscar inscrição"
-              placeholder="Buscar por nome, CPF, e-mail, telefone..."
+              placeholder="Nome, CPF, e-mail ou telefone"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="min-h-11 w-full rounded-lg bg-white/80 pl-9 pr-8 py-2 text-base ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none sm:min-h-9 sm:text-sm"
+              className="min-h-11 w-full rounded-lg bg-white/80 pl-9 pr-8 py-2 text-base text-ellipsis ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none sm:min-h-9 sm:text-sm"
             />
             {searchQuery && (
               <button
@@ -80,7 +80,7 @@ export function ResponsesTable({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex w-full items-center gap-1.5 sm:w-auto">
             <label htmlFor="sort-select" className="sr-only">
               Ordem das inscrições
             </label>
@@ -89,7 +89,7 @@ export function ResponsesTable({
               aria-label="Ordem das inscrições"
               value={sortMode}
               onChange={(e) => onSortModeChange(e.target.value as SortMode)}
-              className="min-h-11 rounded-lg bg-white/80 px-3 py-2 text-base ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none cursor-pointer sm:min-h-9 sm:text-sm"
+              className="min-h-11 w-full rounded-lg bg-white/80 px-3 py-2 text-base ring-1 ring-black/5 focus:ring-2 focus:ring-brand/40 focus:outline-none cursor-pointer sm:w-auto sm:min-h-9 sm:text-sm"
             >
               <option value="newest">Mais recentes primeiro</option>
               <option value="oldest">Mais antigas primeiro</option>
@@ -103,7 +103,7 @@ export function ResponsesTable({
           </div>
         </div>
 
-        <p aria-live="polite" className="text-sm text-muted-foreground whitespace-nowrap sm:text-xs">
+        <p aria-live="polite" className="text-sm text-muted-foreground sm:whitespace-nowrap sm:text-xs">
           Mostrando {filteredAndSortedRows.length} de {rows.length} {rows.length === 1 ? "inscrição" : "inscrições"}
         </p>
       </div>
