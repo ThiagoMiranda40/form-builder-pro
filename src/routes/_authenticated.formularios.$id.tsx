@@ -44,6 +44,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { StatusPill } from "./_authenticated.painel";
+import { Bold, Italic, AlignCenter, List, Link2 } from "lucide-react";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  toggleInlineMarker,
+  toggleLinePrefix,
+  insertLink,
+} from "@/lib/description-format";
+import { RichDescription } from "@/components/RichDescription";
 
 export const Route = createFileRoute("/_authenticated/formularios/$id")({
   head: () => ({
@@ -141,6 +149,7 @@ function Editor() {
   const [groupNoticeError, setGroupNoticeError] = useState<string | null>(null);
   const [groupInviteError, setGroupInviteError] = useState<string | null>(null);
   const [coverUrlError, setCoverUrlError] = useState<string | null>(null);
+  const [descTab, setDescTab] = useState<"escrever" | "visualizar">("escrever");
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const groupLinkInputRef = useRef<HTMLInputElement | null>(null);
   const groupNoticeInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -211,12 +220,76 @@ function Editor() {
     return () => cancelAnimationFrame(raf);
   }, [justAddedId]);
 
+  const applyInline = (marker: "**" | "*") => {
+    const el = descriptionTextareaRef.current;
+    if (!el || !form) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const currentText = form.description ?? "";
+    const res = toggleInlineMarker(currentText, start, end, marker);
+    if (res.text.length > DESCRIPTION_MAX_LENGTH) {
+      toast.error(`A descrição não pode ultrapassar ${DESCRIPTION_MAX_LENGTH.toLocaleString("pt-BR")} caracteres.`);
+      return;
+    }
+    setForm({ ...form, description: res.text });
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(res.start, res.end);
+    });
+  };
+
+  const applyPrefix = (prefix: "- " | ":: ") => {
+    const el = descriptionTextareaRef.current;
+    if (!el || !form) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const currentText = form.description ?? "";
+    const res = toggleLinePrefix(currentText, start, end, prefix);
+    if (res.text.length > DESCRIPTION_MAX_LENGTH) {
+      toast.error(`A descrição não pode ultrapassar ${DESCRIPTION_MAX_LENGTH.toLocaleString("pt-BR")} caracteres.`);
+      return;
+    }
+    setForm({ ...form, description: res.text });
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(res.start, res.end);
+    });
+  };
+
+  const applyLink = () => {
+    const el = descriptionTextareaRef.current;
+    if (!el || !form) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const currentText = form.description ?? "";
+    const res = insertLink(currentText, start, end);
+    if (res.text.length > DESCRIPTION_MAX_LENGTH) {
+      toast.error(`A descrição não pode ultrapassar ${DESCRIPTION_MAX_LENGTH.toLocaleString("pt-BR")} caracteres.`);
+      return;
+    }
+    setForm({ ...form, description: res.text });
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(res.start, res.end);
+    });
+  };
+
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      applyInline("**");
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      applyInline("*");
+    }
+  };
+
   useEffect(() => {
     const el = descriptionTextareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
-  }, [form?.description]);
+  }, [form?.description, descTab]);
 
   const query = useQuery({
     queryKey: ["form", id],
@@ -785,30 +858,134 @@ function Editor() {
             className="w-full min-w-0 bg-transparent font-display text-2xl font-semibold tracking-tight focus:outline-none"
             placeholder="Título do formulário"
           />
-          <textarea
-            ref={descriptionTextareaRef}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            maxLength={1000}
-            rows={4}
-            aria-label="Descrição do formulário"
-            aria-describedby="description-counter"
-            placeholder="Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
-            className="mt-2 w-full min-w-0 resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 overflow-y-auto"
-            style={{ minHeight: "6rem", maxHeight: "24rem" }}
-          />
-          <div className="mt-1 flex justify-end">
-            <span
-              id="description-counter"
-              className={`text-xs ${
-                (form.description?.length ?? 0) >= 900
-                  ? "font-medium text-amber-800"
-                  : "text-slate-600"
-              }`}
-            >
-              {form.description?.length ?? 0}/1000
-            </span>
+          {/* Abas e Barra de ferramentas da Descrição (T-66) */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-b border-black/10 pb-2">
+            <div role="tablist" aria-label="Modo de edição da descrição" className="flex items-center gap-1">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={descTab === "escrever"}
+                onClick={() => setDescTab("escrever")}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  descTab === "escrever"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                Escrever
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={descTab === "visualizar"}
+                onClick={() => setDescTab("visualizar")}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  descTab === "visualizar"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                Visualizar
+              </button>
+            </div>
+
+            {descTab === "escrever" && (
+              <div
+                role="toolbar"
+                aria-label="Formatação da descrição"
+                className="flex items-center gap-0.5 rounded-lg border border-black/10 bg-white/80 p-0.5 shadow-xs"
+              >
+                <button
+                  type="button"
+                  onClick={() => applyInline("**")}
+                  aria-label="Negrito"
+                  title="Negrito (Ctrl+B)"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand/50"
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyInline("*")}
+                  aria-label="Itálico"
+                  title="Itálico (Ctrl+I)"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand/50"
+                >
+                  <Italic className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPrefix(":: ")}
+                  aria-label="Centralizar parágrafo"
+                  title="Centralizar parágrafo"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand/50"
+                >
+                  <AlignCenter className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPrefix("- ")}
+                  aria-label="Lista com marcadores"
+                  title="Lista com marcadores"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand/50"
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={applyLink}
+                  aria-label="Inserir link"
+                  title="Inserir link"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand/50"
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
+
+          {descTab === "escrever" ? (
+            <>
+              <textarea
+                ref={descriptionTextareaRef}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onKeyDown={handleDescriptionKeyDown}
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                rows={4}
+                aria-label="Descrição do formulário"
+                aria-describedby="description-counter"
+                placeholder="Descrição exibida para quem for se inscrever. As quebras de linha que você digitar aparecem na tela de inscrição."
+                className="mt-2 w-full min-w-0 resize-none rounded-lg border border-black/10 bg-white/60 px-3 py-2 text-sm text-slate-700 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/40 overflow-y-auto"
+                style={{ minHeight: "6rem", maxHeight: "32rem" }}
+              />
+              <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <p className="text-xs text-muted-foreground">
+                  Selecione um trecho e use os botões. Atalhos: Ctrl+B (negrito) e Ctrl+I (itálico).
+                </p>
+                <span
+                  id="description-counter"
+                  className={`text-xs text-right shrink-0 ${
+                    (form.description?.length ?? 0) >= 4500
+                      ? "font-medium text-amber-800"
+                      : "text-slate-600"
+                  }`}
+                >
+                  {form.description?.length ?? 0}/5000
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 min-h-[6rem] max-h-[32rem] overflow-y-auto rounded-lg border border-black/10 bg-white/60 p-4">
+              {form.description?.trim() ? (
+                <RichDescription text={form.description} />
+              ) : (
+                <p className="text-sm italic text-muted-foreground">
+                  Nada para mostrar ainda.
+                </p>
+              )}
+            </div>
+          )}
 
           <ol className="mt-5 min-w-0 space-y-3">
             {questions.map((q, index) => {

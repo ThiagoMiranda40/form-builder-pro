@@ -863,7 +863,8 @@ Critérios de Aceite:
 | 7h | T-59 Fechamento documental | — | concluída (18/11/2026) |
 | 7i | T-63 Cartão de contatos e conforto de toque | T-62 | concluída (refinada pela T-64) |
 | 7j | T-64 Refino mobile do painel e do cartão de contatos | T-63 | concluída (provada pelo dono na prévia em 20/11/2026) |
-| 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída no código; prova visual pendente do dono (🧑) |
+| 7k | T-65 Atalho para o formulário publicado no painel | T-64 | concluída no código; provada pelo dono na prévia em 20/11/2026 (ainda não está na main) |
+| 7l | T-66 Descrição com formatação e 5.000 caracteres | T-20 | concluída no código; prova visual pendente do dono (🧑) |
 | 8 | T-49 ⚖ Servidor do cliente | T-48 | |
 | 9 | T-53 Painel do cliente (inclui o `.vcf` no link do cliente) | T-49, T-52 | **Marco 2: cliente usa** (antes da próxima corrida; após prova da T-54 parte B) |
 
@@ -1153,7 +1154,7 @@ Critérios de Aceite:
 
 ## T-65 — Atalho para o formulário publicado no painel
 
-- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Estado:** concluída no código; provada pelo dono na prévia em 20/11/2026 (ainda não está na main).
 - **Ler:** `spec.md RF-28; design/ui-ux.md Tela G e Diretrizes Transversais; seguranca.md SEC-38; qa-plan.md QA-46-39, MAN-46-16; src/routes/_authenticated.painel.tsx`.
 - **Objetivo:** oferecer no painel principal atalhos diretos para abrir o formulário público em nova aba e copiar o link público em cada cartão de formulário publicado ou encerrado, sem precisar entrar no editor.
 - **Especificações complementares:**
@@ -1167,6 +1168,23 @@ Critérios de Aceite:
   - Nunca expor link privado do cliente (`/c/<token>`) nem `share_token`.
 - **TDD:** `src/lib/form-links.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
 - **Arquivos:** `src/lib/form-links.ts`, `src/lib/form-links.test.ts`, `src/routes/_authenticated.painel.tsx`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
+- **Verificação:** comandos padrão; 0 erros; testes e build ok.
+
+---
+
+## T-66 — Descrição do formulário com 5.000 caracteres e formatação
+
+- **Estado:** concluída no código; prova visual pendente do dono (🧑).
+- **Ler:** `spec.md RF-29; design/ui-ux.md Tela do Editor e Tela Pública; seguranca.md SEC-50; qa-plan.md QA-46-40, MAN-46-17; src/lib/rich-description.ts; src/components/RichDescription.tsx; src/routes/_authenticated.formularios.$id.tsx; src/routes/$slug.tsx`.
+- **Objetivo:** ampliar o limite da descrição do formulário de 1.000 para 5.000 caracteres e permitir formatação rica (negrito, itálico, lista com marcadores, parágrafo centralizado e links https) gravada em marcas simples de texto sem HTML, renderizada com segurança sem dangerouslySetInnerHTML, com barra de ferramentas e abas Escrever / Visualizar no editor.
+- **Especificações complementares:**
+  - Marcas: `**negrito**`, `*itálico*`, `- ` (lista de marcadores), `:: ` (parágrafo centralizado), `[texto](https://url)` (link seguro só https).
+  - Parser puro `parseRichDescription` em `src/lib/rich-description.ts` e limpador `descriptionToPlainText` para prévia social (OpenGraph / WhatsApp) sem marcas.
+  - Componente seguro `RichDescription.tsx` sem `dangerouslySetInnerHTML`.
+  - Auxiliares puros em `src/lib/description-format.ts` para alternar marcas inline, prefixos de linha e inserir links. Constante única `DESCRIPTION_MAX_LENGTH = 5000`.
+  - Editor com abas `Escrever` e `Visualizar`, barra de ferramentas com 5 botões com ícones do `lucide-react`, atalhos `Ctrl+B`/`Cmd+B` e `Ctrl+I`/`Cmd+I`, contador `N/5000` com destaque âmbar a partir de 4.500.
+- **TDD:** `src/lib/rich-description.test.ts`, `src/lib/description-format.test.ts`, `src/lib/site-meta.test.ts` e testes estáticos em `src/lib/routes.test.ts`.
+- **Arquivos:** `src/lib/rich-description.ts`, `src/lib/rich-description.test.ts`, `src/lib/description-format.ts`, `src/lib/description-format.test.ts`, `src/components/RichDescription.tsx`, `src/routes/$slug.tsx`, `src/routes/_authenticated.formularios.$id.tsx`, `src/lib/site-meta.ts`, `src/lib/site-meta.test.ts`, `src/lib/routes.test.ts`, `specs/001-fase-0-no-ar/tasks.md`, `specs/001-fase-0-no-ar/spec.md`, `specs/001-fase-0-no-ar/design/ui-ux.md`, `specs/001-fase-0-no-ar/seguranca.md`, `specs/001-fase-0-no-ar/qa-plan.md`.
 - **Verificação:** comandos padrão; 0 erros; testes e build ok.
 
 ---

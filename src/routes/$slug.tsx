@@ -23,6 +23,7 @@ import {
 } from "@/lib/email-hints";
 import { buildFormMeta } from "@/lib/site-meta";
 import { normalizeDescription } from "@/lib/description";
+import { RichDescription } from "@/components/RichDescription";
 import { Calendar, Users } from "lucide-react";
 import { buildAvailability } from "@/lib/availability";
 import {
@@ -460,9 +461,7 @@ function PublicForm() {
           </p>
         )}
         {description && (
-          <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
-            {description}
-          </p>
+          <RichDescription text={form.description} className="mt-2 text-sm leading-relaxed" />
         )}
         {(availability.slots || availability.deadline) && (
           <TooltipProvider delayDuration={150}>

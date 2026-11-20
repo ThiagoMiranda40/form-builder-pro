@@ -163,6 +163,15 @@ Como administrador, quero acessar e copiar o link público do formulário direta
 - Dado um formulário com status rascunho (`status === "draft"`), os atalhos de abrir e copiar link não são exibidos no cartão.
 - O link privado do cliente (`/c/<token>`) ou `share_token` nunca é exibido nem copiado nesses atalhos.
 
+### RF-29 — Descrição do formulário com formatação (T-66)
+Como administrador, quero formatar a descrição do formulário com negrito, itálico, centralização, listas com marcadores e links seguros, com até 5.000 caracteres, para apresentar as informações do evento de forma clara e profissional.
+*Nota de histórico: Atualizado em 20/11/2026: o limite subiu de 1.000 para 5.000 caracteres.*
+**Critério de aceite:**
+- Dado que o administrador edita a descrição do formulário no editor, quando digita texto de até 5.000 caracteres e aplica as marcas (`**negrito**`, `*itálico*`, linhas com `- ` para lista com marcadores, linhas com `:: ` para parágrafo centralizado, ou `[texto](https://url)` para links), então a aba Visualizar e o formulário público exibem a formatação correspondente.
+- Dado um texto legado sem marcas ou texto puro, o formulário público exibe o conteúdo exatamente como antes, preservando quebras de linha e parágrafos.
+- Dado um link na descrição, ele só se torna clicável se usar estritamente o protocolo `https://` (com `target="_blank"` e `rel="noopener noreferrer nofollow"`); links `http://`, `javascript:`, relativos ou inválidos aparecem como texto literal e não como link.
+- Nenhum código HTML ou tag (como `<script>`, `<b>`, etc.) é interpretado: todo HTML é renderizado como texto literal seguro. Marcas sem par de fechamento aparecem literalmente como texto.
+
 ## Ordem de entrega (decisão do dono, 12/11/2026)
 0. **Primeiro, o arquivo de contatos (RF-22, administrador):** ganho imediato, sem banco nem e-mail.
 1. **Administrador:** RF-17, RF-19, RF-20, RF-21 (e-mail em lote e botão por inscrito), RF-18 e RF-25. O administrador cria o grupo e dispara os convites, validando o fluxo.

@@ -784,6 +784,62 @@ describe("Painel — Atalhos para o formulário publicado — T-65 (RF-28, QA-46
   });
 });
 
+describe("Descrição formatada e limite de 5.000 caracteres — T-66 (RF-29, QA-46-40, SEC-50)", () => {
+  const rootDir = process.cwd();
+  const richDescPath = path.join(rootDir, "src/components/RichDescription.tsx");
+  const slugPath = path.join(rootDir, "src/routes/$slug.tsx");
+  const editorPath = path.join(rootDir, "src/routes/_authenticated.formularios.$id.tsx");
+
+  it("RichDescription.tsx existe, NUNCA usa dangerouslySetInnerHTML e protege links externos", () => {
+    expect(fs.existsSync(richDescPath)).toBe(true);
+    const content = fs.readFileSync(richDescPath, "utf-8");
+    expect(content).not.toContain("dangerouslySetInnerHTML");
+    expect(content).toContain('rel="noopener noreferrer nofollow"');
+    expect(content).toContain('target="_blank"');
+  });
+
+  it("o formulário público ($slug.tsx) usa RichDescription e não usa mais whitespace-pre-line na descrição", () => {
+    const content = fs.readFileSync(slugPath, "utf-8");
+    expect(content).toMatch(/import\s*\{\s*RichDescription\s*\}\s*from\s*["'][^"']*RichDescription["']/);
+    expect(content).toContain("<RichDescription");
+    expect(content).not.toMatch(/<p[^>]*whitespace-pre-line[^>]*>[^<]*\{description\}/);
+  });
+
+  it("o editor (_authenticated.formularios.$id.tsx) contém toolbar, abas, limite de 5000 e textos aprovados", () => {
+    const content = fs.readFileSync(editorPath, "utf-8");
+
+    // Importa RichDescription e DESCRIPTION_MAX_LENGTH
+    expect(content).toContain("DESCRIPTION_MAX_LENGTH");
+    expect(content).toContain("RichDescription");
+
+    // Barra de ferramentas com aria-label e botões
+    expect(content).toContain('role="toolbar"');
+    expect(content).toContain('aria-label="Formatação da descrição"');
+    expect(content).toContain('aria-label="Negrito"');
+    expect(content).toContain('aria-label="Itálico"');
+    expect(content).toContain('aria-label="Centralizar parágrafo"');
+    expect(content).toContain('aria-label="Lista com marcadores"');
+    expect(content).toContain('aria-label="Inserir link"');
+
+    // Abas Escrever e Visualizar
+    expect(content).toContain('role="tablist"');
+    expect(content).toContain("Escrever");
+    expect(content).toContain("Visualizar");
+    expect(content).toContain("Nada para mostrar ainda.");
+
+    // Texto de apoio aprovado e contador de caracteres
+    expect(content).toContain("Selecione um trecho e use os botões. Atalhos: Ctrl+B (negrito) e Ctrl+I (itálico).");
+    expect(content).toContain("/5000");
+
+    // Altura máxima confortável
+    expect(content).toMatch(/max-h-\[?32rem\]?/);
+
+    // Não contém mais os antigos limites de 1000 caracteres
+    expect(content).not.toContain("maxLength={1000}");
+    expect(content).not.toContain("/1000");
+  });
+});
+
 
 
 

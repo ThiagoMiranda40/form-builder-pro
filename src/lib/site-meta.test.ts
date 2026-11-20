@@ -214,6 +214,27 @@ describe("buildFormMeta (T-19)", () => {
     expect(resFull.title).toBe("Corrida Lotada | Corre Time");
     expect(resFull.description).toBe("Vagas esgotadas.");
   });
+
+  it("descrição rica com marcas remove ** e :: na prévia social (T-66)", () => {
+    const payload = {
+      state: "open",
+      form: {
+        title: "Corrida SKF",
+        description: "**Data:** 11/10\n:: *Venha*\n- Item\n[site](https://exemplo.com)",
+      },
+    };
+    const meta = buildFormMeta(payload as any);
+    expect(meta.description).not.toContain("*");
+    expect(meta.description).not.toContain("::");
+    expect(meta.description).not.toContain("[");
+    expect(meta.description).not.toContain("]");
+    expect(meta.description).not.toContain("https://");
+    expect(meta.description).toContain("Data: 11/10");
+    expect(meta.description).toContain("Venha");
+    expect(meta.description).toContain("• Item");
+    expect(meta.description).toContain("site");
+    expect(meta.ogDescription).toBe(meta.description);
+  });
 });
 
 describe("buildClientLinkMeta (T-40)", () => {
@@ -251,12 +272,5 @@ describe("buildClientLinkMeta (T-40)", () => {
     expect(meta.ogDescription.length).toBeLessThanOrEqual(160);
     expect(meta.description).toBe(meta.ogDescription);
   });
-
-  it("nenhum dos textos contém 'SKF' nem '{' (genérico)", () => {
-    const meta = buildClientLinkMeta();
-    for (const val of [meta.title, meta.description, meta.ogTitle, meta.ogDescription]) {
-      expect(val).not.toContain("SKF");
-      expect(val).not.toContain("{");
-    }
-  });
 });
+

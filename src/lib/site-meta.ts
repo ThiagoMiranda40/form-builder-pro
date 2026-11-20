@@ -1,3 +1,5 @@
+import { descriptionToPlainText } from "./rich-description";
+
 export const SITE_URL = "https://inscricoes.corretime.com.br";
 export const SITE_TITLE = "Inscrições | Corre Time";
 export const SITE_DESCRIPTION =
@@ -102,7 +104,8 @@ export function buildFormMeta(payload?: FormMetaPayload | null): FormMetaResult 
   let ogDescription = DEFAULT_FORM_OG_DESCRIPTION;
 
   if (rawDesc) {
-    const normalizedDesc = normalizeWhitespace(rawDesc);
+    const plainDesc = descriptionToPlainText(rawDesc);
+    const normalizedDesc = normalizeWhitespace(plainDesc);
     const truncatedDesc = truncateDescription(normalizedDesc);
     description = truncatedDesc;
     ogDescription = truncatedDesc;
